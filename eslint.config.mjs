@@ -6,6 +6,7 @@ import prettierPlugin from "eslint-plugin-prettier";
 export default [
   {
     files: ["**/*.ts"],
+    ignores: ["**/*.test.ts", "**/*.spec.ts"],
     plugins: {
       "@typescript-eslint": typescriptEslint,
       "prettier": prettierPlugin,
@@ -33,7 +34,7 @@ export default [
           format: ["camelCase", "PascalCase"],
         },
       ],
-      
+
       // General rules
       "prefer-const": "error",
       "no-var": "error",
@@ -41,8 +42,30 @@ export default [
       "eqeqeq": "warn",
       "no-throw-literal": "warn",
       "semi": "warn",
-      
+
       // Prettier integration
+      "prettier/prettier": "error",
+    },
+  },
+  // Configuration for test files with relaxed rules
+  {
+    files: ["**/*.test.ts", "**/*.spec.ts"],
+    plugins: {
+      "@typescript-eslint": typescriptEslint,
+      "prettier": prettierPlugin,
+    },
+    languageOptions: {
+      parser: tsParser,
+      ecmaVersion: 2020,
+      sourceType: "module",
+    },
+    rules: {
+      // Relaxed rules for test files
+      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+      "@typescript-eslint/explicit-function-return-type": "off",
+      "@typescript-eslint/no-explicit-any": "off",
+      "prefer-const": "error",
+      "no-var": "error",
       "prettier/prettier": "error",
     },
   },
