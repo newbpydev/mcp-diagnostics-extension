@@ -180,12 +180,6 @@ describe('DiagnosticsWatcher', () => {
     beforeEach(() => {
       jest.useFakeTimers();
 
-      // Capture the callback passed to onDidChangeDiagnostics
-      mockVsCode.languages.onDidChangeDiagnostics.mockImplementation((callback: any) => {
-        onDidChangeDiagnosticsCallback = callback;
-        return { dispose: jest.fn() };
-      });
-
       mockEvent = {
         uris: [mockUri],
       };
@@ -203,6 +197,13 @@ describe('DiagnosticsWatcher', () => {
       mockVsCode.languages.getDiagnostics.mockReturnValue([mockDiagnostic]);
       mockVsCode.workspace.getWorkspaceFolder.mockReturnValue({ name: 'test-workspace' });
 
+      // Capture the callback passed to onDidChangeDiagnostics
+      mockVsCode.languages.onDidChangeDiagnostics.mockImplementation((callback: any) => {
+        onDidChangeDiagnosticsCallback = callback;
+        return { dispose: jest.fn() };
+      });
+
+      // Create the watcher AFTER setting up the mock implementation
       watcher = new DiagnosticsWatcher(mockVsCode);
     });
 
@@ -211,6 +212,9 @@ describe('DiagnosticsWatcher', () => {
     });
 
     it('should debounce rapid diagnostic changes', () => {
+      // Ensure we have captured the callback
+      expect(onDidChangeDiagnosticsCallback).toBeDefined();
+
       // Trigger multiple rapid events
       onDidChangeDiagnosticsCallback(mockEvent);
       onDidChangeDiagnosticsCallback(mockEvent);
@@ -228,6 +232,9 @@ describe('DiagnosticsWatcher', () => {
     });
 
     it('should emit problemsChanged event after processing', (done) => {
+      // Ensure we have captured the callback
+      expect(onDidChangeDiagnosticsCallback).toBeDefined();
+
       watcher.on(EVENT_NAMES.PROBLEMS_CHANGED, (event) => {
         try {
           expect(event.uri).toBe('/path/to/file.ts');
@@ -250,6 +257,9 @@ describe('DiagnosticsWatcher', () => {
     });
 
     it('should process multiple URIs in a single event', () => {
+      // Ensure we have captured the callback
+      expect(onDidChangeDiagnosticsCallback).toBeDefined();
+
       const mockUri2 = {
         fsPath: '/path/to/file2.ts',
         toString: () => '/path/to/file2.ts',
@@ -274,6 +284,9 @@ describe('DiagnosticsWatcher', () => {
     });
 
     it('should handle empty diagnostics by removing from cache', () => {
+      // Ensure we have captured the callback
+      expect(onDidChangeDiagnosticsCallback).toBeDefined();
+
       // First, add some problems
       onDidChangeDiagnosticsCallback(mockEvent);
       jest.advanceTimersByTime(300);
@@ -296,6 +309,9 @@ describe('DiagnosticsWatcher', () => {
     });
 
     it('should not process events when disposed', () => {
+      // Ensure we have captured the callback
+      expect(onDidChangeDiagnosticsCallback).toBeDefined();
+
       watcher.dispose();
 
       const errorSpy = jest.spyOn(console, 'error').mockImplementation();
@@ -309,6 +325,9 @@ describe('DiagnosticsWatcher', () => {
     });
 
     it('should emit error event when VS Code API throws', () => {
+      // Ensure we have captured the callback
+      expect(onDidChangeDiagnosticsCallback).toBeDefined();
+
       mockVsCode.languages.getDiagnostics.mockImplementation(() => {
         throw new Error('VS Code API Error');
       });
@@ -327,6 +346,9 @@ describe('DiagnosticsWatcher', () => {
     });
 
     it('should continue processing other URIs when one fails', () => {
+      // Ensure we have captured the callback
+      expect(onDidChangeDiagnosticsCallback).toBeDefined();
+
       const mockUri2 = {
         fsPath: '/path/to/file2.ts',
         toString: () => '/path/to/file2.ts',
@@ -363,6 +385,9 @@ describe('DiagnosticsWatcher', () => {
     });
 
     it('should update internal cache correctly', () => {
+      // Ensure we have captured the callback
+      expect(onDidChangeDiagnosticsCallback).toBeDefined();
+
       // Initial state - no problems
       expect(watcher.getAllProblems()).toHaveLength(0);
 
@@ -373,44 +398,52 @@ describe('DiagnosticsWatcher', () => {
       expect(watcher.getAllProblems()).toHaveLength(1);
       expect(watcher.getProblemsForFile('/path/to/file.ts')).toHaveLength(1);
 
-      // Add more diagnostics to the same file
-      const additionalDiagnostic = {
+      // Update problems
+      const updatedDiagnostic = {
         ...mockDiagnostic,
-        message: 'Second diagnostic',
-        range: {
-          start: { line: 1, character: 0 },
-          end: { line: 1, character: 5 },
-        },
+        message: 'Updated diagnostic',
       };
-
-      mockVsCode.languages.getDiagnostics.mockReturnValue([mockDiagnostic, additionalDiagnostic]);
+      mockVsCode.languages.getDiagnostics.mockReturnValue([updatedDiagnostic]);
 
       onDidChangeDiagnosticsCallback(mockEvent);
       jest.advanceTimersByTime(300);
 
-      expect(watcher.getAllProblems()).toHaveLength(2);
-      expect(watcher.getProblemsForFile('/path/to/file.ts')).toHaveLength(2);
+      const problems = watcher.getProblemsForFile('/path/to/file.ts');
+      expect(problems).toHaveLength(1);
+      expect(problems[0]?.message).toBe('Updated diagnostic');
     });
 
     it('should respect custom debounce time', () => {
-      watcher.dispose();
-      watcher = new DiagnosticsWatcher(mockVsCode, 500); // Custom 500ms debounce
+      // Create a new watcher with custom debounce time
+      const customDebounceMs = 500;
+      let customCallback: ((event: any) => void) | undefined;
 
-      // Capture the new callback
       mockVsCode.languages.onDidChangeDiagnostics.mockImplementation((callback: any) => {
-        onDidChangeDiagnosticsCallback = callback;
+        customCallback = callback;
         return { dispose: jest.fn() };
       });
 
-      onDidChangeDiagnosticsCallback(mockEvent);
+      const customWatcher = new DiagnosticsWatcher(mockVsCode, customDebounceMs);
 
-      // Should not have processed at 300ms
-      jest.advanceTimersByTime(300);
-      expect(mockVsCode.languages.getDiagnostics).not.toHaveBeenCalled();
+      // Ensure we have captured the callback
+      expect(customCallback).toBeDefined();
 
-      // Should process at 500ms
-      jest.advanceTimersByTime(200);
-      expect(mockVsCode.languages.getDiagnostics).toHaveBeenCalledTimes(1);
+      if (customCallback) {
+        customCallback(mockEvent);
+
+        // Should not have called getDiagnostics yet
+        expect(mockVsCode.languages.getDiagnostics).not.toHaveBeenCalled();
+
+        // Advance by less than custom debounce time
+        jest.advanceTimersByTime(300);
+        expect(mockVsCode.languages.getDiagnostics).not.toHaveBeenCalled();
+
+        // Advance by custom debounce time
+        jest.advanceTimersByTime(200); // Total: 500ms
+        expect(mockVsCode.languages.getDiagnostics).toHaveBeenCalledTimes(1);
+      }
+
+      customWatcher.dispose();
     });
   });
 });
