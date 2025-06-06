@@ -123,15 +123,7 @@ export const DiagnosticsChangeEventSchema = z.object({
  */
 export type DiagnosticsChangeEvent = z.infer<typeof DiagnosticsChangeEventSchema>;
 
-/**
- * Configuration for the extension
- */
-export interface ExtensionConfig {
-  readonly mcpServerPort: number;
-  readonly debounceMs: number;
-  readonly enablePerformanceLogging: boolean;
-  readonly maxProblemsPerFile: number;
-}
+// ExtensionConfig is now defined in constants.ts with Zod validation
 
 /**
  * Filter options for querying problems
