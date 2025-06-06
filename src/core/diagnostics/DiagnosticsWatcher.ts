@@ -13,15 +13,15 @@ export interface DiagnosticChangeEvent {
  * VS Code diagnostic interface
  */
 export interface VsCodeDiagnostic {
-  range: {
-    start: { line: number; character: number };
-    end: { line: number; character: number };
+  range?: {
+    start?: { line?: number; character?: number };
+    end?: { line?: number; character?: number };
   };
   message: string;
   severity: number;
-  source?: string;
+  source?: string | null;
   code?: string | number;
-  relatedInformation?: unknown[];
+  relatedInformation?: unknown[] | null;
 }
 
 /**
@@ -36,7 +36,7 @@ export interface VsCodeUri {
  * VS Code workspace folder interface
  */
 export interface VsCodeWorkspaceFolder {
-  name: string;
+  name?: string;
 }
 
 /**
