@@ -26,4 +26,12 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
-}; 
+  // Prevent worker process warnings
+  maxWorkers: 1,
+  forceExit: true,
+  // Clear timers and mocks after each test
+  clearMocks: true,
+  restoreMocks: true,
+  // Timeout settings
+  testTimeout: 10000,
+};
