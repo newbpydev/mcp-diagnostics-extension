@@ -1,0 +1,28 @@
+// Place your settings in this file to overwrite default and user settings.
+{
+	"editor.formatOnSave": true,
+	"editor.defaultFormatter": "esbenp.prettier-vscode",
+	"editor.codeActionsOnSave": {
+		"source.fixAll.eslint": "explicit"
+	},
+	"eslint.validate": [
+		"typescript"
+	],
+	"typescript.preferences.strictNullChecks": true,
+	"typescript.preferences.strictFunctionTypes": true,
+	"typescript.tsc.autoDetect": "off",
+	"files.eol": "\n",
+	"files.trimTrailingWhitespace": true,
+	"files.insertFinalNewline": true,
+	"files.exclude": {
+		"out": false,
+		"node_modules": true,
+		"coverage": true
+	},
+	"search.exclude": {
+		"out": true,
+		"node_modules": true,
+		"coverage": true
+	},
+	"jest.autoRun": "watch"
+}

@@ -1,0 +1,11 @@
+out
+dist
+node_modules
+.vscode-test/
+*.vsix
+
+# internal-docs
+internal-docs/
+
+# cursor
+.cursor/
