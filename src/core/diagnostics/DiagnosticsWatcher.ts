@@ -3,6 +3,7 @@ import { debounce } from 'lodash';
 import { ProblemItem, DiagnosticsChangeEvent } from '../../shared/types';
 import { DEFAULT_CONFIG, EVENT_NAMES } from '../../shared/constants';
 import { DiagnosticConverter } from './DiagnosticConverter';
+import { PerformanceMonitor, PerformanceSummary } from './PerformanceMonitor';
 
 /**
  * VS Code diagnostic change event interface
@@ -77,6 +78,7 @@ export class DiagnosticsWatcher extends EventEmitter {
   private readonly problemsByUri: Map<string, ProblemItem[]> = new Map();
   private readonly disposables: Array<{ dispose(): void }> = [];
   private readonly converter: DiagnosticConverter;
+  private readonly performanceMonitor: PerformanceMonitor;
   private readonly debounceMs: number;
   private isDisposed = false;
 
@@ -91,6 +93,7 @@ export class DiagnosticsWatcher extends EventEmitter {
     this.vsCodeApi = vsCodeApi;
     this.debounceMs = debounceMs;
     this.converter = new DiagnosticConverter(vsCodeApi);
+    this.performanceMonitor = new PerformanceMonitor();
     this.initialize();
   }
 
@@ -125,6 +128,15 @@ export class DiagnosticsWatcher extends EventEmitter {
   }
 
   /**
+   * Gets performance metrics for diagnostic processing
+   *
+   * @returns Performance summary including timing statistics
+   */
+  public getPerformanceMetrics(): PerformanceSummary {
+    return this.performanceMonitor.getPerformanceSummary();
+  }
+
+  /**
    * Disposes of all resources and subscriptions
    * Safe to call multiple times
    */
@@ -148,6 +160,9 @@ export class DiagnosticsWatcher extends EventEmitter {
     // Clear collections
     this.problemsByUri.clear();
     this.disposables.length = 0;
+
+    // Dispose performance monitor
+    this.performanceMonitor.dispose();
 
     // Remove all event listeners
     this.removeAllListeners();
@@ -190,13 +205,15 @@ export class DiagnosticsWatcher extends EventEmitter {
    * Processes a diagnostic change event for all affected URIs
    */
   private processDiagnosticChangeEvent(event: DiagnosticChangeEvent): void {
-    for (const uri of event.uris) {
-      try {
-        this.processUriDiagnostics(uri as VsCodeUri);
-      } catch (error) {
-        this.emit(EVENT_NAMES.WATCHER_ERROR, error);
+    this.performanceMonitor.recordDiagnosticProcessing(() => {
+      for (const uri of event.uris) {
+        try {
+          this.processUriDiagnostics(uri as VsCodeUri);
+        } catch (error) {
+          this.emit(EVENT_NAMES.WATCHER_ERROR, error);
+        }
       }
-    }
+    });
   }
 
   /**
