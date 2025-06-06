@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import { debounce } from 'lodash';
-import { ProblemItem, DiagnosticsChangeEvent } from '../../shared/types';
-import { DEFAULT_CONFIG, EVENT_NAMES } from '../../shared/constants';
+import { ProblemItem, DiagnosticsChangeEvent } from '@shared/types';
+import { DEFAULT_CONFIG, EVENT_NAMES } from '@shared/constants';
 import { DiagnosticConverter } from './DiagnosticConverter';
 import { PerformanceMonitor, PerformanceSummary } from './PerformanceMonitor';
 
@@ -125,6 +125,21 @@ export class DiagnosticsWatcher extends EventEmitter {
       return [];
     }
     return this.problemsByUri.get(filePath) || [];
+  }
+
+  /**
+   * Gets problems for a specific workspace
+   *
+   * @param workspaceName - The workspace name to filter by
+   * @returns Array of ProblemItems for the specified workspace
+   */
+  public getProblemsForWorkspace(workspaceName: string): ProblemItem[] {
+    if (this.isDisposed) {
+      return [];
+    }
+
+    const allProblems = this.getAllProblems();
+    return allProblems.filter((problem) => problem.workspaceFolder === workspaceName);
   }
 
   /**

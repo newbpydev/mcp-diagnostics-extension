@@ -1,7 +1,7 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { DiagnosticsWatcher } from '../../core/diagnostics/DiagnosticsWatcher';
-import { MCP_SERVER_INFO, EVENT_NAMES } from '../../shared/constants';
+import { DiagnosticsWatcher } from '@core/diagnostics/DiagnosticsWatcher';
+import { MCP_SERVER_INFO, EVENT_NAMES } from '@shared/constants';
 
 export interface McpServerConfig {
   port?: number;

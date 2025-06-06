@@ -3,3 +3,4 @@
 
 // Export all MCP components
 export { McpServerWrapper, McpServerConfig } from './McpServerWrapper';
+export { McpTools } from './McpTools';

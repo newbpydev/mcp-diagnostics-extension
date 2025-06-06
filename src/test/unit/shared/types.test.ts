@@ -10,7 +10,7 @@ import {
   Range,
   ProblemItem,
   DiagnosticsChangeEvent,
-} from '../../../shared/types';
+} from '@shared/types';
 
 describe('Zod Schema Validation', () => {
   describe('ProblemSeveritySchema', () => {

@@ -1,4 +1,4 @@
-import { PerformanceMonitor } from '../../../../core/diagnostics/PerformanceMonitor';
+import { PerformanceMonitor } from '@core/diagnostics/PerformanceMonitor';
 
 describe('PerformanceMonitor', () => {
   let monitor: PerformanceMonitor;

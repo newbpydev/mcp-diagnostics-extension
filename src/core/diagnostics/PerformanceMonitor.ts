@@ -1,4 +1,4 @@
-import { PERFORMANCE_THRESHOLDS } from '../../shared/constants';
+import { PERFORMANCE_THRESHOLDS } from '@shared/constants';
 
 /**
  * Configuration options for PerformanceMonitor

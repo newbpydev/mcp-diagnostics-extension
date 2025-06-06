@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
-import { DiagnosticsWatcher, IVsCodeApi } from '../../../../core/diagnostics/DiagnosticsWatcher';
-import { EVENT_NAMES } from '../../../../shared/constants';
+import { DiagnosticsWatcher, IVsCodeApi } from '@core/diagnostics/DiagnosticsWatcher';
+import { EVENT_NAMES } from '@shared/constants';
 
 describe('DiagnosticsWatcher', () => {
   let mockVsCode: any;

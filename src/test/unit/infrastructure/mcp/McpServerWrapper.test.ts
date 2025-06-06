@@ -1,5 +1,5 @@
-import { McpServerWrapper, McpServerConfig } from '../../../../infrastructure/mcp/McpServerWrapper';
-import { DiagnosticsWatcher } from '../../../../core/diagnostics/DiagnosticsWatcher';
+import { McpServerWrapper, McpServerConfig } from '@infrastructure/mcp/McpServerWrapper';
+import { DiagnosticsWatcher } from '@core/diagnostics/DiagnosticsWatcher';
 
 describe('McpServerWrapper', () => {
   let mockWatcher: jest.Mocked<DiagnosticsWatcher>;

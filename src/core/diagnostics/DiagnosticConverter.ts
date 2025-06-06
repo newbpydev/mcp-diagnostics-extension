@@ -1,4 +1,4 @@
-import { ProblemItem, ProblemSeverity } from '../../shared/types';
+import { ProblemItem, ProblemSeverity } from '@shared/types';
 import { IVsCodeApi, VsCodeDiagnostic, VsCodeUri } from './DiagnosticsWatcher';
 
 /**

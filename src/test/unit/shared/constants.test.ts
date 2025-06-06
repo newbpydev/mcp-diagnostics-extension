@@ -8,7 +8,7 @@ import {
   MCP_TOOLS,
   ExtensionConfigSchema,
   validateExtensionConfig,
-} from '../../../shared/constants';
+} from '@shared/constants';
 
 describe('Configuration Constants', () => {
   describe('DEFAULT_CONFIG', () => {

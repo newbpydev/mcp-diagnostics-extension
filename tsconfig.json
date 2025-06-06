@@ -8,6 +8,24 @@
 		"outDir": "out",
 		"sourceMap": true,
 		"rootDir": "src",
+		"baseUrl": "./src",
+		"paths": {
+			"@/*": [
+				"./*"
+			],
+			"@core/*": [
+				"./core/*"
+			],
+			"@infrastructure/*": [
+				"./infrastructure/*"
+			],
+			"@shared/*": [
+				"./shared/*"
+			],
+			"@test/*": [
+				"./test/*"
+			]
+		},
 		"strict": true,
 		"noImplicitAny": true,
 		"strictNullChecks": true,

@@ -1,11 +1,11 @@
-import { DiagnosticConverter } from '../../../../core/diagnostics/DiagnosticConverter';
+import { DiagnosticConverter } from '@core/diagnostics/DiagnosticConverter';
 import {
   IVsCodeApi,
   VsCodeDiagnostic,
   VsCodeUri,
   VsCodeWorkspaceFolder,
-} from '../../../../core/diagnostics/DiagnosticsWatcher';
-import { ProblemSeverity } from '../../../../shared/types';
+} from '@core/diagnostics/DiagnosticsWatcher';
+import { ProblemSeverity } from '@shared/types';
 
 describe('DiagnosticConverter', () => {
   let converter: DiagnosticConverter;
