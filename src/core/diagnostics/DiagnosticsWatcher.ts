@@ -1,6 +1,8 @@
 import { EventEmitter } from 'events';
-import { ProblemItem } from '../../shared/types';
-import { DEFAULT_CONFIG } from '../../shared/constants';
+import { debounce } from 'lodash';
+import { ProblemItem, DiagnosticsChangeEvent } from '../../shared/types';
+import { DEFAULT_CONFIG, EVENT_NAMES } from '../../shared/constants';
+import { DiagnosticConverter } from './DiagnosticConverter';
 
 /**
  * VS Code diagnostic change event interface
@@ -74,6 +76,8 @@ export class DiagnosticsWatcher extends EventEmitter {
   private readonly vsCodeApi: IVsCodeApi;
   private readonly problemsByUri: Map<string, ProblemItem[]> = new Map();
   private readonly disposables: Array<{ dispose(): void }> = [];
+  private readonly converter: DiagnosticConverter;
+  private readonly debounceMs: number;
   private isDisposed = false;
 
   /**
@@ -82,9 +86,11 @@ export class DiagnosticsWatcher extends EventEmitter {
    * @param vsCodeApi - The VS Code API interface for dependency injection
    * @param debounceMs - Debounce time in milliseconds for diagnostic change events
    */
-  constructor(vsCodeApi: IVsCodeApi, _debounceMs: number = DEFAULT_CONFIG.debounceMs) {
+  constructor(vsCodeApi: IVsCodeApi, debounceMs: number = DEFAULT_CONFIG.debounceMs) {
     super();
     this.vsCodeApi = vsCodeApi;
+    this.debounceMs = debounceMs;
+    this.converter = new DiagnosticConverter(vsCodeApi);
     this.initialize();
   }
 
@@ -153,7 +159,7 @@ export class DiagnosticsWatcher extends EventEmitter {
   private initialize(): void {
     try {
       const subscription = this.vsCodeApi.languages.onDidChangeDiagnostics(
-        this.handleDiagnosticChange
+        this.createDebouncedHandler()
       );
       this.disposables.push(subscription);
     } catch (error) {
@@ -164,11 +170,53 @@ export class DiagnosticsWatcher extends EventEmitter {
   }
 
   /**
-   * Handles diagnostic change events (will be implemented in next task)
-   * Currently a placeholder that will be enhanced with debouncing and conversion logic
+   * Creates a debounced handler for diagnostic change events
    */
-  private handleDiagnosticChange = (_event: DiagnosticChangeEvent): void => {
-    // Implementation will be added in Task 1.2.2
-    // This placeholder ensures the interface tests pass
-  };
+  private createDebouncedHandler(): (event: DiagnosticChangeEvent) => void {
+    return debounce((event: DiagnosticChangeEvent) => {
+      if (this.isDisposed) {
+        return;
+      }
+
+      try {
+        this.processDiagnosticChangeEvent(event);
+      } catch (error) {
+        this.emit(EVENT_NAMES.WATCHER_ERROR, error);
+      }
+    }, this.debounceMs);
+  }
+
+  /**
+   * Processes a diagnostic change event for all affected URIs
+   */
+  private processDiagnosticChangeEvent(event: DiagnosticChangeEvent): void {
+    for (const uri of event.uris) {
+      try {
+        this.processUriDiagnostics(uri as VsCodeUri);
+      } catch (error) {
+        this.emit(EVENT_NAMES.WATCHER_ERROR, error);
+      }
+    }
+  }
+
+  /**
+   * Processes diagnostics for a single URI
+   */
+  private processUriDiagnostics(uri: VsCodeUri): void {
+    const filePath = uri.fsPath || uri.toString();
+    const diagnostics = this.vsCodeApi.languages.getDiagnostics(uri);
+
+    const problems = diagnostics.map((d) => this.converter.convertToProblemItem(d, uri));
+
+    if (problems.length > 0) {
+      this.problemsByUri.set(filePath, problems);
+    } else {
+      this.problemsByUri.delete(filePath);
+    }
+
+    this.emit(EVENT_NAMES.PROBLEMS_CHANGED, {
+      uri: filePath,
+      problems,
+    } as DiagnosticsChangeEvent);
+  }
 }

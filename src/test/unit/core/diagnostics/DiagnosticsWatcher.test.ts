@@ -1,11 +1,19 @@
 import { EventEmitter } from 'events';
 import { DiagnosticsWatcher, IVsCodeApi } from '../../../../core/diagnostics/DiagnosticsWatcher';
+import { EVENT_NAMES } from '../../../../shared/constants';
 
 describe('DiagnosticsWatcher', () => {
-  let mockVsCode: jest.Mocked<IVsCodeApi>;
+  let mockVsCode: any;
   let watcher: DiagnosticsWatcher;
+  let mockUri: any;
 
   beforeEach(() => {
+    // Create mock URI
+    mockUri = {
+      fsPath: '/path/to/file.ts',
+      toString: () => '/path/to/file.ts',
+    };
+
     // Create a comprehensive mock of the VS Code API
     mockVsCode = {
       languages: {
@@ -161,6 +169,248 @@ describe('DiagnosticsWatcher', () => {
       expect(() => {
         watcher = new DiagnosticsWatcher(minimalMock);
       }).not.toThrow();
+    });
+  });
+
+  describe('Event Processing & Debouncing', () => {
+    let onDidChangeDiagnosticsCallback: (event: any) => void;
+    let mockEvent: any;
+    let mockDiagnostic: any;
+
+    beforeEach(() => {
+      jest.useFakeTimers();
+
+      // Capture the callback passed to onDidChangeDiagnostics
+      mockVsCode.languages.onDidChangeDiagnostics.mockImplementation((callback: any) => {
+        onDidChangeDiagnosticsCallback = callback;
+        return { dispose: jest.fn() };
+      });
+
+      mockEvent = {
+        uris: [mockUri],
+      };
+
+      mockDiagnostic = {
+        range: {
+          start: { line: 0, character: 0 },
+          end: { line: 0, character: 5 },
+        },
+        message: 'Test diagnostic',
+        severity: 0,
+        source: 'test',
+      };
+
+      mockVsCode.languages.getDiagnostics.mockReturnValue([mockDiagnostic]);
+      mockVsCode.workspace.getWorkspaceFolder.mockReturnValue({ name: 'test-workspace' });
+
+      watcher = new DiagnosticsWatcher(mockVsCode);
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('should debounce rapid diagnostic changes', () => {
+      // Trigger multiple rapid events
+      onDidChangeDiagnosticsCallback(mockEvent);
+      onDidChangeDiagnosticsCallback(mockEvent);
+      onDidChangeDiagnosticsCallback(mockEvent);
+
+      // Should not have called getDiagnostics yet due to debouncing
+      expect(mockVsCode.languages.getDiagnostics).not.toHaveBeenCalled();
+
+      // Advance timers by debounce time
+      jest.advanceTimersByTime(300);
+
+      // Should have called getDiagnostics only once after debounce
+      expect(mockVsCode.languages.getDiagnostics).toHaveBeenCalledTimes(1);
+      expect(mockVsCode.languages.getDiagnostics).toHaveBeenCalledWith(mockUri);
+    });
+
+    it('should emit problemsChanged event after processing', (done) => {
+      watcher.on(EVENT_NAMES.PROBLEMS_CHANGED, (event) => {
+        try {
+          expect(event.uri).toBe('/path/to/file.ts');
+          expect(event.problems).toHaveLength(1);
+          expect(event.problems[0]).toMatchObject({
+            filePath: '/path/to/file.ts',
+            workspaceFolder: 'test-workspace',
+            severity: 'Error',
+            message: 'Test diagnostic',
+            source: 'test',
+          });
+          done();
+        } catch (error) {
+          done(error);
+        }
+      });
+
+      onDidChangeDiagnosticsCallback(mockEvent);
+      jest.advanceTimersByTime(300);
+    });
+
+    it('should process multiple URIs in a single event', () => {
+      const mockUri2 = {
+        fsPath: '/path/to/file2.ts',
+        toString: () => '/path/to/file2.ts',
+      };
+
+      const eventWithMultipleUris = {
+        uris: [mockUri, mockUri2],
+      };
+
+      const problemsChangedEvents: any[] = [];
+      watcher.on(EVENT_NAMES.PROBLEMS_CHANGED, (event) => {
+        problemsChangedEvents.push(event);
+      });
+
+      onDidChangeDiagnosticsCallback(eventWithMultipleUris);
+      jest.advanceTimersByTime(300);
+
+      expect(mockVsCode.languages.getDiagnostics).toHaveBeenCalledTimes(2);
+      expect(mockVsCode.languages.getDiagnostics).toHaveBeenCalledWith(mockUri);
+      expect(mockVsCode.languages.getDiagnostics).toHaveBeenCalledWith(mockUri2);
+      expect(problemsChangedEvents).toHaveLength(2);
+    });
+
+    it('should handle empty diagnostics by removing from cache', () => {
+      // First, add some problems
+      onDidChangeDiagnosticsCallback(mockEvent);
+      jest.advanceTimersByTime(300);
+
+      expect(watcher.getProblemsForFile('/path/to/file.ts')).toHaveLength(1);
+
+      // Now return empty diagnostics
+      mockVsCode.languages.getDiagnostics.mockReturnValue([]);
+
+      const problemsChangedEvents: any[] = [];
+      watcher.on(EVENT_NAMES.PROBLEMS_CHANGED, (event) => {
+        problemsChangedEvents.push(event);
+      });
+
+      onDidChangeDiagnosticsCallback(mockEvent);
+      jest.advanceTimersByTime(300);
+
+      expect(watcher.getProblemsForFile('/path/to/file.ts')).toHaveLength(0);
+      expect(problemsChangedEvents[0].problems).toHaveLength(0);
+    });
+
+    it('should not process events when disposed', () => {
+      watcher.dispose();
+
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      onDidChangeDiagnosticsCallback(mockEvent);
+      jest.advanceTimersByTime(300);
+
+      expect(mockVsCode.languages.getDiagnostics).not.toHaveBeenCalled();
+
+      errorSpy.mockRestore();
+    });
+
+    it('should emit error event when VS Code API throws', () => {
+      mockVsCode.languages.getDiagnostics.mockImplementation(() => {
+        throw new Error('VS Code API Error');
+      });
+
+      const errorEvents: any[] = [];
+      watcher.on(EVENT_NAMES.WATCHER_ERROR, (error) => {
+        errorEvents.push(error);
+      });
+
+      onDidChangeDiagnosticsCallback(mockEvent);
+      jest.advanceTimersByTime(300);
+
+      expect(errorEvents).toHaveLength(1);
+      expect(errorEvents[0]).toBeInstanceOf(Error);
+      expect(errorEvents[0].message).toBe('VS Code API Error');
+    });
+
+    it('should continue processing other URIs when one fails', () => {
+      const mockUri2 = {
+        fsPath: '/path/to/file2.ts',
+        toString: () => '/path/to/file2.ts',
+      };
+
+      const eventWithMultipleUris = {
+        uris: [mockUri, mockUri2],
+      };
+
+      // Make the first URI fail, but second succeed
+      mockVsCode.languages.getDiagnostics
+        .mockImplementationOnce(() => {
+          throw new Error('First URI failed');
+        })
+        .mockImplementationOnce(() => [mockDiagnostic]);
+
+      const problemsChangedEvents: any[] = [];
+      const errorEvents: any[] = [];
+
+      watcher.on(EVENT_NAMES.PROBLEMS_CHANGED, (event) => {
+        problemsChangedEvents.push(event);
+      });
+
+      watcher.on(EVENT_NAMES.WATCHER_ERROR, (error) => {
+        errorEvents.push(error);
+      });
+
+      onDidChangeDiagnosticsCallback(eventWithMultipleUris);
+      jest.advanceTimersByTime(300);
+
+      expect(errorEvents).toHaveLength(1);
+      expect(problemsChangedEvents).toHaveLength(1);
+      expect(problemsChangedEvents[0].uri).toBe('/path/to/file2.ts');
+    });
+
+    it('should update internal cache correctly', () => {
+      // Initial state - no problems
+      expect(watcher.getAllProblems()).toHaveLength(0);
+
+      // Add problems
+      onDidChangeDiagnosticsCallback(mockEvent);
+      jest.advanceTimersByTime(300);
+
+      expect(watcher.getAllProblems()).toHaveLength(1);
+      expect(watcher.getProblemsForFile('/path/to/file.ts')).toHaveLength(1);
+
+      // Add more diagnostics to the same file
+      const additionalDiagnostic = {
+        ...mockDiagnostic,
+        message: 'Second diagnostic',
+        range: {
+          start: { line: 1, character: 0 },
+          end: { line: 1, character: 5 },
+        },
+      };
+
+      mockVsCode.languages.getDiagnostics.mockReturnValue([mockDiagnostic, additionalDiagnostic]);
+
+      onDidChangeDiagnosticsCallback(mockEvent);
+      jest.advanceTimersByTime(300);
+
+      expect(watcher.getAllProblems()).toHaveLength(2);
+      expect(watcher.getProblemsForFile('/path/to/file.ts')).toHaveLength(2);
+    });
+
+    it('should respect custom debounce time', () => {
+      watcher.dispose();
+      watcher = new DiagnosticsWatcher(mockVsCode, 500); // Custom 500ms debounce
+
+      // Capture the new callback
+      mockVsCode.languages.onDidChangeDiagnostics.mockImplementation((callback: any) => {
+        onDidChangeDiagnosticsCallback = callback;
+        return { dispose: jest.fn() };
+      });
+
+      onDidChangeDiagnosticsCallback(mockEvent);
+
+      // Should not have processed at 300ms
+      jest.advanceTimersByTime(300);
+      expect(mockVsCode.languages.getDiagnostics).not.toHaveBeenCalled();
+
+      // Should process at 500ms
+      jest.advanceTimersByTime(200);
+      expect(mockVsCode.languages.getDiagnostics).toHaveBeenCalledTimes(1);
     });
   });
 });
