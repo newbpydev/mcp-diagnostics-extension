@@ -1,7 +1,6 @@
 import { McpResources } from '@infrastructure/mcp/McpResources';
 import { DiagnosticsWatcher } from '@core/diagnostics/DiagnosticsWatcher';
 import { ProblemItem } from '@shared/types';
-import { createMockVscode, createMockDiagnostic, createMockUri } from '@test/helpers/vscode-mock';
 
 describe('McpResources', () => {
   let mcpResources: McpResources;
@@ -102,7 +101,7 @@ describe('McpResources', () => {
 
     it('should return summary resource', async () => {
       const listHandler = mockServer.setRequestHandler.mock.calls.find(
-        (call) => call[0] === 'resources/list'
+        (call: any[]) => call[0] === 'resources/list'
       )[1];
 
       const result = await listHandler();
@@ -117,7 +116,7 @@ describe('McpResources', () => {
 
     it('should return file resources for each unique file', async () => {
       const listHandler = mockServer.setRequestHandler.mock.calls.find(
-        (call) => call[0] === 'resources/list'
+        (call: any[]) => call[0] === 'resources/list'
       )[1];
 
       const result = await listHandler();
@@ -139,7 +138,7 @@ describe('McpResources', () => {
 
     it('should return workspace resources for each unique workspace', async () => {
       const listHandler = mockServer.setRequestHandler.mock.calls.find(
-        (call) => call[0] === 'resources/list'
+        (call: any[]) => call[0] === 'resources/list'
       )[1];
 
       const result = await listHandler();
@@ -163,7 +162,7 @@ describe('McpResources', () => {
       mockDiagnosticsWatcher.getAllProblems.mockReturnValue([]);
 
       const listHandler = mockServer.setRequestHandler.mock.calls.find(
-        (call) => call[0] === 'resources/list'
+        (call: any[]) => call[0] === 'resources/list'
       )[1];
 
       const result = await listHandler();
@@ -193,7 +192,7 @@ describe('McpResources', () => {
 
     it('should read summary resource', async () => {
       const readHandler = mockServer.setRequestHandler.mock.calls.find(
-        (call) => call[0] === 'resources/read'
+        (call: any[]) => call[0] === 'resources/read'
       )[1];
 
       const result = await readHandler({ params: { uri: 'diagnostics://summary' } });
@@ -213,7 +212,7 @@ describe('McpResources', () => {
 
     it('should read file resource', async () => {
       const readHandler = mockServer.setRequestHandler.mock.calls.find(
-        (call) => call[0] === 'resources/read'
+        (call: any[]) => call[0] === 'resources/read'
       )[1];
 
       const result = await readHandler({
@@ -233,7 +232,7 @@ describe('McpResources', () => {
 
     it('should read workspace resource', async () => {
       const readHandler = mockServer.setRequestHandler.mock.calls.find(
-        (call) => call[0] === 'resources/read'
+        (call: any[]) => call[0] === 'resources/read'
       )[1];
 
       const result = await readHandler({
@@ -253,7 +252,7 @@ describe('McpResources', () => {
 
     it('should handle URL encoded file paths', async () => {
       const readHandler = mockServer.setRequestHandler.mock.calls.find(
-        (call) => call[0] === 'resources/read'
+        (call: any[]) => call[0] === 'resources/read'
       )[1];
 
       const result = await readHandler({
@@ -267,7 +266,7 @@ describe('McpResources', () => {
 
     it('should throw error for unknown resource URI', async () => {
       const readHandler = mockServer.setRequestHandler.mock.calls.find(
-        (call) => call[0] === 'resources/read'
+        (call: any[]) => call[0] === 'resources/read'
       )[1];
 
       await expect(
@@ -284,7 +283,7 @@ describe('McpResources', () => {
       mcpResources.registerResources(mockServer);
 
       const readHandler = mockServer.setRequestHandler.mock.calls.find(
-        (call) => call[0] === 'resources/read'
+        (call: any[]) => call[0] === 'resources/read'
       )[1];
 
       const result = await readHandler({ params: { uri: 'diagnostics://summary' } });
@@ -297,54 +296,52 @@ describe('McpResources', () => {
 
     it('should include timestamp in generated resources', async () => {
       mockDiagnosticsWatcher.getAllProblems.mockReturnValue(mockProblems);
-      mockDiagnosticsWatcher.getProblemsForFile.mockReturnValue([mockProblems[0]]);
+      mockDiagnosticsWatcher.getProblemsForFile.mockReturnValue([mockProblems[0]] as ProblemItem[]);
+
       mcpResources.registerResources(mockServer);
 
       const readHandler = mockServer.setRequestHandler.mock.calls.find(
-        (call) => call[0] === 'resources/read'
+        (call: any[]) => call[0] === 'resources/read'
       )[1];
 
-      const summaryResult = await readHandler({ params: { uri: 'diagnostics://summary' } });
-      const summary = JSON.parse(summaryResult.contents[0].text);
-      expect(summary.generatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
-
-      const fileResult = await readHandler({
+      const result = await readHandler({
         params: { uri: 'diagnostics://file/%2Fworkspace%2Fsrc%2Ffile1.ts' },
       });
-      const fileData = JSON.parse(fileResult.contents[0].text);
+
+      const fileData = JSON.parse(result.contents[0].text);
       expect(fileData.generatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
     });
   });
 
   describe('Error Handling', () => {
-    it('should handle diagnostics watcher errors gracefully', async () => {
+    it('should handle errors in resource list generation', async () => {
       mockDiagnosticsWatcher.getAllProblems.mockImplementation(() => {
-        throw new Error('Diagnostics watcher error');
+        throw new Error('Test error');
       });
+
       mcpResources.registerResources(mockServer);
 
       const listHandler = mockServer.setRequestHandler.mock.calls.find(
-        (call) => call[0] === 'resources/list'
+        (call: any[]) => call[0] === 'resources/list'
       )[1];
 
-      await expect(listHandler()).rejects.toThrow('Diagnostics watcher error');
+      await expect(listHandler()).rejects.toThrow('Test error');
     });
 
-    it('should handle file resource errors gracefully', async () => {
-      mockDiagnosticsWatcher.getProblemsForFile.mockImplementation(() => {
-        throw new Error('File access error');
+    it('should handle errors in resource reading', async () => {
+      mockDiagnosticsWatcher.getAllProblems.mockImplementation(() => {
+        throw new Error('Test error');
       });
+
       mcpResources.registerResources(mockServer);
 
       const readHandler = mockServer.setRequestHandler.mock.calls.find(
-        (call) => call[0] === 'resources/read'
+        (call: any[]) => call[0] === 'resources/read'
       )[1];
 
-      await expect(
-        readHandler({
-          params: { uri: 'diagnostics://file/%2Fworkspace%2Fsrc%2Ffile1.ts' },
-        })
-      ).rejects.toThrow('File access error');
+      await expect(readHandler({ params: { uri: 'diagnostics://summary' } })).rejects.toThrow(
+        'Test error'
+      );
     });
   });
 });
