@@ -11,15 +11,27 @@ let mcpServer: McpServerWrapper | undefined;
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
-export async function activate(context: vscode.ExtensionContext): Promise<void> {
+export async function activate(
+  context: vscode.ExtensionContext,
+  deps?: {
+    DiagnosticsWatcherCtor?: typeof DiagnosticsWatcher;
+    McpServerWrapperCtor?: typeof McpServerWrapper;
+    VsCodeApiAdapterCtor?: typeof VsCodeApiAdapter;
+  }
+): Promise<void> {
   console.log('MCP Diagnostics Extension activating...');
 
   try {
     const startTime = Date.now();
 
+    // Use injected constructors for testability
+    const DiagnosticsWatcherCtor = deps?.DiagnosticsWatcherCtor || DiagnosticsWatcher;
+    const McpServerWrapperCtor = deps?.McpServerWrapperCtor || McpServerWrapper;
+    const VsCodeApiAdapterCtor = deps?.VsCodeApiAdapterCtor || VsCodeApiAdapter;
+
     // Create DiagnosticsWatcher with adapter
-    const vsCodeAdapter = new VsCodeApiAdapter(vscode);
-    diagnosticsWatcher = new DiagnosticsWatcher(vsCodeAdapter);
+    const vsCodeAdapter = new VsCodeApiAdapterCtor(vscode);
+    diagnosticsWatcher = new DiagnosticsWatcherCtor(vsCodeAdapter);
 
     // Get configuration
     const config = vscode.workspace.getConfiguration('mcpDiagnostics');
@@ -29,7 +41,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     };
 
     // Create and start MCP server
-    mcpServer = new McpServerWrapper(diagnosticsWatcher, serverConfig);
+    mcpServer = new McpServerWrapperCtor(diagnosticsWatcher, serverConfig);
     await mcpServer.start();
 
     // Add disposables to context

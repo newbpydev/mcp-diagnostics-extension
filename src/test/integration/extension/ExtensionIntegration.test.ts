@@ -1,29 +1,9 @@
-import * as vscode from 'vscode';
-import { DiagnosticsWatcher } from '@core/diagnostics/DiagnosticsWatcher';
-import { McpServerWrapper } from '@infrastructure/mcp/McpServerWrapper';
-import { DEFAULT_CONFIG } from '@shared/constants';
-
-// Mock VS Code module first
-jest.mock('vscode', () => ({
-  workspace: {
-    getConfiguration: jest.fn(() => ({
-      get: jest.fn((_key: string, defaultValue?: any) => defaultValue),
-    })),
-  },
-  window: {
-    showErrorMessage: jest.fn(),
-  },
-}));
-
-// Mock the extension module dependencies
+// --- MOCKS MUST BE AT THE VERY TOP ---
 jest.mock('@core/diagnostics/DiagnosticsWatcher');
 jest.mock('@infrastructure/mcp/McpServerWrapper');
 jest.mock('@infrastructure/vscode/VsCodeApiAdapter');
 
-// Import the actual activate function
-// import { activate, deactivate } from '../../../extension';
-
-// Mock VS Code API
+// VS Code API mock
 const mockVscode = {
   workspace: {
     getConfiguration: jest.fn(),
@@ -44,21 +24,24 @@ const mockVscode = {
   },
 };
 
-// Replace the actual vscode import with our mock
 jest.mock('vscode', () => mockVscode, { virtual: true });
 
+import { DiagnosticsWatcher } from '@core/diagnostics/DiagnosticsWatcher';
+import { McpServerWrapper } from '@infrastructure/mcp/McpServerWrapper';
+import { VsCodeApiAdapter } from '@infrastructure/vscode/VsCodeApiAdapter';
+import { DEFAULT_CONFIG } from '@shared/constants';
+
 describe('Extension Integration', () => {
-  let mockContext: vscode.ExtensionContext;
-  let mockDiagnosticsWatcher: jest.Mocked<DiagnosticsWatcher>;
-  let mockMcpServer: jest.Mocked<McpServerWrapper>;
+  let mockContext: any;
+  let mockDiagnosticsWatcher: any;
+  let mockMcpServer: any;
   let activate: any;
   let deactivate: any;
 
   beforeEach(async () => {
-    // Reset all mocks
+    jest.resetModules();
     jest.clearAllMocks();
 
-    // Create mock context
     mockContext = {
       subscriptions: [],
       workspaceState: {} as any,
@@ -75,11 +58,10 @@ describe('Extension Integration', () => {
       logUri: {} as any,
       logPath: '/test/logs',
       extension: {} as any,
-      extensionMode: 3, // ExtensionMode.Test
+      extensionMode: 3,
       languageModelAccessInformation: {} as any,
     };
 
-    // Create mock instances
     mockDiagnosticsWatcher = {
       dispose: jest.fn(),
       emit: jest.fn(),
@@ -88,21 +70,29 @@ describe('Extension Integration', () => {
       getProblemsForWorkspace: jest.fn().mockReturnValue([]),
       on: jest.fn(),
       removeAllListeners: jest.fn(),
-    } as any;
+    };
 
     mockMcpServer = {
       start: jest.fn().mockResolvedValue(undefined),
       dispose: jest.fn(),
-    } as any;
+    };
 
-    // Mock constructors - ensure they're properly typed
-    const MockedDiagnosticsWatcher = DiagnosticsWatcher as jest.MockedClass<
-      typeof DiagnosticsWatcher
-    >;
-    const MockedMcpServerWrapper = McpServerWrapper as jest.MockedClass<typeof McpServerWrapper>;
-
-    MockedDiagnosticsWatcher.mockImplementation(() => mockDiagnosticsWatcher);
-    MockedMcpServerWrapper.mockImplementation(() => mockMcpServer);
+    // Mock constructors
+    (DiagnosticsWatcher as jest.MockedClass<typeof DiagnosticsWatcher>).mockImplementation(
+      () => mockDiagnosticsWatcher
+    );
+    (McpServerWrapper as jest.MockedClass<typeof McpServerWrapper>).mockImplementation(
+      () => mockMcpServer
+    );
+    (VsCodeApiAdapter as jest.MockedClass<typeof VsCodeApiAdapter>).mockImplementation(() => {
+      const instance = Object.create(VsCodeApiAdapter.prototype);
+      instance.languages = mockVscode.languages;
+      instance.workspace = mockVscode.workspace;
+      instance.convertDiagnostics = jest.fn();
+      instance.convertDiagnostic = jest.fn();
+      instance.convertCode = jest.fn();
+      return instance;
+    });
 
     // Mock workspace configuration
     const mockConfig = {
@@ -124,13 +114,8 @@ describe('Extension Integration', () => {
     // Mock getDiagnostics
     mockVscode.languages.getDiagnostics.mockReturnValue([]);
 
-    // Clear module cache and re-import extension
-    jest.resetModules();
-
-    // Import the extension module directly (not dynamically)
-    const extensionModule = require('@/extension');
-    activate = extensionModule.activate;
-    deactivate = extensionModule.deactivate;
+    activate = undefined;
+    deactivate = undefined;
   });
 
   afterEach(() => {
@@ -138,23 +123,41 @@ describe('Extension Integration', () => {
   });
 
   describe('Extension Activation', () => {
-    it('should activate extension successfully', () => {
-      activate(mockContext);
-
+    it('should activate extension successfully', async () => {
+      const extensionModule = await import('@/extension');
+      activate = extensionModule.activate;
+      deactivate = extensionModule.deactivate;
+      await activate(mockContext, {
+        DiagnosticsWatcherCtor: DiagnosticsWatcher,
+        McpServerWrapperCtor: McpServerWrapper,
+        VsCodeApiAdapterCtor: VsCodeApiAdapter,
+      });
       expect(DiagnosticsWatcher).toHaveBeenCalled();
       expect(McpServerWrapper).toHaveBeenCalled();
       expect(mockMcpServer.start).toHaveBeenCalled();
     });
 
-    it('should create DiagnosticsWatcher with VS Code API adapter', () => {
-      activate(mockContext);
-
+    it('should create DiagnosticsWatcher with VS Code API adapter', async () => {
+      const extensionModule = await import('@/extension');
+      activate = extensionModule.activate;
+      deactivate = extensionModule.deactivate;
+      await activate(mockContext, {
+        DiagnosticsWatcherCtor: DiagnosticsWatcher,
+        McpServerWrapperCtor: McpServerWrapper,
+        VsCodeApiAdapterCtor: VsCodeApiAdapter,
+      });
       expect(DiagnosticsWatcher).toHaveBeenCalledWith(expect.any(Object));
     });
 
     it('should create McpServerWrapper with watcher and config', async () => {
-      await activate(mockContext);
-
+      const extensionModule = await import('@/extension');
+      activate = extensionModule.activate;
+      deactivate = extensionModule.deactivate;
+      await activate(mockContext, {
+        DiagnosticsWatcherCtor: DiagnosticsWatcher,
+        McpServerWrapperCtor: McpServerWrapper,
+        VsCodeApiAdapterCtor: VsCodeApiAdapter,
+      });
       expect(McpServerWrapper).toHaveBeenCalledWith(
         mockDiagnosticsWatcher,
         expect.objectContaining({
@@ -165,31 +168,54 @@ describe('Extension Integration', () => {
     });
 
     it('should start MCP server during activation', async () => {
-      await activate(mockContext);
-
+      const extensionModule = await import('@/extension');
+      activate = extensionModule.activate;
+      deactivate = extensionModule.deactivate;
+      await activate(mockContext, {
+        DiagnosticsWatcherCtor: DiagnosticsWatcher,
+        McpServerWrapperCtor: McpServerWrapper,
+        VsCodeApiAdapterCtor: VsCodeApiAdapter,
+      });
       expect(mockMcpServer.start).toHaveBeenCalled();
     });
 
     it('should add disposables to context subscriptions', async () => {
-      await activate(mockContext);
-
+      const extensionModule = await import('@/extension');
+      activate = extensionModule.activate;
+      deactivate = extensionModule.deactivate;
+      await activate(mockContext, {
+        DiagnosticsWatcherCtor: DiagnosticsWatcher,
+        McpServerWrapperCtor: McpServerWrapper,
+        VsCodeApiAdapterCtor: VsCodeApiAdapter,
+      });
       expect(mockContext.subscriptions).toHaveLength(2);
     });
 
     it('should read configuration from VS Code workspace', async () => {
-      await activate(mockContext);
-
+      const extensionModule = await import('@/extension');
+      activate = extensionModule.activate;
+      deactivate = extensionModule.deactivate;
+      await activate(mockContext, {
+        DiagnosticsWatcherCtor: DiagnosticsWatcher,
+        McpServerWrapperCtor: McpServerWrapper,
+        VsCodeApiAdapterCtor: VsCodeApiAdapter,
+      });
       expect(mockVscode.workspace.getConfiguration).toHaveBeenCalledWith('mcpDiagnostics');
     });
 
     it('should use default configuration values when not specified', async () => {
+      const extensionModule = await import('@/extension');
+      activate = extensionModule.activate;
+      deactivate = extensionModule.deactivate;
       const mockConfig = {
         get: jest.fn((_key: string, defaultValue?: any) => defaultValue),
       };
       mockVscode.workspace.getConfiguration.mockReturnValue(mockConfig);
-
-      await activate(mockContext);
-
+      await activate(mockContext, {
+        DiagnosticsWatcherCtor: DiagnosticsWatcher,
+        McpServerWrapperCtor: McpServerWrapper,
+        VsCodeApiAdapterCtor: VsCodeApiAdapter,
+      });
       expect(mockConfig.get).toHaveBeenCalledWith('server.port', DEFAULT_CONFIG.mcpServerPort);
       expect(mockConfig.get).toHaveBeenCalledWith(
         'enableDebugLogging',
@@ -200,36 +226,57 @@ describe('Extension Integration', () => {
 
   describe('Error Handling', () => {
     it('should handle DiagnosticsWatcher creation errors', async () => {
+      const extensionModule = await import('@/extension');
+      activate = extensionModule.activate;
+      deactivate = extensionModule.deactivate;
       (DiagnosticsWatcher as jest.MockedClass<typeof DiagnosticsWatcher>).mockImplementation(() => {
         throw new Error('Failed to create watcher');
       });
-
-      await expect(activate(mockContext)).rejects.toThrow('Failed to create watcher');
+      await expect(
+        activate(mockContext, {
+          DiagnosticsWatcherCtor: DiagnosticsWatcher,
+          McpServerWrapperCtor: McpServerWrapper,
+          VsCodeApiAdapterCtor: VsCodeApiAdapter,
+        })
+      ).rejects.toThrow('Failed to create watcher');
       expect(mockVscode.window.showErrorMessage).toHaveBeenCalledWith(
         expect.stringContaining('MCP Diagnostics Extension failed')
       );
     });
 
     it('should handle MCP server start errors', async () => {
+      const extensionModule = await import('@/extension');
+      activate = extensionModule.activate;
+      deactivate = extensionModule.deactivate;
       mockMcpServer.start.mockRejectedValue(new Error('Failed to start server'));
-
-      await expect(activate(mockContext)).rejects.toThrow('Failed to start server');
+      await expect(
+        activate(mockContext, {
+          DiagnosticsWatcherCtor: DiagnosticsWatcher,
+          McpServerWrapperCtor: McpServerWrapper,
+          VsCodeApiAdapterCtor: VsCodeApiAdapter,
+        })
+      ).rejects.toThrow('Failed to start server');
       expect(mockVscode.window.showErrorMessage).toHaveBeenCalledWith(
         expect.stringContaining('MCP Diagnostics Extension failed')
       );
     });
 
     it('should show error message to user when activation fails', async () => {
+      const extensionModule = await import('@/extension');
+      activate = extensionModule.activate;
+      deactivate = extensionModule.deactivate;
       (DiagnosticsWatcher as jest.MockedClass<typeof DiagnosticsWatcher>).mockImplementation(() => {
-        throw new Error('Test error');
+        throw new Error('Some error');
       });
-
       try {
-        await activate(mockContext);
+        await activate(mockContext, {
+          DiagnosticsWatcherCtor: DiagnosticsWatcher,
+          McpServerWrapperCtor: McpServerWrapper,
+          VsCodeApiAdapterCtor: VsCodeApiAdapter,
+        });
       } catch {
-        // Expected to throw
+        // expected
       }
-
       expect(mockVscode.window.showErrorMessage).toHaveBeenCalledWith(
         expect.stringContaining('MCP Diagnostics Extension failed')
       );
@@ -237,41 +284,62 @@ describe('Extension Integration', () => {
   });
 
   describe('Extension Deactivation', () => {
-    it('should provide deactivate function', () => {
+    it('should provide deactivate function', async () => {
+      const extensionModule = await import('@/extension');
+      activate = extensionModule.activate;
+      deactivate = extensionModule.deactivate;
       expect(typeof deactivate).toBe('function');
     });
 
     it('should dispose MCP server on deactivation', async () => {
-      await activate(mockContext);
+      const extensionModule = await import('@/extension');
+      activate = extensionModule.activate;
+      deactivate = extensionModule.deactivate;
+      await activate(mockContext, {
+        DiagnosticsWatcherCtor: DiagnosticsWatcher,
+        McpServerWrapperCtor: McpServerWrapper,
+        VsCodeApiAdapterCtor: VsCodeApiAdapter,
+      });
       deactivate();
-
       expect(mockMcpServer.dispose).toHaveBeenCalled();
     });
 
     it('should dispose DiagnosticsWatcher on deactivation', async () => {
-      await activate(mockContext);
+      const extensionModule = await import('@/extension');
+      activate = extensionModule.activate;
+      deactivate = extensionModule.deactivate;
+      await activate(mockContext, {
+        DiagnosticsWatcherCtor: DiagnosticsWatcher,
+        McpServerWrapperCtor: McpServerWrapper,
+        VsCodeApiAdapterCtor: VsCodeApiAdapter,
+      });
       deactivate();
-
       expect(mockDiagnosticsWatcher.dispose).toHaveBeenCalled();
     });
 
-    it('should handle deactivation when components are not initialized', () => {
+    it('should handle deactivation when components are not initialized', async () => {
+      const extensionModule = await import('@/extension');
+      deactivate = extensionModule.deactivate;
       expect(() => deactivate()).not.toThrow();
     });
   });
 
   describe('Configuration Management', () => {
     it('should handle custom port configuration', async () => {
+      const extensionModule = await import('@/extension');
+      activate = extensionModule.activate;
+      deactivate = extensionModule.deactivate;
       const mockConfig = {
-        get: jest.fn((key: string, defaultValue?: any) => {
-          if (key === 'server.port') return 8080;
-          return defaultValue;
-        }),
+        get: jest.fn((key: string, defaultValue?: any) =>
+          key === 'server.port' ? 8080 : defaultValue
+        ),
       };
       mockVscode.workspace.getConfiguration.mockReturnValue(mockConfig);
-
-      await activate(mockContext);
-
+      await activate(mockContext, {
+        DiagnosticsWatcherCtor: DiagnosticsWatcher,
+        McpServerWrapperCtor: McpServerWrapper,
+        VsCodeApiAdapterCtor: VsCodeApiAdapter,
+      });
       expect(McpServerWrapper).toHaveBeenCalledWith(
         mockDiagnosticsWatcher,
         expect.objectContaining({ port: 8080 })
@@ -279,16 +347,20 @@ describe('Extension Integration', () => {
     });
 
     it('should handle debug logging configuration', async () => {
+      const extensionModule = await import('@/extension');
+      activate = extensionModule.activate;
+      deactivate = extensionModule.deactivate;
       const mockConfig = {
-        get: jest.fn((key: string, defaultValue?: any) => {
-          if (key === 'enableDebugLogging') return true;
-          return defaultValue;
-        }),
+        get: jest.fn((key: string, defaultValue?: any) =>
+          key === 'enableDebugLogging' ? true : defaultValue
+        ),
       };
       mockVscode.workspace.getConfiguration.mockReturnValue(mockConfig);
-
-      await activate(mockContext);
-
+      await activate(mockContext, {
+        DiagnosticsWatcherCtor: DiagnosticsWatcher,
+        McpServerWrapperCtor: McpServerWrapper,
+        VsCodeApiAdapterCtor: VsCodeApiAdapter,
+      });
       expect(McpServerWrapper).toHaveBeenCalledWith(
         mockDiagnosticsWatcher,
         expect.objectContaining({ enableDebugLogging: true })
@@ -298,38 +370,63 @@ describe('Extension Integration', () => {
 
   describe('Lifecycle Management', () => {
     it('should track extension state correctly', async () => {
-      await activate(mockContext);
-
+      const extensionModule = await import('@/extension');
+      activate = extensionModule.activate;
+      deactivate = extensionModule.deactivate;
+      await activate(mockContext, {
+        DiagnosticsWatcherCtor: DiagnosticsWatcher,
+        McpServerWrapperCtor: McpServerWrapper,
+        VsCodeApiAdapterCtor: VsCodeApiAdapter,
+      });
       expect(DiagnosticsWatcher).toHaveBeenCalled();
       expect(McpServerWrapper).toHaveBeenCalled();
     });
 
     it('should handle multiple activation calls gracefully', async () => {
-      await activate(mockContext);
-      await activate(mockContext);
-
+      const extensionModule = await import('@/extension');
+      activate = extensionModule.activate;
+      deactivate = extensionModule.deactivate;
+      await activate(mockContext, {
+        DiagnosticsWatcherCtor: DiagnosticsWatcher,
+        McpServerWrapperCtor: McpServerWrapper,
+        VsCodeApiAdapterCtor: VsCodeApiAdapter,
+      });
+      await activate(mockContext, {
+        DiagnosticsWatcherCtor: DiagnosticsWatcher,
+        McpServerWrapperCtor: McpServerWrapper,
+        VsCodeApiAdapterCtor: VsCodeApiAdapter,
+      });
       expect(DiagnosticsWatcher).toHaveBeenCalledTimes(2);
     });
   });
 
   describe('Performance Monitoring', () => {
     it('should log activation time', async () => {
+      const extensionModule = await import('@/extension');
+      activate = extensionModule.activate;
+      deactivate = extensionModule.deactivate;
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-
-      await activate(mockContext);
-
+      await activate(mockContext, {
+        DiagnosticsWatcherCtor: DiagnosticsWatcher,
+        McpServerWrapperCtor: McpServerWrapper,
+        VsCodeApiAdapterCtor: VsCodeApiAdapter,
+      });
       expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringContaining('MCP Diagnostics Extension activated')
       );
-
-      consoleSpy.mockRestore();
     });
 
     it('should handle activation within performance threshold', async () => {
+      const extensionModule = await import('@/extension');
+      activate = extensionModule.activate;
+      deactivate = extensionModule.deactivate;
       const startTime = Date.now();
-      await activate(mockContext);
+      await activate(mockContext, {
+        DiagnosticsWatcherCtor: DiagnosticsWatcher,
+        McpServerWrapperCtor: McpServerWrapper,
+        VsCodeApiAdapterCtor: VsCodeApiAdapter,
+      });
       const endTime = Date.now();
-
       expect(endTime - startTime).toBeLessThan(2000); // 2 second threshold
     });
   });
