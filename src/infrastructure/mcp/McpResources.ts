@@ -27,16 +27,25 @@ const RESOURCE_METADATA = {
   },
 } as const;
 
+/**
+ * Interface for MCP resource content
+ */
 interface ResourceContent {
   uri: string;
   mimeType: string;
   text: string;
 }
 
+/**
+ * Interface for MCP resource response
+ */
 interface ResourceResponse {
   contents: ResourceContent[];
 }
 
+/**
+ * Interface for MCP resource list item
+ */
 interface ResourceListItem {
   uri: string;
   name: string;
@@ -44,23 +53,69 @@ interface ResourceListItem {
   mimeType: string;
 }
 
+/**
+ * Interface for MCP resource list response
+ */
 interface ResourceListResponse {
   resources: ResourceListItem[];
 }
 
+/**
+ * Interface for MCP server that can register request handlers
+ */
 interface McpServer {
   setRequestHandler: (method: string, handler: (request?: unknown) => Promise<unknown>) => void;
 }
 
+/**
+ * Interface for resource read request
+ */
 interface ResourceReadRequest {
   params: {
     uri: string;
   };
 }
 
+/**
+ * McpResources provides Model Context Protocol resources for accessing diagnostic information
+ *
+ * This class exposes diagnostic data as MCP resources that can be read by AI agents and
+ * other MCP clients. It provides both static and dynamic resources:
+ *
+ * Static Resources:
+ * - `diagnostics://summary` - Overall workspace diagnostics summary
+ *
+ * Dynamic Resources:
+ * - `diagnostics://file/{encodedFilePath}` - Problems for specific files
+ * - `diagnostics://workspace/{encodedWorkspaceName}` - Problems for specific workspaces
+ *
+ * @example
+ * ```typescript
+ * const resources = new McpResources(diagnosticsWatcher);
+ * resources.registerResources(mcpServer);
+ *
+ * // Clients can now read:
+ * // - diagnostics://summary
+ * // - diagnostics://file/base64(file-path)
+ * // - diagnostics://workspace/base64(workspace-name)
+ * ```
+ */
 export class McpResources {
+  /**
+   * Creates a new McpResources instance
+   * @param diagnosticsWatcher - The diagnostics watcher to query for problem data
+   */
   constructor(private diagnosticsWatcher: DiagnosticsWatcher) {}
 
+  /**
+   * Registers MCP resource handlers with the server
+   *
+   * Sets up request handlers for:
+   * - resources/list: Returns available resource definitions
+   * - resources/read: Handles resource content requests
+   *
+   * @param server - The MCP server to register resources with
+   */
   public registerResources(server: McpServer): void {
     server.setRequestHandler('resources/list', async (): Promise<ResourceListResponse> => {
       try {
@@ -89,6 +144,16 @@ export class McpResources {
     );
   }
 
+  /**
+   * Generates the list of available MCP resources
+   *
+   * Creates a dynamic list based on current diagnostic data, including:
+   * - Summary resource (always available)
+   * - File-specific resources (one per file with problems)
+   * - Workspace-specific resources (one per workspace with problems)
+   *
+   * @returns Promise resolving to resource list response
+   */
   private generateResourceList(): ResourceListResponse {
     const allProblems = this.diagnosticsWatcher.getAllProblems();
     const uniqueFiles = [...new Set(allProblems.map((p) => p.filePath))];
@@ -121,6 +186,18 @@ export class McpResources {
     return { resources };
   }
 
+  /**
+   * Handles resource read requests for specific URIs
+   *
+   * Routes requests to appropriate handlers based on URI pattern:
+   * - diagnostics://summary → summary resource
+   * - diagnostics://file/* → file-specific resource
+   * - diagnostics://workspace/* → workspace-specific resource
+   *
+   * @param uri - The resource URI to read
+   * @returns Promise resolving to resource response
+   * @throws {Error} If URI is unknown or invalid
+   */
   private async handleResourceRead(uri: string): Promise<ResourceResponse> {
     if (uri === RESOURCE_URIS.SUMMARY) {
       return this.generateSummaryResource();
@@ -139,6 +216,14 @@ export class McpResources {
     throw new Error(`Unknown resource URI: ${uri}`);
   }
 
+  /**
+   * Generates the summary resource with aggregated diagnostic statistics
+   *
+   * @returns Resource response with summary data including:
+   *   - Total problem count
+   *   - Problems grouped by file, severity, and workspace
+   *   - Generation timestamp
+   */
   private generateSummaryResource(): ResourceResponse {
     const allProblems = this.diagnosticsWatcher.getAllProblems();
     const summary = {
@@ -160,6 +245,12 @@ export class McpResources {
     };
   }
 
+  /**
+   * Generates a file-specific resource with problems for the given file
+   *
+   * @param filePath - The file path to get problems for
+   * @returns Resource response with file-specific problem data
+   */
   private generateFileResource(filePath: string): ResourceResponse {
     const problems = this.diagnosticsWatcher.getProblemsForFile(filePath);
     const fileData = {
@@ -180,6 +271,12 @@ export class McpResources {
     };
   }
 
+  /**
+   * Generates a workspace-specific resource with problems for the given workspace
+   *
+   * @param workspace - The workspace name to get problems for
+   * @returns Resource response with workspace-specific problem data
+   */
   private generateWorkspaceResource(workspace: string): ResourceResponse {
     const problems = this.diagnosticsWatcher.getProblemsForWorkspace(workspace);
     const workspaceData = {

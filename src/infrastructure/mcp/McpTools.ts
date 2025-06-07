@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import { DiagnosticsWatcher } from '@core/diagnostics/DiagnosticsWatcher';
 
+/**
+ * Interface for MCP request structure
+ */
 interface McpRequest {
   params: {
     name: string;
@@ -8,10 +11,16 @@ interface McpRequest {
   };
 }
 
+/**
+ * Interface for MCP server that can register request handlers
+ */
 interface McpServer {
   setRequestHandler(method: string, handler: (request?: McpRequest) => Promise<unknown>): void;
 }
 
+/**
+ * Interface for MCP tool response structure
+ */
 interface McpToolResponse {
   content: Array<{
     type: string;
@@ -19,9 +28,42 @@ interface McpToolResponse {
   }>;
 }
 
+/**
+ * McpTools provides Model Context Protocol tools for accessing diagnostic information
+ *
+ * This class registers MCP tools that allow AI agents and other MCP clients to query
+ * diagnostic problems from VS Code. It provides three main tools:
+ * - getProblems: Get all problems with optional filtering
+ * - getProblemsForFile: Get problems for a specific file
+ * - getProblemsForWorkspace: Get problems for a specific workspace
+ *
+ * @example
+ * ```typescript
+ * const tools = new McpTools(diagnosticsWatcher);
+ * tools.registerTools(mcpServer);
+ *
+ * // Clients can now call:
+ * // - getProblems({ severity: 'Error' })
+ * // - getProblemsForFile({ filePath: '/path/to/file.ts' })
+ * // - getProblemsForWorkspace({ workspaceName: 'my-project' })
+ * ```
+ */
 export class McpTools {
+  /**
+   * Creates a new McpTools instance
+   * @param diagnosticsWatcher - The diagnostics watcher to query for problem data
+   */
   constructor(private diagnosticsWatcher: DiagnosticsWatcher) {}
 
+  /**
+   * Registers MCP tools with the server
+   *
+   * Sets up request handlers for:
+   * - tools/list: Returns available tool definitions
+   * - tools/call: Handles tool execution requests
+   *
+   * @param server - The MCP server to register tools with
+   */
   public registerTools(server: McpServer): void {
     server.setRequestHandler('tools/list', async () => ({
       tools: [
@@ -81,6 +123,13 @@ export class McpTools {
     });
   }
 
+  /**
+   * Handles the getProblems tool request
+   *
+   * @param args - Tool arguments with optional filePath and severity filters
+   * @returns Promise resolving to MCP tool response with problem data
+   * @throws {Error} If arguments are invalid
+   */
   private async handleGetProblems(args: unknown): Promise<McpToolResponse> {
     const schema = z.object({
       filePath: z.string().optional(),
@@ -103,6 +152,13 @@ export class McpTools {
     });
   }
 
+  /**
+   * Handles the getProblemsForFile tool request
+   *
+   * @param args - Tool arguments with required filePath
+   * @returns Promise resolving to MCP tool response with file-specific problems
+   * @throws {Error} If filePath is missing or invalid
+   */
   private async handleGetProblemsForFile(args: unknown): Promise<McpToolResponse> {
     const { filePath } = z.object({ filePath: z.string().min(1) }).parse(args);
     const problems = this.diagnosticsWatcher.getProblemsForFile(filePath);
@@ -110,6 +166,13 @@ export class McpTools {
     return this.createToolResponse({ filePath, problems, count: problems.length });
   }
 
+  /**
+   * Handles the getProblemsForWorkspace tool request
+   *
+   * @param args - Tool arguments with required workspaceName
+   * @returns Promise resolving to MCP tool response with workspace-specific problems
+   * @throws {Error} If workspaceName is missing or invalid
+   */
   private async handleGetProblemsForWorkspace(args: unknown): Promise<McpToolResponse> {
     const { workspaceName } = z.object({ workspaceName: z.string().min(1) }).parse(args);
     const problems = this.diagnosticsWatcher.getProblemsForWorkspace(workspaceName);
@@ -117,6 +180,12 @@ export class McpTools {
     return this.createToolResponse({ workspaceName, problems, count: problems.length });
   }
 
+  /**
+   * Creates a standardized MCP tool response
+   *
+   * @param data - The data to include in the response
+   * @returns MCP tool response with JSON-formatted content
+   */
   private createToolResponse(data: unknown): McpToolResponse {
     return {
       content: [

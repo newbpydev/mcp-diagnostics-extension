@@ -1,3 +1,15 @@
+/**
+ * VS Code MCP Diagnostics Extension
+ *
+ * This extension monitors VS Code's diagnostic problems (errors, warnings, etc.)
+ * in real-time and exposes them via a Model Context Protocol (MCP) server for
+ * consumption by AI agents and other MCP-enabled tools.
+ *
+ * @author Your Name <your.email@example.com>
+ * @version 1.0.0
+ * @license MIT
+ */
+
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
@@ -7,19 +19,64 @@ import { VsCodeApiAdapter } from '@infrastructure/vscode/VsCodeApiAdapter';
 import { ExtensionCommands } from '@/commands/ExtensionCommands';
 import { DEFAULT_CONFIG } from '@shared/constants';
 
+/**
+ * Global DiagnosticsWatcher instance for the extension lifecycle
+ */
 let diagnosticsWatcher: DiagnosticsWatcher | undefined;
+
+/**
+ * Global MCP server instance for the extension lifecycle
+ */
 let mcpServer: McpServerWrapper | undefined;
+
+/**
+ * Global extension commands instance for the extension lifecycle
+ */
 let extensionCommands: ExtensionCommands | undefined;
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
+/**
+ * Dependency injection interface for testing purposes
+ */
+interface ExtensionDependencies {
+  DiagnosticsWatcherCtor?: typeof DiagnosticsWatcher;
+  McpServerWrapperCtor?: typeof McpServerWrapper;
+  VsCodeApiAdapterCtor?: typeof VsCodeApiAdapter;
+}
+
+/**
+ * Activates the MCP Diagnostics Extension
+ *
+ * This method is called when the extension is activated. It initializes all
+ * core components including the diagnostics watcher, MCP server, and command
+ * handlers. The extension uses dependency injection for testability.
+ *
+ * Key initialization steps:
+ * 1. Create VS Code API adapter for testability
+ * 2. Initialize DiagnosticsWatcher to monitor problems panel
+ * 3. Start MCP server with configured settings
+ * 4. Register extension commands and status bar
+ * 5. Set up event handlers for real-time updates
+ *
+ * @param context - VS Code extension context for managing subscriptions and lifecycle
+ * @param deps - Optional dependency injection for testing (constructors to use instead of defaults)
+ *
+ * @throws {Error} If any component fails to initialize
+ *
+ * @example
+ * ```typescript
+ * // Normal activation (called by VS Code)
+ * await activate(context);
+ *
+ * // Test activation with mocked dependencies
+ * await activate(context, {
+ *   DiagnosticsWatcherCtor: MockDiagnosticsWatcher,
+ *   McpServerWrapperCtor: MockMcpServer
+ * });
+ * ```
+ */
 export async function activate(
   context: vscode.ExtensionContext,
-  deps?: {
-    DiagnosticsWatcherCtor?: typeof DiagnosticsWatcher;
-    McpServerWrapperCtor?: typeof McpServerWrapper;
-    VsCodeApiAdapterCtor?: typeof VsCodeApiAdapter;
-  }
+  deps?: ExtensionDependencies
 ): Promise<void> {
   console.log('MCP Diagnostics Extension activating...');
 
@@ -71,7 +128,27 @@ export async function activate(
   }
 }
 
-// This method is called when your extension is deactivated
+/**
+ * Deactivates the MCP Diagnostics Extension
+ *
+ * This method is called when the extension is deactivated (e.g., when VS Code
+ * shuts down or the extension is disabled). It performs cleanup operations to
+ * prevent memory leaks and ensure graceful shutdown.
+ *
+ * Cleanup operations:
+ * 1. Dispose of extension commands and status bar
+ * 2. Stop and dispose of MCP server
+ * 3. Dispose of diagnostics watcher and event listeners
+ * 4. Clear global references
+ *
+ * @throws {Error} If cleanup operations fail (logged but does not re-throw)
+ *
+ * @example
+ * ```typescript
+ * // Called automatically by VS Code during shutdown
+ * deactivate();
+ * ```
+ */
 export function deactivate(): void {
   console.log('MCP Diagnostics Extension deactivating...');
 
