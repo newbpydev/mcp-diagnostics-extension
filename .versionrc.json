@@ -1,0 +1,46 @@
+{
+  "types": [
+    {"type": "feat", "section": "Features"},
+    {"type": "fix", "section": "Bug Fixes"},
+    {"type": "perf", "section": "Performance Improvements"},
+    {"type": "revert", "section": "Reverts"},
+    {"type": "docs", "section": "Documentation", "hidden": false},
+    {"type": "style", "section": "Styles", "hidden": true},
+    {"type": "chore", "section": "Miscellaneous Chores", "hidden": true},
+    {"type": "refactor", "section": "Code Refactoring", "hidden": false},
+    {"type": "test", "section": "Tests", "hidden": true},
+    {"type": "build", "section": "Build System", "hidden": true},
+    {"type": "ci", "section": "Continuous Integration", "hidden": true}
+  ],
+  "commitUrlFormat": "https://github.com/newbpydev/mcp-diagnostics-extension/commit/{{hash}}",
+  "compareUrlFormat": "https://github.com/newbpydev/mcp-diagnostics-extension/compare/{{previousTag}}...{{currentTag}}",
+  "issueUrlFormat": "https://github.com/newbpydev/mcp-diagnostics-extension/issues/{{id}}",
+  "userUrlFormat": "https://github.com/{{user}}",
+  "releaseCommitMessageFormat": "chore(release): {{currentTag}}",
+  "issuePrefixes": ["#"],
+  "tagPrefix": "v",
+  "scripts": {
+    "prerelease": "npm run ci:check",
+    "postchangelog": "npm run format -- CHANGELOG.md"
+  },
+  "writerOpts": {
+    "maxSubjectLength": 100,
+    "maxLineWidth": 200
+  },
+  "bumpFiles": [
+    {
+      "filename": "package.json",
+      "type": "json"
+    },
+    {
+      "filename": "package-lock.json",
+      "type": "json"
+    }
+  ],
+  "packageFiles": [
+    {
+      "filename": "package.json",
+      "type": "json"
+    }
+  ]
+}
