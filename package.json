@@ -1,27 +1,105 @@
 {
   "name": "mcp-diagnostics-extension",
-  "displayName": "mcp-diagnostics-extension",
-  "description": "Exposes VS Code problems via an MCP server for AI agents.",
-  "version": "0.0.1",
+  "displayName": "MCP Diagnostics Server",
+  "description": "Exposes VS Code diagnostic problems via Model Context Protocol for AI agents",
+  "version": "1.0.0",
+  "publisher": "newbpydev",
+  "author": {
+    "name": "Juan Antonio Gomez Pena",
+    "email": "newbpydev@gmail.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/newbpydev/mcp-diagnostics-extension.git"
+  },
+  "bugs": {
+    "url": "https://github.com/newbpydev/mcp-diagnostics-extension/issues"
+  },
+  "homepage": "https://github.com/newbpydev/mcp-diagnostics-extension#readme",
   "engines": {
     "vscode": "^1.100.0"
   },
   "categories": [
-    "Other"
+    "Other",
+    "Linters",
+    "AI",
+    "Debuggers"
   ],
-  "activationEvents": [],
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "diagnostics",
+    "problems",
+    "ai",
+    "agent",
+    "linter",
+    "errors",
+    "warnings"
+  ],
+  "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  },
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./out/extension.js",
   "contributes": {
+    "configuration": {
+      "title": "MCP Diagnostics",
+      "properties": {
+        "mcpDiagnostics.server.port": {
+          "type": "number",
+          "default": 6070,
+          "minimum": 1024,
+          "maximum": 65535,
+          "description": "Port for the MCP server"
+        },
+        "mcpDiagnostics.debounceMs": {
+          "type": "number",
+          "default": 300,
+          "minimum": 50,
+          "maximum": 5000,
+          "description": "Debounce interval in milliseconds for diagnostic events"
+        },
+        "mcpDiagnostics.enablePerformanceLogging": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable performance logging for debugging"
+        },
+        "mcpDiagnostics.enableDebugLogging": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable detailed debug logging"
+        },
+        "mcpDiagnostics.maxProblemsPerFile": {
+          "type": "number",
+          "default": 1000,
+          "minimum": 1,
+          "maximum": 10000,
+          "description": "Maximum number of problems to track per file"
+        }
+      }
+    },
     "commands": [
       {
-        "command": "mcp-diagnostics-extension.helloWorld",
-        "title": "Hello World"
+        "command": "mcpDiagnostics.restart",
+        "title": "Restart MCP Diagnostics Server",
+        "category": "MCP Diagnostics"
+      },
+      {
+        "command": "mcpDiagnostics.showStatus",
+        "title": "Show MCP Diagnostics Status",
+        "category": "MCP Diagnostics"
       }
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "npm run compile:prod",
     "compile": "tsc -p ./",
+    "compile:prod": "tsc -p ./tsconfig.prod.json",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
@@ -29,9 +107,11 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:vscode": "vscode-test",
-    "format": "prettier --write \"src/**/*.ts\"",
-    "format:check": "prettier --check \"src/**/*.ts\""
+    "format": "prettier --write 'src/**/*.ts'",
+    "format:check": "prettier --check 'src/**/*.ts'",
+    "package": "vsce package",
+    "publish": "vsce publish",
+    "clean": "rimraf out coverage .vscode-test"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
@@ -40,11 +120,13 @@
     "@types/vscode": "^1.100.0",
     "@typescript-eslint/eslint-plugin": "^8.31.1",
     "@typescript-eslint/parser": "^8.31.1",
+    "@vscode/vsce": "^3.5.0",
     "eslint": "^9.25.1",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-prettier": "^5.4.1",
     "jest": "^29.7.0",
     "prettier": "^3.5.3",
+    "rimraf": "^6.0.1",
     "ts-jest": "^29.3.4",
     "typescript": "^5.8.3"
   },

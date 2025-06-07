@@ -37,7 +37,7 @@ This extension bridges VS Code's diagnostic system with AI agents by:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/mcp-diagnostics-extension.git
+   git clone https://github.com/newbpydev/mcp-diagnostics-extension.git
    cd mcp-diagnostics-extension
    ```
 
@@ -271,8 +271,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 - 📖 [Documentation](./docs/)
-- 🐛 [Issue Tracker](https://github.com/your-username/mcp-diagnostics-extension/issues)
-- 💬 [Discussions](https://github.com/your-username/mcp-diagnostics-extension/discussions)
+- 🐛 [Issue Tracker](https://github.com/newbpydev/mcp-diagnostics-extension/issues)
+- 💬 [Discussions](https://github.com/newbpydev/mcp-diagnostics-extension/discussions)
 
 ---
 

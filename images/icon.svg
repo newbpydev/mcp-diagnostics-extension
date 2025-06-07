@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="64" cy="64" r="60" fill="#1e1e1e" stroke="#007acc" stroke-width="4"/>
+
+  <!-- MCP Connection symbol (interconnected nodes) -->
+  <circle cx="40" cy="40" r="8" fill="#007acc"/>
+  <circle cx="88" cy="40" r="8" fill="#007acc"/>
+  <circle cx="64" cy="88" r="8" fill="#007acc"/>
+
+  <!-- Connection lines -->
+  <line x1="40" y1="40" x2="88" y2="40" stroke="#007acc" stroke-width="3"/>
+  <line x1="40" y1="40" x2="64" y2="88" stroke="#007acc" stroke-width="3"/>
+  <line x1="88" y1="40" x2="64" y2="88" stroke="#007acc" stroke-width="3"/>
+
+  <!-- Diagnostic symbol (warning/error indicator) -->
+  <polygon points="64,50 74,70 54,70" fill="#ff6b6b" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="64" cy="75" r="3" fill="#ffffff"/>
+
+  <!-- Data flow indicators -->
+  <path d="M 20 64 L 30 60 L 30 68 Z" fill="#4caf50"/>
+  <path d="M 108 64 L 98 60 L 98 68 Z" fill="#4caf50"/>
+</svg>
