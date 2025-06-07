@@ -399,13 +399,17 @@ describe('PerformanceMonitor', () => {
       // Mock console.warn to capture warnings
       const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
 
+      // Mock performance.now to simulate a slow operation
+      performanceNowSpy.mockReturnValueOnce(0).mockReturnValueOnce(1000); // 1000ms duration
+
       // This should trigger the default case in getThresholdForOperation (line 229)
-      monitor.measure('unknown-operation-type', () => {
+      monitor.measure('completely-unknown-operation', () => {
         // Simulate a slow operation that would exceed any threshold
         return 'result';
       });
 
-      // Since there's no threshold for 'unknown-operation-type', no warning should be logged
+      // Since there's no threshold for 'completely-unknown-operation', no warning should be logged
+      // This ensures the default case returns undefined (line 229)
       expect(consoleSpy).not.toHaveBeenCalled();
 
       consoleSpy.mockRestore();

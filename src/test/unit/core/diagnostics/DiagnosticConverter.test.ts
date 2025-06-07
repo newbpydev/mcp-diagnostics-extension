@@ -359,6 +359,34 @@ describe('DiagnosticConverter', () => {
       // Should handle the error gracefully
       expect(result.relatedInformation).toBeUndefined();
     });
+
+    it('should handle main conversion errors and return fallback object', () => {
+      // Create a diagnostic object that will cause an error during the main conversion
+      const malformedDiagnostic = new Proxy(
+        {},
+        {
+          get(_target, prop) {
+            if (prop === 'message') {
+              return 'Test message';
+            }
+            // Throw error for any other property access to trigger main catch block
+            throw new Error('Main conversion error');
+          },
+        }
+      ) as VsCodeDiagnostic;
+
+      const result = converter.convertToProblemItem(malformedDiagnostic, mockUri);
+
+      // Should return the fallback object from the main catch block (line 53)
+      expect(result.workspaceFolder).toBe('unknown');
+      expect(result.range.start.line).toBe(0);
+      expect(result.range.start.character).toBe(0);
+      expect(result.range.end.line).toBe(0);
+      expect(result.range.end.character).toBe(0);
+      expect(result.severity).toBe('Error');
+      expect(result.source).toBe('unknown');
+      expect(result.message).toBe('Test message');
+    });
   });
 
   describe('Performance and Edge Cases', () => {

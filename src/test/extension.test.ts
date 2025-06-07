@@ -35,7 +35,7 @@ describe('Extension', () => {
     // Setup mock vscode
     mockVscode = vscode as any;
     mockVscode.workspace.getConfiguration.mockReturnValue({
-      get: jest.fn((key: string, defaultValue: any) => defaultValue),
+      get: jest.fn((_key: string, defaultValue: any) => defaultValue),
     });
   });
 
