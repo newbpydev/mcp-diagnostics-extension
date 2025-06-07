@@ -2,5 +2,7 @@
 // This module contains adapters for Model Context Protocol integration
 
 // Export all MCP components
-export { McpServerWrapper, McpServerConfig } from './McpServerWrapper';
+export { McpServerWrapper } from './McpServerWrapper';
+export { McpServerConfig } from './McpServerWrapper';
 export { McpTools } from './McpTools';
+export { McpResources } from './McpResources';
