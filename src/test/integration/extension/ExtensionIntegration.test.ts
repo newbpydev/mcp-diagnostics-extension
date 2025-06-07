@@ -15,12 +15,34 @@ const mockVscode = {
   },
   window: {
     showErrorMessage: jest.fn(),
+    showInformationMessage: jest.fn(),
+    createStatusBarItem: jest.fn(() => ({
+      text: '',
+      tooltip: '',
+      command: '',
+      show: jest.fn(),
+      hide: jest.fn(),
+      dispose: jest.fn(),
+    })),
+    createWebviewPanel: jest.fn(() => ({
+      webview: { html: '' },
+      dispose: jest.fn(),
+    })),
   },
   commands: {
     registerCommand: jest.fn(),
   },
   Uri: {
     parse: jest.fn(),
+  },
+  StatusBarAlignment: {
+    Left: 1,
+    Right: 2,
+  },
+  ViewColumn: {
+    One: 1,
+    Two: 2,
+    Three: 3,
   },
 };
 
@@ -188,7 +210,8 @@ describe('Extension Integration', () => {
         McpServerWrapperCtor: McpServerWrapper,
         VsCodeApiAdapterCtor: VsCodeApiAdapter,
       });
-      expect(mockContext.subscriptions).toHaveLength(2);
+      // Expect 6 disposables: 3 from extension.ts + 3 from ExtensionCommands.registerCommands
+      expect(mockContext.subscriptions).toHaveLength(6);
     });
 
     it('should read configuration from VS Code workspace', async () => {

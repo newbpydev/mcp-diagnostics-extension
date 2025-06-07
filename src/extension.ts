@@ -4,10 +4,12 @@ import * as vscode from 'vscode';
 import { DiagnosticsWatcher } from '@core/diagnostics/DiagnosticsWatcher';
 import { McpServerWrapper } from '@infrastructure/mcp/McpServerWrapper';
 import { VsCodeApiAdapter } from '@infrastructure/vscode/VsCodeApiAdapter';
+import { ExtensionCommands } from '@/commands/ExtensionCommands';
 import { DEFAULT_CONFIG } from '@shared/constants';
 
 let diagnosticsWatcher: DiagnosticsWatcher | undefined;
 let mcpServer: McpServerWrapper | undefined;
+let extensionCommands: ExtensionCommands | undefined;
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -44,10 +46,20 @@ export async function activate(
     mcpServer = new McpServerWrapperCtor(diagnosticsWatcher, serverConfig);
     await mcpServer.start();
 
+    // Create and register extension commands
+    extensionCommands = new ExtensionCommands(mcpServer, diagnosticsWatcher);
+    extensionCommands.registerCommands(context);
+
+    // Set up event listener to update status bar when problems change
+    diagnosticsWatcher.on('problemsChanged', () => {
+      extensionCommands?.onProblemsChanged();
+    });
+
     // Add disposables to context
     context.subscriptions.push(
       { dispose: () => diagnosticsWatcher?.dispose() },
-      { dispose: () => mcpServer?.dispose() }
+      { dispose: () => mcpServer?.dispose() },
+      { dispose: () => extensionCommands?.dispose() }
     );
 
     const activationTime = Date.now() - startTime;
@@ -64,9 +76,11 @@ export function deactivate(): void {
   console.log('MCP Diagnostics Extension deactivating...');
 
   try {
+    extensionCommands?.dispose();
     mcpServer?.dispose();
     diagnosticsWatcher?.dispose();
 
+    extensionCommands = undefined;
     mcpServer = undefined;
     diagnosticsWatcher = undefined;
 

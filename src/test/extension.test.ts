@@ -11,6 +11,31 @@ jest.mock('vscode', () => ({
   },
   window: {
     showErrorMessage: jest.fn(),
+    showInformationMessage: jest.fn(),
+    createStatusBarItem: jest.fn(() => ({
+      text: '',
+      tooltip: '',
+      command: '',
+      show: jest.fn(),
+      hide: jest.fn(),
+      dispose: jest.fn(),
+    })),
+    createWebviewPanel: jest.fn(() => ({
+      webview: { html: '' },
+      dispose: jest.fn(),
+    })),
+  },
+  commands: {
+    registerCommand: jest.fn(() => ({ dispose: jest.fn() })),
+  },
+  StatusBarAlignment: {
+    Left: 1,
+    Right: 2,
+  },
+  ViewColumn: {
+    One: 1,
+    Two: 2,
+    Three: 3,
   },
 }));
 
@@ -18,6 +43,7 @@ jest.mock('vscode', () => ({
 jest.mock('@core/diagnostics/DiagnosticsWatcher');
 jest.mock('@infrastructure/mcp/McpServerWrapper');
 jest.mock('@infrastructure/vscode/VsCodeApiAdapter');
+jest.mock('@/commands/ExtensionCommands');
 
 describe('Extension', () => {
   let mockContext: vscode.ExtensionContext;
@@ -44,16 +70,20 @@ describe('Extension', () => {
       // Mock constructors
       const mockDiagnosticsWatcher = {
         dispose: jest.fn(),
+        on: jest.fn(),
       };
       const mockMcpServer = {
         start: jest.fn().mockResolvedValue(undefined),
         dispose: jest.fn(),
+        isServerStarted: jest.fn().mockReturnValue(true),
       };
       const mockVsCodeAdapter = {};
 
       const MockDiagnosticsWatcher = jest.fn().mockReturnValue(mockDiagnosticsWatcher) as any;
       const MockMcpServerWrapper = jest.fn().mockReturnValue(mockMcpServer) as any;
       const MockVsCodeApiAdapter = jest.fn().mockReturnValue(mockVsCodeAdapter) as any;
+
+      // ExtensionCommands is mocked via jest.mock() above
 
       // Mock console.log to capture activation message
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
@@ -79,7 +109,9 @@ describe('Extension', () => {
       expect(mockMcpServer.start).toHaveBeenCalled();
 
       // Verify disposables were added to context
-      expect(mockContext.subscriptions).toHaveLength(2);
+      // 3 from extension.ts (DiagnosticsWatcher, McpServerWrapper, ExtensionCommands)
+      // ExtensionCommands.registerCommands is mocked so doesn't add additional disposables
+      expect(mockContext.subscriptions).toHaveLength(3);
 
       // Verify activation message was logged
       expect(consoleSpy).toHaveBeenCalledWith('MCP Diagnostics Extension activating...');
