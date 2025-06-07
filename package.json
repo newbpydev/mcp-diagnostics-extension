@@ -109,6 +109,7 @@
     "test:coverage": "jest --coverage",
     "format": "prettier --write 'src/**/*.ts'",
     "format:check": "prettier --check 'src/**/*.ts'",
+    "convert-assets": "node scripts/convert-assets.js",
     "package": "vsce package",
     "publish": "vsce publish",
     "clean": "rimraf out coverage .vscode-test"
@@ -127,6 +128,7 @@
     "jest": "^29.7.0",
     "prettier": "^3.5.3",
     "rimraf": "^6.0.1",
+    "sharp": "^0.34.2",
     "ts-jest": "^29.3.4",
     "typescript": "^5.8.3"
   },
