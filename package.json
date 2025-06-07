@@ -108,12 +108,20 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "format": "prettier --write 'src/**/*.ts'",
-    "format:check": "prettier --check 'src/**/*.ts'",
+    "test:ci": "jest --coverage --ci --watchAll=false",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
     "convert-assets": "node scripts/convert-assets.js",
     "package": "vsce package",
+    "package:pre-release": "vsce package --pre-release",
     "publish": "vsce publish",
-    "clean": "rimraf out coverage .vscode-test"
+    "publish:pre-release": "vsce publish --pre-release",
+    "clean": "rimraf out coverage .vscode-test",
+    "ci:check": "npm run lint && npm run format:check && npm run compile:prod && npm run test:ci",
+    "version:patch": "npm version patch",
+    "version:minor": "npm version minor",
+    "version:major": "npm version major",
+    "postversion": "git push && git push --tags"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
