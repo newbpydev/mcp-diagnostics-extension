@@ -165,6 +165,6 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
     "lodash": "^4.17.21",
-    "zod": "^3.25.55"
+    "zod": "^3.25.56"
   }
 }
