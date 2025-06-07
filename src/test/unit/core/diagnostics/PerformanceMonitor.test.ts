@@ -378,4 +378,108 @@ describe('PerformanceMonitor', () => {
       expect(metrics['mcp-response']).toEqual([75]);
     });
   });
+
+  describe('Edge Cases and Error Handling', () => {
+    it('should handle operations when disposed', () => {
+      const monitor = new PerformanceMonitor();
+      monitor.dispose();
+
+      // These should trigger the early return paths (line 94)
+      const result = monitor.measureAsync('test-operation', async () => {
+        return 'test-result';
+      });
+
+      // Should return the function result without measuring
+      expect(result).resolves.toBe('test-result');
+    });
+
+    it('should handle unknown operation thresholds', () => {
+      const monitor = new PerformanceMonitor({ enableLogging: true });
+
+      // Mock console.warn to capture warnings
+      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+      // This should trigger the default case in getThresholdForOperation (line 229)
+      monitor.measure('unknown-operation-type', () => {
+        // Simulate a slow operation that would exceed any threshold
+        return 'result';
+      });
+
+      // Since there's no threshold for 'unknown-operation-type', no warning should be logged
+      expect(consoleSpy).not.toHaveBeenCalled();
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle custom thresholds for unknown operations', () => {
+      const monitor = new PerformanceMonitor({
+        enableLogging: true,
+        customThresholds: {
+          'custom-operation': 10, // 10ms threshold
+        },
+      });
+
+      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+      // Mock performance.now to simulate a slow operation
+      performanceNowSpy.mockReturnValueOnce(0).mockReturnValueOnce(50); // 50ms duration
+
+      // Simulate a slow operation that exceeds the custom threshold
+      monitor.measure('custom-operation', () => {
+        return 'slow-result';
+      });
+
+      // Should log a warning for exceeding custom threshold
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Performance warning: custom-operation took 50ms (threshold: 10ms)')
+      );
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle predefined operation thresholds', () => {
+      const monitor = new PerformanceMonitor({ enableLogging: true });
+      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+      // Test each predefined threshold case
+      const operations = ['diagnostic-processing', 'mcp-response', 'extension-activation'];
+
+      operations.forEach((operation) => {
+        monitor.measure(operation, () => {
+          // Simulate a fast operation that won't trigger warnings
+          return 'result';
+        });
+      });
+
+      // No warnings should be logged for fast operations
+      expect(consoleSpy).not.toHaveBeenCalled();
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle disabled logging', () => {
+      const monitor = new PerformanceMonitor({ enableLogging: false });
+      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+      // Even with a slow operation, no warning should be logged when logging is disabled
+      monitor.measure('diagnostic-processing', () => {
+        // Simulate a slow operation
+        const originalNow = performance.now;
+        let callCount = 0;
+        performance.now = jest.fn(() => {
+          callCount++;
+          return callCount === 1 ? 0 : 1000; // 1000ms duration (very slow)
+        });
+
+        const result = 'slow-result';
+        performance.now = originalNow;
+        return result;
+      });
+
+      // No warning should be logged when logging is disabled
+      expect(consoleSpy).not.toHaveBeenCalled();
+
+      consoleSpy.mockRestore();
+    });
+  });
 });

@@ -446,4 +446,196 @@ describe('DiagnosticsWatcher', () => {
       customWatcher.dispose();
     });
   });
+
+  describe('Error Handling and Edge Cases', () => {
+    it('should handle VS Code API subscription errors gracefully', () => {
+      // Mock console.error to capture error logs
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      // Mock the VS Code API to throw during subscription
+      const mockVsCodeApiWithError = {
+        languages: {
+          onDidChangeDiagnostics: jest.fn().mockImplementation(() => {
+            throw new Error('VS Code API Error');
+          }),
+          getDiagnostics: jest.fn().mockReturnValue([]),
+        },
+        workspace: {
+          getWorkspaceFolder: jest.fn().mockReturnValue({ name: 'test' }),
+        },
+      };
+
+      // This should trigger the catch block in initialize() (line 197)
+      expect(() => {
+        new DiagnosticsWatcher(mockVsCodeApiWithError);
+      }).not.toThrow();
+
+      // Verify the error was logged
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to subscribe to diagnostic changes:'),
+        expect.any(Error)
+      );
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle disposal errors gracefully', () => {
+      // Mock console.warn to capture the warning
+      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+      const mockDisposable = {
+        dispose: jest.fn().mockImplementation(() => {
+          throw new Error('Disposal error');
+        }),
+      };
+
+      mockVsCode.languages.onDidChangeDiagnostics.mockReturnValue(mockDisposable);
+      const watcher = new DiagnosticsWatcher(mockVsCode);
+
+      // This should trigger the catch block in dispose() (line 171)
+      expect(() => {
+        watcher.dispose();
+      }).not.toThrow();
+
+      // Verify the warning was logged
+      expect(consoleSpy).toHaveBeenCalledWith('Error disposing subscription:', expect.any(Error));
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle errors during diagnostic processing', () => {
+      // Use fake timers for this test
+      jest.useFakeTimers();
+
+      const watcher = new DiagnosticsWatcher(mockVsCode);
+      const errorSpy = jest.spyOn(watcher, 'emit');
+
+      // Mock getDiagnostics to throw an error
+      mockVsCode.languages.getDiagnostics.mockImplementation(() => {
+        throw new Error('getDiagnostics error');
+      });
+
+      const mockEvent = {
+        uris: [{ fsPath: '/test/file.ts', toString: () => '/test/file.ts' }],
+      };
+
+      // Trigger the debounced handler directly to test error handling
+      const handler = mockVsCode.languages.onDidChangeDiagnostics.mock.calls[0][0];
+
+      // This should trigger the catch block in processDiagnosticChangeEvent (line 214)
+      handler(mockEvent);
+
+      // Wait for debounced execution
+      jest.runAllTimers();
+
+      // Verify error was emitted
+      expect(errorSpy).toHaveBeenCalledWith('watcherError', expect.any(Error));
+
+      // Restore real timers
+      jest.useRealTimers();
+    });
+
+    it('should handle errors during URI processing', () => {
+      // Use fake timers for this test
+      jest.useFakeTimers();
+
+      const watcher = new DiagnosticsWatcher(mockVsCode);
+      const errorSpy = jest.spyOn(watcher, 'emit');
+
+      // Create a URI that will cause an error during processing
+      const problematicUri = {
+        fsPath: '/test/file.ts',
+        toString: () => '/test/file.ts',
+      };
+
+      // Mock getDiagnostics to throw for this specific URI
+      mockVsCode.languages.getDiagnostics.mockImplementation((uri: any) => {
+        if (uri === problematicUri) {
+          throw new Error('URI processing error');
+        }
+        return [];
+      });
+
+      const mockEvent = {
+        uris: [problematicUri],
+      };
+
+      // Trigger the handler
+      const handler = mockVsCode.languages.onDidChangeDiagnostics.mock.calls[0][0];
+      handler(mockEvent);
+
+      // Wait for debounced execution
+      jest.runAllTimers();
+
+      // Verify error was emitted
+      expect(errorSpy).toHaveBeenCalledWith('watcherError', expect.any(Error));
+
+      // Restore real timers
+      jest.useRealTimers();
+    });
+
+    it('should return empty arrays when disposed', () => {
+      // Use fake timers for this test
+      jest.useFakeTimers();
+
+      const watcher = new DiagnosticsWatcher(mockVsCode);
+
+      // Add some problems first
+      const mockEvent = {
+        uris: [{ fsPath: '/test/file.ts', toString: () => '/test/file.ts' }],
+      };
+
+      mockVsCode.languages.getDiagnostics.mockReturnValue([
+        {
+          range: { start: { line: 0, character: 0 }, end: { line: 0, character: 5 } },
+          message: 'Test diagnostic',
+          severity: 0,
+          source: 'test',
+        },
+      ]);
+
+      const handler = mockVsCode.languages.onDidChangeDiagnostics.mock.calls[0][0];
+      handler(mockEvent);
+      jest.runAllTimers();
+
+      // Verify problems exist before disposal
+      expect(watcher.getAllProblems().length).toBeGreaterThan(0);
+
+      // Dispose the watcher
+      watcher.dispose();
+
+      // These should trigger the early return paths (lines 125, 137-151)
+      expect(watcher.getAllProblems()).toEqual([]);
+      expect(watcher.getProblemsForFile('/test/file.ts')).toEqual([]);
+      expect(watcher.getProblemsForWorkspace('test-workspace')).toEqual([]);
+
+      // Restore real timers
+      jest.useRealTimers();
+    });
+
+    it('should not process events when disposed', () => {
+      // Use fake timers for this test
+      jest.useFakeTimers();
+
+      const watcher = new DiagnosticsWatcher(mockVsCode);
+      watcher.dispose();
+
+      const mockEvent = {
+        uris: [{ fsPath: '/test/file.ts', toString: () => '/test/file.ts' }],
+      };
+
+      // Get the debounced handler
+      const handler = mockVsCode.languages.onDidChangeDiagnostics.mock.calls[0][0];
+
+      // This should trigger the early return in the debounced handler
+      handler(mockEvent);
+      jest.runAllTimers();
+
+      // Verify no diagnostics were processed
+      expect(mockVsCode.languages.getDiagnostics).not.toHaveBeenCalled();
+
+      // Restore real timers
+      jest.useRealTimers();
+    });
+  });
 });

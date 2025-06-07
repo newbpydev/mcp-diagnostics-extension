@@ -288,44 +288,75 @@ describe('DiagnosticConverter', () => {
   });
 
   describe('Error Handling', () => {
-    it('should handle VS Code API errors gracefully', () => {
+    it('should handle conversion errors gracefully and return fallback ProblemItem', () => {
+      // Test the workspace folder error handling path
       mockGetWorkspaceFolder.mockImplementation(() => {
-        throw new Error('VS Code API Error');
+        throw new Error('Workspace API error');
       });
 
-      expect(() => {
-        converter.convertToProblemItem(createBasicDiagnostic(), mockUri);
-      }).not.toThrow();
+      const result = converter.convertToProblemItem(createBasicDiagnostic(), mockUri);
+
+      // The workspace error should be caught and handled gracefully
+      expect(result.workspaceFolder).toBe('unknown');
+      expect(result.filePath).toBe('/path/to/file.ts');
+      expect(result.severity).toBe('Error');
     });
 
-    it('should handle malformed diagnostic objects', () => {
-      const malformedDiagnostic = {
-        // Missing required fields
-        message: 'Malformed diagnostic',
-      } as VsCodeDiagnostic;
-
-      expect(() => {
-        converter.convertToProblemItem(malformedDiagnostic, mockUri);
-      }).not.toThrow();
-    });
-
-    it('should handle null/undefined diagnostic properties', () => {
-      const diagnosticWithNulls: VsCodeDiagnostic = {
+    it('should handle related information conversion errors gracefully', () => {
+      // Create diagnostic with malformed related information that will cause conversion error
+      const mockDiagnostic: VsCodeDiagnostic = {
         range: {
           start: { line: 0, character: 0 },
-          end: { line: 0, character: 5 },
+          end: { line: 0, character: 10 },
         },
-        message: 'Test message',
+        message: 'Test error',
         severity: 0,
-        source: null as any,
-        relatedInformation: null as any,
-        // Note: code property is omitted instead of set to undefined
-        // due to exactOptionalPropertyTypes: true
+        source: 'test',
+        relatedInformation: [
+          // Create an object that will cause an error during property access
+          Object.create(null, {
+            location: {
+              get() {
+                throw new Error('Property access error');
+              },
+            },
+          }),
+        ],
       };
 
-      const result = converter.convertToProblemItem(diagnosticWithNulls, mockUri);
-      expect(result.source).toBe('unknown');
-      expect(result.code).toBeUndefined();
+      const result = converter.convertToProblemItem(mockDiagnostic, mockUri);
+
+      // Should handle the error and return undefined for relatedInformation
+      expect(result.relatedInformation).toBeUndefined();
+      expect(result.message).toBe('Test error');
+      expect(result.severity).toBe('Error');
+    });
+
+    it('should handle completely malformed related information', () => {
+      const mockDiagnostic: VsCodeDiagnostic = {
+        range: {
+          start: { line: 0, character: 0 },
+          end: { line: 0, character: 10 },
+        },
+        message: 'Test error',
+        severity: 0,
+        source: 'test',
+        relatedInformation: [
+          // Create an object that throws during iteration/mapping
+          new Proxy(
+            {},
+            {
+              get() {
+                throw new Error('Proxy access error');
+              },
+            }
+          ),
+        ],
+      };
+
+      const result = converter.convertToProblemItem(mockDiagnostic, mockUri);
+
+      // Should handle the error gracefully
       expect(result.relatedInformation).toBeUndefined();
     });
   });

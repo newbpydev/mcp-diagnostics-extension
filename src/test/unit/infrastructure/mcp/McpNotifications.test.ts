@@ -1,25 +1,25 @@
-import { McpNotifications } from '@infrastructure/mcp/McpNotifications';
+import { McpNotifications } from '../../../../infrastructure/mcp/McpNotifications';
 import { DiagnosticsChangeEvent, ProblemItem } from '@shared/types';
 
 describe('McpNotifications', () => {
   let mcpNotifications: McpNotifications;
   let mockServer: any;
 
+  const mockProblemItem: ProblemItem = {
+    filePath: '/workspace/src/test.ts',
+    workspaceFolder: 'my-project',
+    range: {
+      start: { line: 0, character: 0 },
+      end: { line: 0, character: 10 },
+    },
+    severity: 'Error',
+    message: 'Test error',
+    source: 'typescript',
+  };
+
   const mockChangeEvent: DiagnosticsChangeEvent = {
     uri: '/workspace/src/test.ts',
-    problems: [
-      {
-        filePath: '/workspace/src/test.ts',
-        workspaceFolder: 'my-project',
-        range: {
-          start: { line: 0, character: 0 },
-          end: { line: 0, character: 10 },
-        },
-        severity: 'Error',
-        message: 'Test error',
-        source: 'typescript',
-      },
-    ],
+    problems: [mockProblemItem],
   };
 
   beforeEach(() => {
@@ -61,7 +61,7 @@ describe('McpNotifications', () => {
     it('should handle client subscription to problemsChanged', () => {
       const subscribeHandler = mockServer.setNotificationHandler.mock.calls.find(
         (call: any[]) => call[0] === 'notifications/subscribe'
-      )[1];
+      )?.[1];
 
       const notification = {
         params: { method: 'problemsChanged' },
@@ -78,7 +78,7 @@ describe('McpNotifications', () => {
     it('should handle client subscription without clientId', () => {
       const subscribeHandler = mockServer.setNotificationHandler.mock.calls.find(
         (call: any[]) => call[0] === 'notifications/subscribe'
-      )[1];
+      )?.[1];
 
       const notification = {
         params: { method: 'problemsChanged' },
@@ -94,7 +94,7 @@ describe('McpNotifications', () => {
     it('should ignore subscription to unknown methods', () => {
       const subscribeHandler = mockServer.setNotificationHandler.mock.calls.find(
         (call: any[]) => call[0] === 'notifications/subscribe'
-      )[1];
+      )?.[1];
 
       const notification = {
         params: { method: 'unknownMethod' },
@@ -112,7 +112,7 @@ describe('McpNotifications', () => {
       // First subscribe
       const subscribeHandler = mockServer.setNotificationHandler.mock.calls.find(
         (call: any[]) => call[0] === 'notifications/subscribe'
-      )[1];
+      )?.[1];
 
       subscribeHandler({
         params: { method: 'problemsChanged' },
@@ -122,7 +122,7 @@ describe('McpNotifications', () => {
       // Then unsubscribe
       const unsubscribeHandler = mockServer.setNotificationHandler.mock.calls.find(
         (call: any[]) => call[0] === 'notifications/unsubscribe'
-      )[1];
+      )?.[1];
 
       unsubscribeHandler({
         params: { method: 'problemsChanged' },
@@ -137,7 +137,7 @@ describe('McpNotifications', () => {
     it('should handle multiple client subscriptions', () => {
       const subscribeHandler = mockServer.setNotificationHandler.mock.calls.find(
         (call: any[]) => call[0] === 'notifications/subscribe'
-      )[1];
+      )?.[1];
 
       // Subscribe multiple clients
       subscribeHandler({
@@ -163,7 +163,7 @@ describe('McpNotifications', () => {
       // Subscribe a test client
       const subscribeHandler = mockServer.setNotificationHandler.mock.calls.find(
         (call: any[]) => call[0] === 'notifications/subscribe'
-      )[1];
+      )?.[1];
 
       subscribeHandler({
         params: { method: 'problemsChanged' },
@@ -193,13 +193,25 @@ describe('McpNotifications', () => {
     it('should include correct problem count', () => {
       const eventWithMultipleProblems: DiagnosticsChangeEvent = {
         uri: '/workspace/src/test.ts',
-        problems: [mockChangeEvent.problems[0], mockChangeEvent.problems[0]] as ProblemItem[],
+        problems: [mockProblemItem, mockProblemItem],
       };
 
       mcpNotifications.sendProblemsChangedNotification(eventWithMultipleProblems);
 
       const sentNotification = mockServer.sendNotification.mock.calls[0][0];
       expect(sentNotification.params.data.problemCount).toBe(2);
+    });
+
+    it('should include timestamp in notification', () => {
+      const beforeTime = new Date();
+      mcpNotifications.sendProblemsChangedNotification(mockChangeEvent);
+      const afterTime = new Date();
+
+      const sentNotification = mockServer.sendNotification.mock.calls[0][0];
+      const timestamp = new Date(sentNotification.params.data.timestamp);
+
+      expect(timestamp.getTime()).toBeGreaterThanOrEqual(beforeTime.getTime());
+      expect(timestamp.getTime()).toBeLessThanOrEqual(afterTime.getTime());
     });
 
     it('should handle empty problems list', () => {
@@ -227,65 +239,133 @@ describe('McpNotifications', () => {
   });
 
   describe('Error Handling', () => {
-    beforeEach(() => {
-      mcpNotifications.setupNotifications();
+    it('should handle notification sending errors gracefully', () => {
+      const notifications = new McpNotifications(mockServer);
+      notifications.setupNotifications();
 
-      // Subscribe a test client
+      // Subscribe some clients
+      const subscribeNotification = { params: { method: 'problemsChanged' }, clientId: 'client1' };
       const subscribeHandler = mockServer.setNotificationHandler.mock.calls.find(
         (call: any[]) => call[0] === 'notifications/subscribe'
-      )[1];
+      )?.[1];
+      subscribeHandler(subscribeNotification);
 
-      subscribeHandler({
-        params: { method: 'problemsChanged' },
-        clientId: 'test-client',
+      // Add another client
+      const subscribeNotification2 = { params: { method: 'problemsChanged' }, clientId: 'client2' };
+      subscribeHandler(subscribeNotification2);
+
+      expect(notifications.getSubscribedClientCount()).toBe(2);
+
+      // Mock sendNotification to throw an error for the first call but succeed for the second
+      let callCount = 0;
+      mockServer.sendNotification.mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          throw new Error('Network error sending to client1');
+        }
+        // Second call succeeds
       });
+
+      // Mock console.error to capture error logs
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      const mockEvent: DiagnosticsChangeEvent = {
+        uri: '/test/file.ts',
+        problems: [mockProblemItem],
+      };
+
+      // This should trigger the error handling in the forEach loop (lines 104-111)
+      notifications.sendProblemsChangedNotification(mockEvent);
+
+      // Verify error was logged for the failed client
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to send notification to client'),
+        expect.any(Error)
+      );
+
+      // Verify sendNotification was called twice (once for each client)
+      expect(mockServer.sendNotification).toHaveBeenCalledTimes(2);
+
+      consoleSpy.mockRestore();
     });
 
-    it('should handle server notification errors gracefully', () => {
+    it('should continue sending to other clients when one fails', () => {
+      const notifications = new McpNotifications(mockServer);
+      notifications.setupNotifications();
+
+      // Subscribe multiple clients
+      const subscribeHandler = mockServer.setNotificationHandler.mock.calls.find(
+        (call: any[]) => call[0] === 'notifications/subscribe'
+      )?.[1];
+
+      ['client1', 'client2', 'client3'].forEach((clientId) => {
+        subscribeHandler({ params: { method: 'problemsChanged' }, clientId });
+      });
+
+      expect(notifications.getSubscribedClientCount()).toBe(3);
+
+      // Mock sendNotification to fail for client2 but succeed for others
+      let callCount = 0;
       mockServer.sendNotification.mockImplementation(() => {
-        throw new Error('Server error');
+        callCount++;
+        if (callCount === 2) {
+          throw new Error('Failed to send to client2');
+        }
+        // Other calls succeed
       });
 
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
-      expect(() => {
-        mcpNotifications.sendProblemsChangedNotification(mockChangeEvent);
-      }).not.toThrow();
+      const mockEvent: DiagnosticsChangeEvent = {
+        uri: '/test/file.ts',
+        problems: [mockProblemItem],
+      };
 
+      notifications.sendProblemsChangedNotification(mockEvent);
+
+      // Should have attempted to send to all 3 clients
+      expect(mockServer.sendNotification).toHaveBeenCalledTimes(3);
+
+      // Should have logged error for the failed client
       expect(consoleSpy).toHaveBeenCalledWith(
-        'Failed to send notification to client test-client:',
+        expect.stringContaining('Failed to send notification to client'),
         expect.any(Error)
       );
 
       consoleSpy.mockRestore();
     });
 
-    it('should continue sending to other clients if one fails', () => {
-      // Subscribe multiple clients
+    it('should handle errors when no client ID is provided', () => {
+      const notifications = new McpNotifications(mockServer);
+      notifications.setupNotifications();
+
+      // Subscribe a client without clientId (should use 'default')
       const subscribeHandler = mockServer.setNotificationHandler.mock.calls.find(
         (call: any[]) => call[0] === 'notifications/subscribe'
-      )[1];
+      )?.[1];
+      subscribeHandler({ params: { method: 'problemsChanged' } }); // No clientId
 
-      subscribeHandler({
-        params: { method: 'problemsChanged' },
-        clientId: 'client-2',
+      expect(notifications.getSubscribedClientCount()).toBe(1);
+
+      // Mock sendNotification to throw an error
+      mockServer.sendNotification.mockImplementation(() => {
+        throw new Error('Network error');
       });
-
-      // Make first call fail, second succeed
-      mockServer.sendNotification
-        .mockImplementationOnce(() => {
-          throw new Error('First client error');
-        })
-        .mockImplementationOnce(() => {
-          // Second client succeeds
-        });
 
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
-      mcpNotifications.sendProblemsChangedNotification(mockChangeEvent);
+      const mockEvent: DiagnosticsChangeEvent = {
+        uri: '/test/file.ts',
+        problems: [mockProblemItem],
+      };
 
-      expect(mockServer.sendNotification).toHaveBeenCalledTimes(2);
-      expect(consoleSpy).toHaveBeenCalledTimes(1);
+      notifications.sendProblemsChangedNotification(mockEvent);
+
+      // Should log error with 'default' client ID
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to send notification to client'),
+        expect.any(Error)
+      );
 
       consoleSpy.mockRestore();
     });
@@ -299,7 +379,7 @@ describe('McpNotifications', () => {
     it('should handle duplicate subscriptions from same client', () => {
       const subscribeHandler = mockServer.setNotificationHandler.mock.calls.find(
         (call: any[]) => call[0] === 'notifications/subscribe'
-      )[1];
+      )?.[1];
 
       // Subscribe same client twice
       subscribeHandler({
@@ -320,7 +400,7 @@ describe('McpNotifications', () => {
     it('should handle unsubscription of non-existent client', () => {
       const unsubscribeHandler = mockServer.setNotificationHandler.mock.calls.find(
         (call: any[]) => call[0] === 'notifications/unsubscribe'
-      )[1];
+      )?.[1];
 
       expect(() => {
         unsubscribeHandler({
