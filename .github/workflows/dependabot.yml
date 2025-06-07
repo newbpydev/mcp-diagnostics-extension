@@ -1,0 +1,46 @@
+name: Dependabot CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [ main ]
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+
+jobs:
+  dependabot-checks:
+    name: Dependabot Status Checks
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run build
+      run: npm run compile
+
+    - name: Run ci checks
+      run: npm run ci:check
+
+    - name: Run tests
+      run: npm run test
+
+    - name: Run linting
+      run: npm run lint
+
+    - name: Run coverage
+      run: npm run test:coverage
+
+    - name: Mark completed
+      run: echo "All Dependabot checks completed successfully"
