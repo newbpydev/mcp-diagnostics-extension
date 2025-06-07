@@ -3,15 +3,31 @@ import { DiagnosticsWatcher } from '@core/diagnostics/DiagnosticsWatcher';
 import { McpServerWrapper } from '@infrastructure/mcp/McpServerWrapper';
 import { DEFAULT_CONFIG } from '@shared/constants';
 
+// Mock VS Code module first
+jest.mock('vscode', () => ({
+  workspace: {
+    getConfiguration: jest.fn(() => ({
+      get: jest.fn((_key: string, defaultValue?: any) => defaultValue),
+    })),
+  },
+  window: {
+    showErrorMessage: jest.fn(),
+  },
+}));
+
 // Mock the extension module dependencies
 jest.mock('@core/diagnostics/DiagnosticsWatcher');
 jest.mock('@infrastructure/mcp/McpServerWrapper');
 jest.mock('@infrastructure/vscode/VsCodeApiAdapter');
 
+// Import the actual activate function
+// import { activate, deactivate } from '../../../extension';
+
 // Mock VS Code API
 const mockVscode = {
   workspace: {
     getConfiguration: jest.fn(),
+    getWorkspaceFolder: jest.fn(),
   },
   languages: {
     onDidChangeDiagnostics: jest.fn(),
@@ -19,6 +35,12 @@ const mockVscode = {
   },
   window: {
     showErrorMessage: jest.fn(),
+  },
+  commands: {
+    registerCommand: jest.fn(),
+  },
+  Uri: {
+    parse: jest.fn(),
   },
 };
 
@@ -47,6 +69,11 @@ describe('Extension Integration', () => {
       environmentVariableCollection: {} as any,
       asAbsolutePath: jest.fn(),
       storageUri: {} as any,
+      storagePath: '/test/storage',
+      globalStorageUri: {} as any,
+      globalStoragePath: '/test/global-storage',
+      logUri: {} as any,
+      logPath: '/test/logs',
       extension: {} as any,
       extensionMode: 3, // ExtensionMode.Test
       languageModelAccessInformation: {} as any,
@@ -68,13 +95,14 @@ describe('Extension Integration', () => {
       dispose: jest.fn(),
     } as any;
 
-    // Mock constructors
-    (DiagnosticsWatcher as jest.MockedClass<typeof DiagnosticsWatcher>).mockImplementation(
-      () => mockDiagnosticsWatcher
-    );
-    (McpServerWrapper as jest.MockedClass<typeof McpServerWrapper>).mockImplementation(
-      () => mockMcpServer
-    );
+    // Mock constructors - ensure they're properly typed
+    const MockedDiagnosticsWatcher = DiagnosticsWatcher as jest.MockedClass<
+      typeof DiagnosticsWatcher
+    >;
+    const MockedMcpServerWrapper = McpServerWrapper as jest.MockedClass<typeof McpServerWrapper>;
+
+    MockedDiagnosticsWatcher.mockImplementation(() => mockDiagnosticsWatcher);
+    MockedMcpServerWrapper.mockImplementation(() => mockMcpServer);
 
     // Mock workspace configuration
     const mockConfig = {
@@ -82,9 +110,25 @@ describe('Extension Integration', () => {
     };
     mockVscode.workspace.getConfiguration.mockReturnValue(mockConfig);
 
+    // Mock VS Code Uri.parse
+    mockVscode.Uri.parse.mockImplementation((uriString: string) => ({
+      toString: () => uriString,
+      fsPath: uriString,
+    }));
+
+    // Mock onDidChangeDiagnostics
+    mockVscode.languages.onDidChangeDiagnostics.mockReturnValue({
+      dispose: jest.fn(),
+    });
+
+    // Mock getDiagnostics
+    mockVscode.languages.getDiagnostics.mockReturnValue([]);
+
     // Clear module cache and re-import extension
     jest.resetModules();
-    const extensionModule = await import('@/extension');
+
+    // Import the extension module directly (not dynamically)
+    const extensionModule = require('@/extension');
     activate = extensionModule.activate;
     deactivate = extensionModule.deactivate;
   });
@@ -94,16 +138,16 @@ describe('Extension Integration', () => {
   });
 
   describe('Extension Activation', () => {
-    it('should activate extension successfully', async () => {
-      await activate(mockContext);
+    it('should activate extension successfully', () => {
+      activate(mockContext);
 
       expect(DiagnosticsWatcher).toHaveBeenCalled();
       expect(McpServerWrapper).toHaveBeenCalled();
       expect(mockMcpServer.start).toHaveBeenCalled();
     });
 
-    it('should create DiagnosticsWatcher with VS Code API adapter', async () => {
-      await activate(mockContext);
+    it('should create DiagnosticsWatcher with VS Code API adapter', () => {
+      activate(mockContext);
 
       expect(DiagnosticsWatcher).toHaveBeenCalledWith(expect.any(Object));
     });

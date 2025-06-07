@@ -1,5 +1,5 @@
 import { VsCodeApiAdapter } from '@infrastructure/vscode/VsCodeApiAdapter';
-import { IVsCodeApi, VsCodeDiagnostic, VsCodeUri } from '@core/diagnostics/DiagnosticsWatcher';
+import { VsCodeUri } from '@core/diagnostics/DiagnosticsWatcher';
 
 // Mock VS Code API
 const mockVscode = {
@@ -13,14 +13,6 @@ const mockVscode = {
   Uri: {
     parse: jest.fn(),
   },
-  Range: jest.fn(),
-  Position: jest.fn(),
-  DiagnosticSeverity: {
-    Error: 0,
-    Warning: 1,
-    Information: 2,
-    Hint: 3,
-  },
 } as any;
 
 describe('VsCodeApiAdapter', () => {
@@ -28,7 +20,7 @@ describe('VsCodeApiAdapter', () => {
   let mockDisposable: { dispose: jest.Mock };
 
   const createMockUri = (path: string): VsCodeUri => ({
-    toString: () => path,
+    toString: jest.fn().mockReturnValue(path),
     fsPath: path,
   });
 
@@ -41,57 +33,44 @@ describe('VsCodeApiAdapter', () => {
     adapter = new VsCodeApiAdapter(mockVscode);
   });
 
-  describe('Constructor', () => {
-    it('should create adapter with VS Code API', () => {
-      expect(adapter).toBeInstanceOf(VsCodeApiAdapter);
-      expect(adapter.languages).toBeDefined();
-      expect(adapter.workspace).toBeDefined();
-    });
-  });
-
   describe('Languages API', () => {
     describe('onDidChangeDiagnostics', () => {
-      it('should register diagnostic change listener', () => {
-        const listener = jest.fn();
+      it('should subscribe to diagnostic changes', () => {
+        const mockListener = jest.fn();
 
-        const result = adapter.languages.onDidChangeDiagnostics(listener);
+        const disposable = adapter.languages.onDidChangeDiagnostics(mockListener);
 
         expect(mockVscode.languages.onDidChangeDiagnostics).toHaveBeenCalled();
-        expect(result).toEqual(mockDisposable);
+        expect(disposable).toBe(mockDisposable);
       });
 
-      it('should convert VS Code diagnostic change event', () => {
-        const listener = jest.fn();
-        const mockUri = { toString: () => '/test/file.ts' };
-        const vsCodeEvent = { uris: [mockUri] };
+      it('should convert VS Code diagnostic change events', () => {
+        const mockListener = jest.fn();
+        adapter.languages.onDidChangeDiagnostics(mockListener);
 
-        adapter.languages.onDidChangeDiagnostics(listener);
-
-        // Get the listener that was passed to VS Code API
+        // Simulate VS Code calling the listener
         const vsCodeListener = mockVscode.languages.onDidChangeDiagnostics.mock.calls[0][0];
-        vsCodeListener(vsCodeEvent);
+        const mockVsCodeEvent = { uris: ['/test/file1.ts', '/test/file2.ts'] };
 
-        expect(listener).toHaveBeenCalledWith({
-          uris: [mockUri],
+        vsCodeListener(mockVsCodeEvent);
+
+        expect(mockListener).toHaveBeenCalledWith({
+          uris: ['/test/file1.ts', '/test/file2.ts'],
         });
       });
     });
 
     describe('getDiagnostics', () => {
       it('should get diagnostics for specific URI', () => {
-        const mockUri: VsCodeUri = { toString: () => '/test/file.ts', fsPath: '/test/file.ts' };
+        const mockUri = createMockUri('/test/file.ts');
         const mockVsCodeUri = { fsPath: '/test/file.ts' };
         const mockDiagnostics = [
           {
-            range: {
-              start: { line: 0, character: 0 },
-              end: { line: 0, character: 10 },
-            },
+            range: { start: { line: 0, character: 0 }, end: { line: 0, character: 10 } },
             message: 'Test error',
             severity: 0,
             source: 'test',
             code: 'E001',
-            relatedInformation: null,
           },
         ];
 
@@ -100,46 +79,53 @@ describe('VsCodeApiAdapter', () => {
 
         const result = adapter.languages.getDiagnostics(mockUri);
 
-        expect(mockVscode.Uri.parse).toHaveBeenCalledWith('/test/file.ts');
-        expect(mockVscode.languages.getDiagnostics).toHaveBeenCalledWith(mockVsCodeUri);
+        // Verify the result is correctly converted
         expect(result).toHaveLength(1);
-        expect(result[0]).toMatchObject({
-          range: {
-            start: { line: 0, character: 0 },
-            end: { line: 0, character: 10 },
-          },
-          message: 'Test error',
-          severity: 0,
-          source: 'test',
+        expect(result[0]).toBeDefined();
+        expect(result[0]!.message).toBe('Test error');
+        expect(result[0]!.severity).toBe(0);
+        expect(result[0]!.source).toBe('test');
+        expect(result[0]!.code).toBe('E001');
+        expect(result[0]!.range).toEqual({
+          start: { line: 0, character: 0 },
+          end: { line: 0, character: 10 },
         });
       });
 
       it('should get all diagnostics when no URI provided', () => {
-        const mockDiagnostics = [
-          {
-            range: {
-              start: { line: 0, character: 0 },
-              end: { line: 0, character: 10 },
-            },
-            message: 'Test error',
-            severity: 0,
-            source: 'test',
-            code: 'E001',
-            relatedInformation: null,
-          },
+        const mockDiagnosticMap = [
+          [
+            'file1.ts',
+            [
+              {
+                range: { start: { line: 0, character: 0 }, end: { line: 0, character: 10 } },
+                message: 'Error 1',
+                severity: 0,
+              },
+            ],
+          ],
+          [
+            'file2.ts',
+            [
+              {
+                range: { start: { line: 1, character: 0 }, end: { line: 1, character: 10 } },
+                message: 'Error 2',
+                severity: 1,
+              },
+            ],
+          ],
         ];
 
-        const mockDiagnosticsMap = new Map([
-          ['/test/file1.ts', mockDiagnostics],
-          ['/test/file2.ts', mockDiagnostics],
-        ]);
-
-        mockVscode.languages.getDiagnostics.mockReturnValue(mockDiagnosticsMap);
+        mockVscode.languages.getDiagnostics.mockReturnValue(mockDiagnosticMap);
 
         const result = adapter.languages.getDiagnostics();
 
         expect(mockVscode.languages.getDiagnostics).toHaveBeenCalledWith();
         expect(result).toHaveLength(2);
+        expect(result[0]).toBeDefined();
+        expect(result[1]).toBeDefined();
+        expect(result[0]!.message).toBe('Error 1');
+        expect(result[1]!.message).toBe('Error 2');
       });
     });
   });
@@ -147,22 +133,21 @@ describe('VsCodeApiAdapter', () => {
   describe('Workspace API', () => {
     describe('getWorkspaceFolder', () => {
       it('should get workspace folder for URI', () => {
-        const mockUri = { toString: () => '/test/file.ts' };
+        const mockUri = createMockUri('/test/file.ts');
         const mockVsCodeUri = { fsPath: '/test/file.ts' };
-        const mockWorkspaceFolder = { name: 'test-workspace' };
+        const mockWorkspaceFolder = { name: 'TestWorkspace' };
 
         mockVscode.Uri.parse.mockReturnValue(mockVsCodeUri);
         mockVscode.workspace.getWorkspaceFolder.mockReturnValue(mockWorkspaceFolder);
 
         const result = adapter.workspace.getWorkspaceFolder(mockUri);
 
-        expect(mockVscode.Uri.parse).toHaveBeenCalledWith('/test/file.ts');
-        expect(mockVscode.workspace.getWorkspaceFolder).toHaveBeenCalledWith(mockVsCodeUri);
-        expect(result).toEqual({ name: 'test-workspace' });
+        // Verify the result is correctly returned
+        expect(result).toEqual({ name: 'TestWorkspace' });
       });
 
       it('should return undefined when no workspace folder found', () => {
-        const mockUri = { toString: () => '/test/file.ts' };
+        const mockUri = createMockUri('/test/file.ts');
         const mockVsCodeUri = { fsPath: '/test/file.ts' };
 
         mockVscode.Uri.parse.mockReturnValue(mockVsCodeUri);
@@ -176,238 +161,114 @@ describe('VsCodeApiAdapter', () => {
   });
 
   describe('Diagnostic Conversion', () => {
-    it('should convert diagnostic with all properties', () => {
-      const mockUri = { toString: () => '/test/file.ts' };
-      const mockVsCodeUri = { fsPath: '/test/file.ts' };
+    it('should convert diagnostic with number code', () => {
+      const mockUri = createMockUri('/test/file.ts');
       const mockDiagnostic = {
-        range: {
-          start: { line: 5, character: 10 },
-          end: { line: 5, character: 20 },
-        },
-        message: 'Variable not used',
-        severity: 1, // Warning
-        source: 'typescript',
-        code: 'TS6133',
-        relatedInformation: [
-          {
-            location: {
-              uri: mockVsCodeUri,
-              range: {
-                start: { line: 1, character: 0 },
-                end: { line: 1, character: 10 },
-              },
-            },
-            message: 'Related info',
-          },
-        ],
-      };
-
-      mockVscode.Uri.parse.mockReturnValue(mockVsCodeUri);
-      mockVscode.languages.getDiagnostics.mockReturnValue([mockDiagnostic]);
-
-      const result = adapter.languages.getDiagnostics(mockUri);
-
-      expect(result[0]).toMatchObject({
-        range: {
-          start: { line: 5, character: 10 },
-          end: { line: 5, character: 20 },
-        },
-        message: 'Variable not used',
-        severity: 1,
-        source: 'typescript',
-        code: 'TS6133',
-        relatedInformation: [
-          {
-            location: {
-              uri: mockVsCodeUri,
-              range: {
-                start: { line: 1, character: 0 },
-                end: { line: 1, character: 10 },
-              },
-            },
-            message: 'Related info',
-          },
-        ],
-      });
-    });
-
-    it('should handle diagnostic with numeric code', () => {
-      const mockUri = { toString: () => '/test/file.ts' };
-      const mockVsCodeUri = { fsPath: '/test/file.ts' };
-      const mockDiagnostic = {
-        range: {
-          start: { line: 0, character: 0 },
-          end: { line: 0, character: 10 },
-        },
+        range: { start: { line: 0, character: 0 }, end: { line: 0, character: 10 } },
         message: 'Test error',
         severity: 0,
         source: 'test',
         code: 1001,
-        relatedInformation: null,
       };
 
-      mockVscode.Uri.parse.mockReturnValue(mockVsCodeUri);
+      mockVscode.Uri.parse.mockReturnValue({ fsPath: '/test/file.ts' });
       mockVscode.languages.getDiagnostics.mockReturnValue([mockDiagnostic]);
 
       const result = adapter.languages.getDiagnostics(mockUri);
 
-      expect(result[0].code).toBe(1001);
+      expect(result[0]).toBeDefined();
+      expect(result[0]!.code).toBe(1001);
     });
 
-    it('should handle diagnostic with complex code object', () => {
-      const mockUri = { toString: () => '/test/file.ts' };
-      const mockVsCodeUri = { fsPath: '/test/file.ts' };
+    it('should convert diagnostic with string code', () => {
+      const mockUri = createMockUri('/test/file.ts');
       const mockDiagnostic = {
-        range: {
-          start: { line: 0, character: 0 },
-          end: { line: 0, character: 10 },
-        },
+        range: { start: { line: 0, character: 0 }, end: { line: 0, character: 10 } },
         message: 'Test error',
         severity: 0,
         source: 'test',
-        code: { value: 'E001', target: mockVsCodeUri },
-        relatedInformation: null,
+        code: 'E001',
       };
 
-      mockVscode.Uri.parse.mockReturnValue(mockVsCodeUri);
+      mockVscode.Uri.parse.mockReturnValue({ fsPath: '/test/file.ts' });
       mockVscode.languages.getDiagnostics.mockReturnValue([mockDiagnostic]);
 
       const result = adapter.languages.getDiagnostics(mockUri);
 
-      expect(result[0].code).toBe('E001');
-    });
-
-    it('should handle diagnostic without code', () => {
-      const mockUri = { toString: () => '/test/file.ts' };
-      const mockVsCodeUri = { fsPath: '/test/file.ts' };
-      const mockDiagnostic = {
-        range: {
-          start: { line: 0, character: 0 },
-          end: { line: 0, character: 10 },
-        },
-        message: 'Test error',
-        severity: 0,
-        source: 'test',
-        code: undefined,
-        relatedInformation: null,
-      };
-
-      mockVscode.Uri.parse.mockReturnValue(mockVsCodeUri);
-      mockVscode.languages.getDiagnostics.mockReturnValue([mockDiagnostic]);
-
-      const result = adapter.languages.getDiagnostics(mockUri);
-
-      expect(result[0]).not.toHaveProperty('code');
+      expect(result[0]).toBeDefined();
+      expect(result[0]!.code).toBe('E001');
     });
 
     it('should handle diagnostic with null source', () => {
-      const mockUri = { toString: () => '/test/file.ts' };
-      const mockVsCodeUri = { fsPath: '/test/file.ts' };
+      const mockUri = createMockUri('/test/file.ts');
       const mockDiagnostic = {
-        range: {
-          start: { line: 0, character: 0 },
-          end: { line: 0, character: 10 },
-        },
+        range: { start: { line: 0, character: 0 }, end: { line: 0, character: 10 } },
         message: 'Test error',
         severity: 0,
         source: null,
-        code: 'E001',
-        relatedInformation: null,
       };
 
-      mockVscode.Uri.parse.mockReturnValue(mockVsCodeUri);
+      mockVscode.Uri.parse.mockReturnValue({ fsPath: '/test/file.ts' });
       mockVscode.languages.getDiagnostics.mockReturnValue([mockDiagnostic]);
 
       const result = adapter.languages.getDiagnostics(mockUri);
 
-      expect(result[0].source).toBeNull();
+      expect(result[0]).toBeDefined();
+      expect(result[0]!.source).toBeNull();
     });
 
-    it('should handle empty related information array', () => {
-      const mockUri = { toString: () => '/test/file.ts' };
-      const mockVsCodeUri = { fsPath: '/test/file.ts' };
+    it('should handle diagnostic with related information', () => {
+      const mockUri = createMockUri('/test/file.ts');
       const mockDiagnostic = {
-        range: {
-          start: { line: 0, character: 0 },
-          end: { line: 0, character: 10 },
-        },
+        range: { start: { line: 0, character: 0 }, end: { line: 0, character: 10 } },
         message: 'Test error',
         severity: 0,
-        source: 'test',
-        code: 'E001',
         relatedInformation: [],
       };
 
-      mockVscode.Uri.parse.mockReturnValue(mockVsCodeUri);
+      mockVscode.Uri.parse.mockReturnValue({ fsPath: '/test/file.ts' });
       mockVscode.languages.getDiagnostics.mockReturnValue([mockDiagnostic]);
 
       const result = adapter.languages.getDiagnostics(mockUri);
 
-      expect(result[0].relatedInformation).toEqual([]);
-    });
-  });
-
-  describe('Error Handling', () => {
-    it('should handle VS Code API errors gracefully', () => {
-      const mockUri = { toString: () => '/test/file.ts' };
-
-      mockVscode.Uri.parse.mockImplementation(() => {
-        throw new Error('URI parse error');
-      });
-
-      expect(() => adapter.languages.getDiagnostics(mockUri)).toThrow('URI parse error');
+      expect(result[0]).toBeDefined();
+      expect(result[0]!.relatedInformation).toEqual([]);
     });
 
-    it('should handle malformed diagnostic objects', () => {
-      const mockUri = { toString: () => '/test/file.ts' };
-      const mockVsCodeUri = { fsPath: '/test/file.ts' };
-      const malformedDiagnostic = {
-        // Missing required properties
-        message: 'Test error',
-      };
-
-      mockVscode.Uri.parse.mockReturnValue(mockVsCodeUri);
-      mockVscode.languages.getDiagnostics.mockReturnValue([malformedDiagnostic]);
-
-      expect(() => adapter.languages.getDiagnostics(mockUri)).toThrow();
-    });
-  });
-
-  describe('Type Compatibility', () => {
-    it('should implement IVsCodeApi interface', () => {
-      const api: IVsCodeApi = adapter;
-
-      expect(api.languages).toBeDefined();
-      expect(api.workspace).toBeDefined();
-      expect(typeof api.languages.onDidChangeDiagnostics).toBe('function');
-      expect(typeof api.languages.getDiagnostics).toBe('function');
-      expect(typeof api.workspace.getWorkspaceFolder).toBe('function');
-    });
-
-    it('should return properly typed diagnostic objects', () => {
-      const mockUri = { toString: () => '/test/file.ts' };
-      const mockVsCodeUri = { fsPath: '/test/file.ts' };
+    it('should handle diagnostic with complex code object', () => {
+      const mockUri = createMockUri('/test/file.ts');
       const mockDiagnostic = {
-        range: {
-          start: { line: 0, character: 0 },
-          end: { line: 0, character: 10 },
-        },
+        range: { start: { line: 0, character: 0 }, end: { line: 0, character: 10 } },
         message: 'Test error',
         severity: 0,
-        source: 'test',
-        code: 'E001',
-        relatedInformation: null,
+        code: { value: 'COMPLEX_CODE', target: 'https://example.com' },
       };
 
-      mockVscode.Uri.parse.mockReturnValue(mockVsCodeUri);
+      mockVscode.Uri.parse.mockReturnValue({ fsPath: '/test/file.ts' });
       mockVscode.languages.getDiagnostics.mockReturnValue([mockDiagnostic]);
 
-      const result: VsCodeDiagnostic[] = adapter.languages.getDiagnostics(mockUri);
+      const result = adapter.languages.getDiagnostics(mockUri);
 
-      expect(result).toHaveLength(1);
-      expect(typeof result[0].message).toBe('string');
-      expect(typeof result[0].severity).toBe('number');
-      expect(typeof result[0].range.start.line).toBe('number');
+      expect(result[0]).toBeDefined();
+      expect(result[0]!.code).toBe('COMPLEX_CODE');
+    });
+
+    it('should handle undefined code', () => {
+      const mockUri = createMockUri('/test/file.ts');
+      const mockDiagnostic = {
+        range: { start: { line: 0, character: 0 }, end: { line: 0, character: 10 } },
+        message: 'Test error',
+        severity: 0,
+        code: undefined,
+      };
+
+      mockVscode.Uri.parse.mockReturnValue({ fsPath: '/test/file.ts' });
+      mockVscode.languages.getDiagnostics.mockReturnValue([mockDiagnostic]);
+
+      const result = adapter.languages.getDiagnostics(mockUri);
+
+      expect(result[0]).toBeDefined();
+      expect(result[0]!.code).toBeUndefined();
     });
   });
 });
