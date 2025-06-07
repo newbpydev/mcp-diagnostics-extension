@@ -322,6 +322,24 @@ describe('Extension Integration', () => {
       deactivate = extensionModule.deactivate;
       expect(() => deactivate()).not.toThrow();
     });
+
+    it('should log error if dispose throws during deactivation', async () => {
+      const extensionModule = await import('@/extension');
+      activate = extensionModule.activate;
+      deactivate = extensionModule.deactivate;
+      await activate(mockContext, {
+        DiagnosticsWatcherCtor: DiagnosticsWatcher,
+        McpServerWrapperCtor: McpServerWrapper,
+        VsCodeApiAdapterCtor: VsCodeApiAdapter,
+      });
+      mockMcpServer.dispose.mockImplementation(() => {
+        throw new Error('dispose fail');
+      });
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+      expect(() => deactivate()).not.toThrow();
+      expect(errorSpy).toHaveBeenCalledWith('Error during deactivation:', expect.any(Error));
+      errorSpy.mockRestore();
+    });
   });
 
   describe('Configuration Management', () => {

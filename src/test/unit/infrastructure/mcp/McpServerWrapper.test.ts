@@ -428,6 +428,79 @@ describe('McpServerWrapper', () => {
     });
   });
 
+  describe('Lifecycle and Error Branches', () => {
+    beforeEach(() => {
+      server = new McpServerWrapper(mockWatcher, { enableDebugLogging: true });
+    });
+
+    it('should throw if start is called twice', async () => {
+      await server.start();
+      await expect(server.start()).rejects.toThrow('MCP Server is already started');
+    });
+
+    it('should throw if server.connect fails', async () => {
+      const failingServer = new McpServerWrapper(mockWatcher, { enableDebugLogging: true });
+      // @ts-ignore
+      failingServer.server.connect.mockRejectedValueOnce(new Error('connect fail'));
+      await expect(failingServer.start()).rejects.toThrow(
+        'Failed to start MCP server: Error: connect fail'
+      );
+    });
+
+    it('should log and throw if registerHandlers fails', async () => {
+      const errorServer = new McpServerWrapper(mockWatcher, { enableDebugLogging: true });
+      // Mock tools.registerTools to throw
+      jest.spyOn(errorServer.getTools(), 'registerTools').mockImplementation(() => {
+        throw new Error('handler fail');
+      });
+      // @ts-ignore
+      errorServer.server.connect.mockResolvedValue(undefined);
+      await expect(errorServer.start()).rejects.toThrow('handler fail');
+      expect(consoleSpy.error).toHaveBeenCalledWith(
+        'Failed to register MCP handlers:',
+        expect.any(Error)
+      );
+    });
+
+    it('should log error if dispose fails', () => {
+      const errorServer = new McpServerWrapper(mockWatcher, { enableDebugLogging: true });
+      // @ts-ignore
+      errorServer.isStarted = true;
+      // @ts-ignore
+      errorServer.server.close.mockImplementation(() => {
+        throw new Error('close fail');
+      });
+      errorServer.dispose();
+      expect(consoleSpy.error).toHaveBeenCalledWith(
+        'Error stopping MCP server:',
+        expect.any(Error)
+      );
+    });
+
+    it('should log debug message when stopping server with debug enabled', () => {
+      const debugServer = new McpServerWrapper(mockWatcher, { enableDebugLogging: true });
+      // @ts-ignore
+      debugServer.isStarted = true;
+      debugServer.dispose();
+      expect(consoleSpy.log).toHaveBeenCalledWith('MCP Server stopped');
+    });
+
+    it('should log error if notification sending fails in handleProblemsChanged', () => {
+      const errorServer = new McpServerWrapper(mockWatcher, { enableDebugLogging: true });
+      // @ts-ignore
+      errorServer.notifications.sendProblemsChangedNotification = jest.fn(() => {
+        throw new Error('notify fail');
+      });
+      const event = { uri: 'test://fail', problems: [] };
+      // @ts-ignore
+      errorServer.handleProblemsChanged(event);
+      expect(consoleSpy.error).toHaveBeenCalledWith(
+        'Failed to handle problems changed event:',
+        expect.any(Error)
+      );
+    });
+  });
+
   // Note: Server lifecycle tests (start/stop) are intentionally excluded
   // as they require complex MCP SDK mocking that's brittle and not providing
   // meaningful value for our coverage goals. The core logic we care about
