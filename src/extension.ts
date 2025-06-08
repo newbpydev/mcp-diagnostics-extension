@@ -35,9 +35,9 @@ let mcpServer: McpServerWrapper | undefined;
 let extensionCommands: ExtensionCommands | undefined;
 
 /**
- * Dependency injection interface for testing purposes
+ * Interface for dependency injection during testing
  */
-interface ExtensionDependencies {
+export interface ExtensionDependencies {
   DiagnosticsWatcherCtor?: typeof DiagnosticsWatcher;
   McpServerWrapperCtor?: typeof McpServerWrapper;
   VsCodeApiAdapterCtor?: typeof VsCodeApiAdapter;
@@ -78,7 +78,13 @@ export async function activate(
   context: vscode.ExtensionContext,
   deps?: ExtensionDependencies
 ): Promise<void> {
-  console.log('MCP Diagnostics Extension activating...');
+  // Add multiple console logs to make activation visible
+  console.log('🚀 MCP Diagnostics Extension: STARTING ACTIVATION...');
+  console.log('🚀 Extension context:', !!context);
+  console.log('🚀 VS Code API available:', !!vscode);
+
+  // Show a visible notification to confirm activation attempt
+  vscode.window.showInformationMessage('MCP Diagnostics Extension: Starting activation...');
 
   try {
     const startTime = Date.now();
@@ -88,31 +94,45 @@ export async function activate(
     const McpServerWrapperCtor = deps?.McpServerWrapperCtor || McpServerWrapper;
     const VsCodeApiAdapterCtor = deps?.VsCodeApiAdapterCtor || VsCodeApiAdapter;
 
+    console.log('🚀 Creating VS Code API adapter...');
     // Create DiagnosticsWatcher with adapter
     const vsCodeAdapter = new VsCodeApiAdapterCtor(vscode);
+
+    console.log('🚀 Creating DiagnosticsWatcher...');
     diagnosticsWatcher = new DiagnosticsWatcherCtor(vsCodeAdapter);
 
     // Get configuration
+    console.log('🚀 Getting configuration...');
     const config = vscode.workspace.getConfiguration('mcpDiagnostics');
     const serverConfig = {
       port: config.get('server.port', DEFAULT_CONFIG.mcpServerPort),
       enableDebugLogging: config.get('enableDebugLogging', DEFAULT_CONFIG.enableDebugLogging),
     };
 
+    console.log('🚀 Server config:', serverConfig);
+
     // Create and start MCP server
+    console.log('🚀 Creating MCP server...');
     mcpServer = new McpServerWrapperCtor(diagnosticsWatcher, serverConfig);
+
+    console.log('🚀 Starting MCP server...');
     await mcpServer.start();
 
     // Create and register extension commands
+    console.log('🚀 Creating extension commands...');
     extensionCommands = new ExtensionCommands(mcpServer, diagnosticsWatcher);
+
+    console.log('🚀 Registering commands...');
     extensionCommands.registerCommands(context);
 
     // Set up event listener to update status bar when problems change
+    console.log('🚀 Setting up event listeners...');
     diagnosticsWatcher.on('problemsChanged', () => {
       extensionCommands?.onProblemsChanged();
     });
 
     // Add disposables to context
+    console.log('🚀 Adding disposables to context...');
     context.subscriptions.push(
       { dispose: () => diagnosticsWatcher?.dispose() },
       { dispose: () => mcpServer?.dispose() },
@@ -120,10 +140,18 @@ export async function activate(
     );
 
     const activationTime = Date.now() - startTime;
-    console.log(`MCP Diagnostics Extension activated successfully in ${activationTime}ms`);
+    console.log(`🎉 MCP Diagnostics Extension activated successfully in ${activationTime}ms`);
+
+    // Show success notification
+    vscode.window.showInformationMessage(
+      `MCP Diagnostics Extension activated successfully! Server running on port ${serverConfig.port}`
+    );
   } catch (error) {
-    console.error('Failed to activate extension:', error);
-    vscode.window.showErrorMessage(`MCP Diagnostics Extension failed: ${error}`);
+    console.error('❌ Failed to activate extension:', error);
+    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    vscode.window.showErrorMessage(`MCP Diagnostics Extension failed: ${errorMessage}`);
     throw error;
   }
 }
@@ -150,7 +178,7 @@ export async function activate(
  * ```
  */
 export function deactivate(): void {
-  console.log('MCP Diagnostics Extension deactivating...');
+  console.log('🔄 MCP Diagnostics Extension deactivating...');
 
   try {
     extensionCommands?.dispose();
@@ -161,8 +189,8 @@ export function deactivate(): void {
     mcpServer = undefined;
     diagnosticsWatcher = undefined;
 
-    console.log('MCP Diagnostics Extension deactivated successfully');
+    console.log('✅ MCP Diagnostics Extension deactivated successfully');
   } catch (error) {
-    console.error('Error during deactivation:', error);
+    console.error('❌ Error during deactivation:', error);
   }
 }
