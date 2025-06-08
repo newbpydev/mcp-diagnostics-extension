@@ -5,6 +5,20 @@ All notable changes to the "MCP Diagnostics Extension" will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] - 2025-01-15
+
+### Fixed
+- **CRITICAL**: Fixed MCP SDK API compatibility issue that prevented extension from loading
+- Updated MCP server implementation to use schema-based request handlers instead of string-based handlers
+- Fixed `Cannot read properties of undefined (reading 'method')` error during extension activation
+- Updated all MCP tools and resources to use proper `ListToolsRequestSchema`, `CallToolRequestSchema`, `ListResourcesRequestSchema`, and `ReadResourceRequestSchema`
+- Fixed test suite to work with new schema-based API
+
+### Technical Details
+- Migrated from `server.setRequestHandler('tools/list', handler)` to `server.setRequestHandler(ListToolsRequestSchema, handler)`
+- Updated all MCP integration tests to use correct handler indexing
+- Maintained backward compatibility for all MCP tool functionality
+
 ## [1.0.3] - 2025-01-14
 
 ### Added

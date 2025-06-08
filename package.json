@@ -2,7 +2,7 @@
   "name": "mcp-diagnostics-extension",
   "displayName": "MCP Diagnostics Server",
   "description": "Exposes VS Code diagnostic problems via Model Context Protocol for AI agents",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "publisher": "newbpydev",
   "author": {
     "name": "Juan Antonio Gomez Pena",
@@ -46,8 +46,7 @@
   "activationEvents": [
     "onStartupFinished",
     "onCommand:mcpDiagnostics.restart",
-    "onCommand:mcpDiagnostics.showStatus",
-    "*"
+    "onCommand:mcpDiagnostics.showStatus"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -102,7 +101,7 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile:prod",
-    "compile": "tsc -p ./",
+    "compile": "tsc && tsc-alias",
     "compile:prod": "tsc -p ./tsconfig.prod.json",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
@@ -163,6 +162,7 @@
     "sharp": "^0.34.2",
     "standard-version": "^9.5.0",
     "ts-jest": "^29.3.4",
+    "tsc-alias": "^1.8.16",
     "typescript": "^5.8.3"
   },
   "dependencies": {
@@ -170,5 +170,6 @@
     "lodash": "^4.17.21",
     "tsconfig-paths": "^4.2.0",
     "zod": "^3.25.56"
-  }
+  },
+  "packageManager": "pnpm@9.12.1+sha512.e5a7e52a4183a02d5931057f7a0dbff9d5e9ce3161e33fa68ae392125b79282a8a8a470a51dfc8a0ed86221442eb2fb57019b0990ed24fab519bf0e1bc5ccfc4"
 }

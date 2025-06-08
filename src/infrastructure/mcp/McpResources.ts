@@ -1,5 +1,11 @@
 import { DiagnosticsWatcher } from '@core/diagnostics/DiagnosticsWatcher';
 import { ProblemItem } from '@shared/types';
+import {
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
+  type ReadResourceRequest,
+} from '@modelcontextprotocol/sdk/types.js';
+import { z } from 'zod';
 
 // Resource URI constants for better maintainability
 const RESOURCE_URIS = {
@@ -64,16 +70,7 @@ interface ResourceListResponse {
  * Interface for MCP server that can register request handlers
  */
 interface McpServer {
-  setRequestHandler: (method: string, handler: (request?: unknown) => Promise<unknown>) => void;
-}
-
-/**
- * Interface for resource read request
- */
-interface ResourceReadRequest {
-  params: {
-    uri: string;
-  };
+  setRequestHandler<T>(schema: z.ZodSchema<T>, handler: (request: T) => Promise<unknown>): void;
 }
 
 /**
@@ -117,21 +114,23 @@ export class McpResources {
    * @param server - The MCP server to register resources with
    */
   public registerResources(server: McpServer): void {
-    server.setRequestHandler('resources/list', async (): Promise<ResourceListResponse> => {
-      try {
-        return this.generateResourceList();
-      } catch (error) {
-        console.error('Error generating resource list:', error);
-        throw error;
+    server.setRequestHandler(
+      ListResourcesRequestSchema,
+      async (): Promise<ResourceListResponse> => {
+        try {
+          return this.generateResourceList();
+        } catch (error) {
+          console.error('Error generating resource list:', error);
+          throw error;
+        }
       }
-    });
+    );
 
     server.setRequestHandler(
-      'resources/read',
-      async (request?: unknown): Promise<ResourceResponse> => {
+      ReadResourceRequestSchema,
+      async (request: ReadResourceRequest): Promise<ResourceResponse> => {
         try {
-          const typedRequest = request as ResourceReadRequest;
-          const { uri } = typedRequest.params;
+          const { uri } = request.params;
           if (!uri || typeof uri !== 'string') {
             throw new Error('Invalid or missing URI parameter');
           }

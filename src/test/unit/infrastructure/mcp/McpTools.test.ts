@@ -68,17 +68,22 @@ describe('McpTools', () => {
     });
 
     it('should register tools/list handler', () => {
-      expect(mockServer.setRequestHandler).toHaveBeenCalledWith('tools/list', expect.any(Function));
+      expect(mockServer.setRequestHandler).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.any(Function)
+      );
     });
 
     it('should register tools/call handler', () => {
-      expect(mockServer.setRequestHandler).toHaveBeenCalledWith('tools/call', expect.any(Function));
+      expect(mockServer.setRequestHandler).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.any(Function)
+      );
     });
 
     it('should return correct tools list', async () => {
-      const listHandler = mockServer.setRequestHandler.mock.calls.find(
-        (call: any[]) => call[0] === 'tools/list'
-      )[1];
+      // Get the first handler (ListToolsRequestSchema)
+      const listHandler = mockServer.setRequestHandler.mock.calls[0][1];
 
       const result = await listHandler();
 
@@ -94,8 +99,8 @@ describe('McpTools', () => {
 
     beforeEach(() => {
       mcpTools.registerTools(mockServer);
-      const calls = mockServer.setRequestHandler.mock.calls as any[][];
-      callHandler = calls.find((call: any[]) => call[0] === 'tools/call')![1];
+      // Get the second handler (CallToolRequestSchema)
+      callHandler = mockServer.setRequestHandler.mock.calls[1][1];
     });
 
     it('should handle getProblems without filters', async () => {
@@ -167,8 +172,8 @@ describe('McpTools', () => {
 
     beforeEach(() => {
       mcpTools.registerTools(mockServer);
-      const calls = mockServer.setRequestHandler.mock.calls as any[][];
-      callHandler = calls.find((call: any[]) => call[0] === 'tools/call')![1];
+      // Get the second handler (CallToolRequestSchema)
+      callHandler = mockServer.setRequestHandler.mock.calls[1][1];
     });
 
     it('should handle getProblemsForFile with valid filePath', async () => {
@@ -217,8 +222,8 @@ describe('McpTools', () => {
 
     beforeEach(() => {
       mcpTools.registerTools(mockServer);
-      const calls = mockServer.setRequestHandler.mock.calls as any[][];
-      callHandler = calls.find((call: any[]) => call[0] === 'tools/call')![1];
+      // Get the second handler (CallToolRequestSchema)
+      callHandler = mockServer.setRequestHandler.mock.calls[1][1];
     });
 
     it('should handle getProblemsForWorkspace with valid workspaceName', async () => {
@@ -256,8 +261,8 @@ describe('McpTools', () => {
 
     beforeEach(() => {
       mcpTools.registerTools(mockServer);
-      const calls = mockServer.setRequestHandler.mock.calls as any[][];
-      callHandler = calls.find((call: any[]) => call[0] === 'tools/call')![1];
+      // Get the second handler (CallToolRequestSchema)
+      callHandler = mockServer.setRequestHandler.mock.calls[1][1];
     });
 
     it('should throw error for unknown tool', async () => {

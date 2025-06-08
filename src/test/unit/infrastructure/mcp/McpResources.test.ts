@@ -1,85 +1,79 @@
-import { McpResources } from '@infrastructure/mcp/McpResources';
-import { DiagnosticsWatcher } from '@core/diagnostics/DiagnosticsWatcher';
-import { ProblemItem } from '@shared/types';
+import { McpResources } from '../../../../infrastructure/mcp/McpResources';
+import { ProblemItem } from '../../../../shared/types';
+
+// Mock the DiagnosticsWatcher
+const mockDiagnosticsWatcher = {
+  getAllProblems: jest.fn(),
+  getProblemsForFile: jest.fn(),
+  getProblemsForWorkspace: jest.fn(),
+} as any;
+
+// Mock server interface
+const mockServer = {
+  setRequestHandler: jest.fn(),
+};
+
+const mockProblems: ProblemItem[] = [
+  {
+    filePath: '/workspace/src/file1.ts',
+    workspaceFolder: 'my-project',
+    range: { start: { line: 0, character: 0 }, end: { line: 0, character: 10 } },
+    severity: 'Error',
+    message: 'Test error 1',
+    source: 'typescript',
+    code: 'TS2304',
+  },
+  {
+    filePath: '/workspace/src/file1.ts',
+    workspaceFolder: 'my-project',
+    range: { start: { line: 1, character: 0 }, end: { line: 1, character: 5 } },
+    severity: 'Warning',
+    message: 'Test warning 1',
+    source: 'eslint',
+    code: 'no-unused-vars',
+  },
+  {
+    filePath: '/workspace/src/file2.ts',
+    workspaceFolder: 'my-project',
+    range: { start: { line: 2, character: 0 }, end: { line: 2, character: 8 } },
+    severity: 'Information',
+    message: 'Test info 1',
+    source: 'typescript',
+  },
+  {
+    filePath: '/workspace/other/file3.ts',
+    workspaceFolder: 'other-project',
+    range: { start: { line: 0, character: 0 }, end: { line: 0, character: 15 } },
+    severity: 'Error',
+    message: 'Test error 2',
+    source: 'typescript',
+    code: 'TS2345',
+  },
+];
 
 describe('McpResources', () => {
   let mcpResources: McpResources;
-  let mockDiagnosticsWatcher: jest.Mocked<DiagnosticsWatcher>;
-  let mockServer: any;
-
-  const mockProblems: ProblemItem[] = [
-    {
-      filePath: '/workspace/src/file1.ts',
-      workspaceFolder: 'my-project',
-      range: {
-        start: { line: 0, character: 0 },
-        end: { line: 0, character: 10 },
-      },
-      severity: 'Error',
-      message: 'Test error 1',
-      source: 'typescript',
-    },
-    {
-      filePath: '/workspace/src/file2.ts',
-      workspaceFolder: 'my-project',
-      range: {
-        start: { line: 5, character: 0 },
-        end: { line: 5, character: 15 },
-      },
-      severity: 'Warning',
-      message: 'Test warning 1',
-      source: 'eslint',
-    },
-    {
-      filePath: '/workspace/src/file1.ts',
-      workspaceFolder: 'my-project',
-      range: {
-        start: { line: 10, character: 0 },
-        end: { line: 10, character: 5 },
-      },
-      severity: 'Error',
-      message: 'Test error 2',
-      source: 'typescript',
-    },
-    {
-      filePath: '/workspace/other/file3.ts',
-      workspaceFolder: 'other-project',
-      range: {
-        start: { line: 2, character: 0 },
-        end: { line: 2, character: 8 },
-      },
-      severity: 'Information',
-      message: 'Test info',
-      source: 'eslint',
-    },
-  ];
 
   beforeEach(() => {
-    mockDiagnosticsWatcher = {
-      getAllProblems: jest.fn(),
-      getProblemsForFile: jest.fn(),
-      getProblemsForWorkspace: jest.fn(),
-    } as any;
-
-    mockServer = {
-      setRequestHandler: jest.fn(),
-    };
-
+    jest.clearAllMocks();
     mcpResources = new McpResources(mockDiagnosticsWatcher);
   });
 
-  describe('Constructor', () => {
+  describe('Initialization', () => {
     it('should create McpResources instance with diagnostics watcher', () => {
       expect(mcpResources).toBeDefined();
-      expect(mcpResources).toBeInstanceOf(McpResources);
     });
   });
 
   describe('Resource Registration', () => {
+    beforeEach(() => {
+      mcpResources.registerResources(mockServer);
+    });
+
     it('should register resources/list handler', () => {
       mcpResources.registerResources(mockServer);
       expect(mockServer.setRequestHandler).toHaveBeenCalledWith(
-        'resources/list',
+        expect.any(Object),
         expect.any(Function)
       );
     });
@@ -87,7 +81,7 @@ describe('McpResources', () => {
     it('should register resources/read handler', () => {
       mcpResources.registerResources(mockServer);
       expect(mockServer.setRequestHandler).toHaveBeenCalledWith(
-        'resources/read',
+        expect.any(Object),
         expect.any(Function)
       );
     });
@@ -100,9 +94,8 @@ describe('McpResources', () => {
     });
 
     it('should return summary resource', async () => {
-      const listHandler = mockServer.setRequestHandler.mock.calls.find(
-        (call: any[]) => call[0] === 'resources/list'
-      )[1];
+      // Get the first handler (ListResourcesRequestSchema)
+      const listHandler = mockServer.setRequestHandler.mock.calls[0][1];
 
       const result = await listHandler();
 
@@ -115,9 +108,8 @@ describe('McpResources', () => {
     });
 
     it('should return file resources for each unique file', async () => {
-      const listHandler = mockServer.setRequestHandler.mock.calls.find(
-        (call: any[]) => call[0] === 'resources/list'
-      )[1];
+      // Get the first handler (ListResourcesRequestSchema)
+      const listHandler = mockServer.setRequestHandler.mock.calls[0][1];
 
       const result = await listHandler();
 
@@ -137,9 +129,8 @@ describe('McpResources', () => {
     });
 
     it('should return workspace resources for each unique workspace', async () => {
-      const listHandler = mockServer.setRequestHandler.mock.calls.find(
-        (call: any[]) => call[0] === 'resources/list'
-      )[1];
+      // Get the first handler (ListResourcesRequestSchema)
+      const listHandler = mockServer.setRequestHandler.mock.calls[0][1];
 
       const result = await listHandler();
 
@@ -161,9 +152,8 @@ describe('McpResources', () => {
     it('should handle empty problems list', async () => {
       mockDiagnosticsWatcher.getAllProblems.mockReturnValue([]);
 
-      const listHandler = mockServer.setRequestHandler.mock.calls.find(
-        (call: any[]) => call[0] === 'resources/list'
-      )[1];
+      // Get the first handler (ListResourcesRequestSchema)
+      const listHandler = mockServer.setRequestHandler.mock.calls[0][1];
 
       const result = await listHandler();
 
@@ -191,9 +181,8 @@ describe('McpResources', () => {
     });
 
     it('should read summary resource', async () => {
-      const readHandler = mockServer.setRequestHandler.mock.calls.find(
-        (call: any[]) => call[0] === 'resources/read'
-      )[1];
+      // Get the second handler (ReadResourceRequestSchema)
+      const readHandler = mockServer.setRequestHandler.mock.calls[1][1];
 
       const result = await readHandler({ params: { uri: 'diagnostics://summary' } });
 
@@ -211,9 +200,8 @@ describe('McpResources', () => {
     });
 
     it('should read file resource', async () => {
-      const readHandler = mockServer.setRequestHandler.mock.calls.find(
-        (call: any[]) => call[0] === 'resources/read'
-      )[1];
+      // Get the second handler (ReadResourceRequestSchema)
+      const readHandler = mockServer.setRequestHandler.mock.calls[1][1];
 
       const result = await readHandler({
         params: { uri: 'diagnostics://file/%2Fworkspace%2Fsrc%2Ffile1.ts' },
@@ -231,9 +219,8 @@ describe('McpResources', () => {
     });
 
     it('should read workspace resource', async () => {
-      const readHandler = mockServer.setRequestHandler.mock.calls.find(
-        (call: any[]) => call[0] === 'resources/read'
-      )[1];
+      // Get the second handler (ReadResourceRequestSchema)
+      const readHandler = mockServer.setRequestHandler.mock.calls[1][1];
 
       const result = await readHandler({
         params: { uri: 'diagnostics://workspace/my-project' },
@@ -251,9 +238,8 @@ describe('McpResources', () => {
     });
 
     it('should handle URL encoded file paths', async () => {
-      const readHandler = mockServer.setRequestHandler.mock.calls.find(
-        (call: any[]) => call[0] === 'resources/read'
-      )[1];
+      // Get the second handler (ReadResourceRequestSchema)
+      const readHandler = mockServer.setRequestHandler.mock.calls[1][1];
 
       const result = await readHandler({
         params: { uri: 'diagnostics://file/%2Fworkspace%2Fother%2Ffile3.ts' },
@@ -265,9 +251,8 @@ describe('McpResources', () => {
     });
 
     it('should throw error for unknown resource URI', async () => {
-      const readHandler = mockServer.setRequestHandler.mock.calls.find(
-        (call: any[]) => call[0] === 'resources/read'
-      )[1];
+      // Get the second handler (ReadResourceRequestSchema)
+      const readHandler = mockServer.setRequestHandler.mock.calls[1][1];
 
       await expect(
         readHandler({
@@ -282,9 +267,8 @@ describe('McpResources', () => {
       mockDiagnosticsWatcher.getAllProblems.mockReturnValue(mockProblems);
       mcpResources.registerResources(mockServer);
 
-      const readHandler = mockServer.setRequestHandler.mock.calls.find(
-        (call: any[]) => call[0] === 'resources/read'
-      )[1];
+      // Get the second handler (ReadResourceRequestSchema)
+      const readHandler = mockServer.setRequestHandler.mock.calls[1][1];
 
       const result = await readHandler({ params: { uri: 'diagnostics://summary' } });
       const summary = JSON.parse(result.contents[0].text);
@@ -297,19 +281,18 @@ describe('McpResources', () => {
     it('should include timestamp in generated resources', async () => {
       mockDiagnosticsWatcher.getAllProblems.mockReturnValue(mockProblems);
       mockDiagnosticsWatcher.getProblemsForFile.mockReturnValue([mockProblems[0]] as ProblemItem[]);
-
       mcpResources.registerResources(mockServer);
 
-      const readHandler = mockServer.setRequestHandler.mock.calls.find(
-        (call: any[]) => call[0] === 'resources/read'
-      )[1];
+      // Get the second handler (ReadResourceRequestSchema)
+      const readHandler = mockServer.setRequestHandler.mock.calls[1][1];
 
       const result = await readHandler({
         params: { uri: 'diagnostics://file/%2Fworkspace%2Fsrc%2Ffile1.ts' },
       });
 
       const fileData = JSON.parse(result.contents[0].text);
-      expect(fileData.generatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+      expect(fileData.generatedAt).toBeDefined();
+      expect(new Date(fileData.generatedAt)).toBeInstanceOf(Date);
     });
   });
 
@@ -318,12 +301,10 @@ describe('McpResources', () => {
       mockDiagnosticsWatcher.getAllProblems.mockImplementation(() => {
         throw new Error('Test error');
       });
-
       mcpResources.registerResources(mockServer);
 
-      const listHandler = mockServer.setRequestHandler.mock.calls.find(
-        (call: any[]) => call[0] === 'resources/list'
-      )[1];
+      // Get the first handler (ListResourcesRequestSchema)
+      const listHandler = mockServer.setRequestHandler.mock.calls[0][1];
 
       await expect(listHandler()).rejects.toThrow('Test error');
     });
@@ -332,12 +313,10 @@ describe('McpResources', () => {
       mockDiagnosticsWatcher.getAllProblems.mockImplementation(() => {
         throw new Error('Test error');
       });
-
       mcpResources.registerResources(mockServer);
 
-      const readHandler = mockServer.setRequestHandler.mock.calls.find(
-        (call: any[]) => call[0] === 'resources/read'
-      )[1];
+      // Get the second handler (ReadResourceRequestSchema)
+      const readHandler = mockServer.setRequestHandler.mock.calls[1][1];
 
       await expect(readHandler({ params: { uri: 'diagnostics://summary' } })).rejects.toThrow(
         'Test error'

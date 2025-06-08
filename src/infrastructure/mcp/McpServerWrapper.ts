@@ -65,9 +65,39 @@ export class McpServerWrapper {
     }
 
     try {
-      // Register handlers before connecting
-      this.registerHandlers();
+      // Defensive logging: log server and transport types
+      console.log(
+        '[MCP Diagnostics] McpServerWrapper.start() - server type:',
+        typeof this.server,
+        'transport type:',
+        typeof this.transport
+      );
 
+      console.log(
+        '[MCP Diagnostics] McpServerWrapper.start() - server keys:',
+        Object.keys(this.server || {})
+      );
+
+      console.log(
+        '[MCP Diagnostics] McpServerWrapper.start() - transport keys:',
+        Object.keys(this.transport || {})
+      );
+      if (!this.server) {
+        throw new Error('MCP Server instance is undefined');
+      }
+      if (!this.transport) {
+        throw new Error('MCP Transport instance is undefined');
+      }
+      if (typeof this.server.connect !== 'function') {
+        throw new Error('MCP Server.connect is not a function');
+      }
+      // Register handlers before connecting
+      try {
+        this.registerHandlers();
+      } catch (handlerError) {
+        console.error('[MCP Diagnostics] Error during handler registration:', handlerError);
+        throw handlerError;
+      }
       await this.server.connect(this.transport);
       this.isStarted = true;
 
@@ -79,6 +109,7 @@ export class McpServerWrapper {
         console.log(`MCP Server started: ${MCP_SERVER_INFO.name}`);
       }
     } catch (error) {
+      console.error('[MCP Diagnostics] MCP Server failed to start:', error);
       throw new Error(`Failed to start MCP server: ${error}`);
     }
   }

@@ -1,21 +1,16 @@
 import { z } from 'zod';
 import { DiagnosticsWatcher } from '@core/diagnostics/DiagnosticsWatcher';
-
-/**
- * Interface for MCP request structure
- */
-interface McpRequest {
-  params: {
-    name: string;
-    arguments: unknown;
-  };
-}
+import {
+  ListToolsRequestSchema,
+  CallToolRequestSchema,
+  type CallToolRequest,
+} from '@modelcontextprotocol/sdk/types.js';
 
 /**
  * Interface for MCP server that can register request handlers
  */
 interface McpServer {
-  setRequestHandler(method: string, handler: (request?: McpRequest) => Promise<unknown>): void;
+  setRequestHandler<T>(schema: z.ZodSchema<T>, handler: (request: T) => Promise<unknown>): void;
 }
 
 /**
@@ -65,7 +60,7 @@ export class McpTools {
    * @param server - The MCP server to register tools with
    */
   public registerTools(server: McpServer): void {
-    server.setRequestHandler('tools/list', async () => ({
+    server.setRequestHandler(ListToolsRequestSchema, async () => ({
       tools: [
         {
           name: 'getProblems',
@@ -103,7 +98,7 @@ export class McpTools {
       ],
     }));
 
-    server.setRequestHandler('tools/call', async (request?: McpRequest) => {
+    server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest) => {
       if (!request?.params) {
         throw new Error('Invalid request: missing params');
       }
