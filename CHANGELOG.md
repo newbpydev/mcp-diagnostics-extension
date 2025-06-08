@@ -5,15 +5,15 @@ All notable changes to the "MCP Diagnostics Extension" will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.0] - 2025-01-20
+## [1.1.0] - 2025-06-08
 
 ### Added
 - **🚀 Automatic MCP Server Registration**: Seamless "one-click" integration experience similar to Wallaby.js
   - **Multi-Strategy Registration**: Tries multiple approaches for maximum compatibility
-    - Proposed API registration for VS Code Insiders
     - Workspace MCP configuration (`.vscode/mcp.json`)
     - User settings configuration
     - Manual setup instructions with guided webview
+    - Proposed API registration (for VS Code Insiders with enabled APIs)
   - **Smart Detection**: Automatically detects VS Code capabilities and chooses the best registration method
   - **Success Notifications**: Interactive notifications with action buttons ("Test Connection", "Don't Show Again")
 - **🎨 Modern Setup Guide UI**: Beautiful, responsive webview with VS Code theming
@@ -40,7 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **🎨 UI Components**: Modern CSS with VS Code theme integration
 - **📝 Documentation**: Enhanced setup guides and user instructions
 
-## [1.0.9] - 2025-01-19
+## [1.0.9] - 2025-06-08
 
 ### Fixed
 - Fixed MCP server initialization by removing incompatible notification handler setup
@@ -48,21 +48,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved error handling in MCP server startup process
 - Extension now activates successfully in both VS Code and Cursor
 
-## [1.0.8] - 2025-06-08
+## [1.0.8] - 2025-06-07
 
 ### Fixed
 - Fixed MCP server startup error "Cannot read properties of undefined (reading 'method')"
 - Corrected MCP SDK request handler registration to use proper function signatures
 - Added defensive logging during handler registration for better debugging
 
-## [1.0.7] - 2025-06-08
+## [1.0.7] - 2025-06-07
 
 ### Fixed
 - Fixed MCP server startup error "Cannot read properties of undefined (reading 'method')"
 - Corrected MCP SDK request handler registration to use proper function signatures
 - Added defensive logging during handler registration for better debugging
 
-## [1.0.6] - 2025-06-08
+## [1.0.6] - 2025-06-07
 
 ### 🔧 Fixed
 - **CRITICAL:** Complete resolution of MCP SDK API compatibility issue preventing extension activation
