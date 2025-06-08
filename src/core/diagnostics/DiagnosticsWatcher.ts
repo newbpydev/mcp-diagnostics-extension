@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import { debounce } from 'lodash';
-import { ProblemItem, DiagnosticsChangeEvent } from '@shared/types';
-import { DEFAULT_CONFIG, EVENT_NAMES } from '@shared/constants';
+import { ProblemItem, DiagnosticsChangeEvent } from '../../shared/types';
+import { DEFAULT_CONFIG, EVENT_NAMES } from '../../shared/constants';
 import { DiagnosticConverter } from './DiagnosticConverter';
 import { PerformanceMonitor, PerformanceSummary } from './PerformanceMonitor';
 

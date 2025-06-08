@@ -165,6 +165,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
     "lodash": "^4.17.21",
+    "tsconfig-paths": "^4.2.0",
     "zod": "^3.25.56"
   }
 }

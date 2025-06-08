@@ -5,7 +5,7 @@ import {
   VsCodeUri,
   VsCodeWorkspaceFolder,
   DiagnosticChangeEvent,
-} from '@core/diagnostics/DiagnosticsWatcher';
+} from '../../core/diagnostics/DiagnosticsWatcher';
 
 /**
  * Adapter that bridges the actual VS Code API with our IVsCodeApi interface

@@ -13,11 +13,11 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { DiagnosticsWatcher } from '@core/diagnostics/DiagnosticsWatcher';
-import { McpServerWrapper } from '@infrastructure/mcp/McpServerWrapper';
-import { VsCodeApiAdapter } from '@infrastructure/vscode/VsCodeApiAdapter';
-import { ExtensionCommands } from '@/commands/ExtensionCommands';
-import { DEFAULT_CONFIG } from '@shared/constants';
+import { DiagnosticsWatcher } from './core/diagnostics/DiagnosticsWatcher';
+import { McpServerWrapper } from './infrastructure/mcp/McpServerWrapper';
+import { VsCodeApiAdapter } from './infrastructure/vscode/VsCodeApiAdapter';
+import { ExtensionCommands } from './commands/ExtensionCommands';
+import { DEFAULT_CONFIG } from './shared/constants';
 
 /**
  * Global DiagnosticsWatcher instance for the extension lifecycle

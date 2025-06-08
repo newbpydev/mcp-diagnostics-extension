@@ -1,11 +1,11 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { DiagnosticsWatcher } from '@core/diagnostics/DiagnosticsWatcher';
+import { DiagnosticsWatcher } from '../../core/diagnostics/DiagnosticsWatcher';
 import { McpTools } from './McpTools';
 import { McpResources } from './McpResources';
 import { McpNotifications } from './McpNotifications';
-import { DiagnosticsChangeEvent } from '@shared/types';
-import { MCP_SERVER_INFO, EVENT_NAMES } from '@shared/constants';
+import { DiagnosticsChangeEvent } from '../../shared/types';
+import { MCP_SERVER_INFO, EVENT_NAMES } from '../../shared/constants';
 
 export interface McpServerConfig {
   port?: number;

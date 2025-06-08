@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { McpServerWrapper } from '@infrastructure/mcp/McpServerWrapper';
-import { DiagnosticsWatcher } from '@core/diagnostics/DiagnosticsWatcher';
-import { ProblemItem } from '@shared/types';
+import { McpServerWrapper } from '../infrastructure/mcp/McpServerWrapper';
+import { DiagnosticsWatcher } from '../core/diagnostics/DiagnosticsWatcher';
+import { ProblemItem } from '../shared/types';
 
 interface StatusSummary {
   totalProblems: number;
