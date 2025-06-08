@@ -5,6 +5,20 @@ All notable changes to the "MCP Diagnostics Extension" will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] - 2025-01-14
+
+### Fixed
+- **Critical**: Fixed TypeScript path alias resolution preventing extension from loading
+- **Extension Commands**: Fixed "command not found" errors for `mcpDiagnostics.restart` and `mcpDiagnostics.showStatus`
+- **Module Resolution**: Converted TypeScript path aliases (@core/*, @infrastructure/*, etc.) to relative imports for proper runtime resolution
+
+### Technical Details
+- Updated all main source files to use relative imports instead of path aliases
+- Fixed import paths in extension.ts, ExtensionCommands.ts, McpServerWrapper.ts, DiagnosticsWatcher.ts, and VsCodeApiAdapter.ts
+- Extension now properly loads and registers commands in VS Code
+- All 322 tests continue to pass after the fixes
+- Maintains full backward compatibility
+
 ## [1.0.1] - 2025-06-07
 
 ### Changed
