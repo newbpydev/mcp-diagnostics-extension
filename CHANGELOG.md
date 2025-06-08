@@ -5,6 +5,16 @@ All notable changes to the "MCP Diagnostics Extension" will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2025-06-07
+
+### Changed
+- **Compatibility**: Downgraded VS Code version requirement from ^1.100.0 to ^1.96.0 for better compatibility with Cursor and other VS Code-based editors
+
+### Technical Details
+- Updated `@types/vscode` dependency to match new version requirement
+- Maintains full backward compatibility with all existing features
+- All 322 tests continue to pass with the downgraded version requirement
+
 ## [1.0.0] - 2025-06-07
 
 ### Added

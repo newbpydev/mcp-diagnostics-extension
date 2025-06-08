@@ -2,7 +2,7 @@
   "name": "mcp-diagnostics-extension",
   "displayName": "MCP Diagnostics Server",
   "description": "Exposes VS Code diagnostic problems via Model Context Protocol for AI agents",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "newbpydev",
   "author": {
     "name": "Juan Antonio Gomez Pena",
@@ -18,7 +18,7 @@
   },
   "homepage": "https://github.com/newbpydev/mcp-diagnostics-extension#readme",
   "engines": {
-    "vscode": "^1.100.0"
+    "vscode": "^1.96.0"
   },
   "categories": [
     "Other",
@@ -144,7 +144,7 @@
     "@types/jest": "^29.5.14",
     "@types/lodash": "^4.17.17",
     "@types/node": "22.x",
-    "@types/vscode": "^1.100.0",
+    "@types/vscode": "^1.96.0",
     "@typescript-eslint/eslint-plugin": "^8.31.1",
     "@typescript-eslint/parser": "^8.31.1",
     "@vscode/vsce": "^3.5.0",
