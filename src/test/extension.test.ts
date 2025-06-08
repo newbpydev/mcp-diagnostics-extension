@@ -109,9 +109,8 @@ describe('Extension', () => {
       expect(mockMcpServer.start).toHaveBeenCalled();
 
       // Verify disposables were added to context
-      // 3 from extension.ts (DiagnosticsWatcher, McpServerWrapper, ExtensionCommands)
-      // ExtensionCommands.registerCommands is mocked so doesn't add additional disposables
-      expect(mockContext.subscriptions).toHaveLength(3);
+      // 5 disposables: DiagnosticsWatcher, McpServerWrapper, ExtensionCommands, McpServerRegistration, refreshMcp command
+      expect(mockContext.subscriptions).toHaveLength(5);
 
       // Verify activation message was logged
       expect(consoleSpy).toHaveBeenCalledWith('🟡 [MCP Diagnostics] Activation: Starting...');

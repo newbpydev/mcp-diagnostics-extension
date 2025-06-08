@@ -2,7 +2,7 @@
   "name": "mcp-diagnostics-extension",
   "displayName": "MCP Diagnostics Extension",
   "description": "A VS Code extension that exposes diagnostic information via Model Context Protocol (MCP) for AI agents",
-  "version": "1.0.9",
+  "version": "1.1.0",
   "publisher": "newbpydev",
   "author": {
     "name": "Juan Antonio Gomez Pena",
@@ -83,19 +83,34 @@
           "minimum": 1,
           "maximum": 10000,
           "description": "Maximum number of problems to track per file"
+        },
+        "mcpDiagnostics.debug.logLevel": {
+          "type": "string",
+          "enum": ["error", "warn", "info", "debug"],
+          "default": "info",
+          "description": "Logging level for debug output"
+        },
+        "mcpDiagnostics.showAutoRegistrationNotification": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show notification when MCP server is automatically registered"
         }
       }
     },
     "commands": [
       {
-        "command": "mcpDiagnostics.restart",
-        "title": "Restart MCP Diagnostics Server",
-        "category": "MCP Diagnostics"
+        "command": "mcpDiagnostics.showStatus",
+        "title": "MCP Diagnostics: Show Status"
       },
       {
-        "command": "mcpDiagnostics.showStatus",
-        "title": "Show MCP Diagnostics Status",
-        "category": "MCP Diagnostics"
+        "command": "mcpDiagnostics.restart",
+        "title": "MCP Diagnostics: Restart Server"
+      }
+    ],
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "mcpDiagnosticsProvider",
+        "label": "MCP Diagnostics Server"
       }
     ]
   },
@@ -171,5 +186,8 @@
     "tsconfig-paths": "^4.2.0",
     "zod": "^3.25.56"
   },
-  "packageManager": "pnpm@9.12.1+sha512.e5a7e52a4183a02d5931057f7a0dbff9d5e9ce3161e33fa68ae392125b79282a8a8a470a51dfc8a0ed86221442eb2fb57019b0990ed24fab519bf0e1bc5ccfc4"
+  "packageManager": "pnpm@9.12.1+sha512.e5a7e52a4183a02d5931057f7a0dbff9d5e9ce3161e33fa68ae392125b79282a8a8a470a51dfc8a0ed86221442eb2fb57019b0990ed24fab519bf0e1bc5ccfc4",
+  "enabledApiProposals": [
+    "mcpServerDefinitionProvider"
+  ]
 }

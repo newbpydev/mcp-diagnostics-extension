@@ -18,6 +18,7 @@ import { McpServerWrapper } from './infrastructure/mcp/McpServerWrapper';
 import { VsCodeApiAdapter } from './infrastructure/vscode/VsCodeApiAdapter';
 import { ExtensionCommands } from './commands/ExtensionCommands';
 import { DEFAULT_CONFIG } from './shared/constants';
+import { McpServerRegistration } from './infrastructure/mcp/McpServerRegistration';
 
 /**
  * Global DiagnosticsWatcher instance for the extension lifecycle
@@ -112,7 +113,22 @@ export async function activate(
     // Step 3: ExtensionCommands
     console.log('🟡 [MCP Diagnostics] Registering extension commands...');
     extensionCommands = new ExtensionCommands(mcpServer, diagnosticsWatcher);
+
+    // Register automatic MCP server provider (for VS Code Agent mode and Cursor)
+    const mcpRegistration = new McpServerRegistration(context);
+    mcpRegistration.registerMcpServerProvider();
+
+    // Register extension commands using the ExtensionCommands class
     extensionCommands.registerCommands(context);
+
+    // Add additional command for refreshing MCP definitions after restart
+    context.subscriptions.push(
+      vscode.commands.registerCommand('mcpDiagnostics.refreshMcp', () => {
+        mcpRegistration.refreshServerDefinitions();
+        vscode.window.showInformationMessage('MCP server definitions refreshed');
+      })
+    );
+
     console.log('🟢 [MCP Diagnostics] Extension commands registered.');
 
     // Step 4: Push disposables
@@ -120,17 +136,32 @@ export async function activate(
     context.subscriptions.push(
       { dispose: () => diagnosticsWatcher?.dispose() },
       { dispose: () => mcpServer?.dispose() },
-      { dispose: () => extensionCommands?.dispose() }
+      { dispose: () => extensionCommands?.dispose() },
+      mcpRegistration
     );
+
     console.log('🟢 [MCP Diagnostics] All disposables pushed to context.');
 
     const activationTime = Date.now() - startTime;
     console.log(`🎉 MCP Diagnostics Extension activated successfully in ${activationTime}ms`);
 
     // Step 5: Notify user
-    vscode.window.showInformationMessage(
-      `MCP Diagnostics Extension activated successfully! Server running on port ${serverConfig.port}`
-    );
+    try {
+      const notificationPromise = vscode.window.showInformationMessage(
+        `✅ MCP Diagnostics Extension activated! Server running and automatically registered for MCP clients. Server running on port ${serverConfig.port}`,
+        'Show Status'
+      );
+
+      // Handle the notification response if available
+      void notificationPromise?.then((selection) => {
+        if (selection === 'Show Status') {
+          void vscode.commands.executeCommand('mcpDiagnostics.showStatus');
+        }
+      });
+    } catch {
+      // Ignore notification errors in test environments
+      console.log('[MCP Diagnostics] Notification not available (likely test environment)');
+    }
     console.log('🟢 [MCP Diagnostics] Activation: Complete.');
   } catch (err) {
     console.error('🔴 [MCP Diagnostics] Activation failed:', err);

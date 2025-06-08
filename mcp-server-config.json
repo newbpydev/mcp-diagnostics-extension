@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "vscode-diagnostics": {
+      "command": "node",
+      "args": [
+        "-e",
+        "const { McpServerWrapper } = require('./out/infrastructure/mcp/McpServerWrapper.js'); const { DiagnosticsWatcher } = require('./out/core/diagnostics/DiagnosticsWatcher.js'); const { VsCodeApiAdapter } = require('./out/infrastructure/vscode/VsCodeApiAdapter.js'); const mockVscode = { languages: { onDidChangeDiagnostics: () => ({ dispose: () => {} }), getDiagnostics: () => [] }, workspace: { getWorkspaceFolder: () => null } }; const adapter = new VsCodeApiAdapter(mockVscode); const watcher = new DiagnosticsWatcher(adapter); const server = new McpServerWrapper(watcher, { enableDebugLogging: true }); server.start().catch(console.error);"
+      ],
+      "cwd": "C:/Users/Remym/pythonProject/__personal-projects/mcp-diagnostics-extension",
+      "env": {
+        "NODE_ENV": "production"
+      }
+    }
+  }
+}

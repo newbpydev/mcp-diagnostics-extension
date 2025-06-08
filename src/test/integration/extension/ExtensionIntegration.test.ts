@@ -210,8 +210,8 @@ describe('Extension Integration', () => {
         McpServerWrapperCtor: McpServerWrapper,
         VsCodeApiAdapterCtor: VsCodeApiAdapter,
       });
-      // Expect 6 disposables: 3 from extension.ts + 3 from ExtensionCommands.registerCommands
-      expect(mockContext.subscriptions).toHaveLength(6);
+      // Expect 8 disposables: 4 from extension.ts (DiagnosticsWatcher, McpServerWrapper, ExtensionCommands, McpServerRegistration) + 1 refresh command + 3 from ExtensionCommands.registerCommands
+      expect(mockContext.subscriptions).toHaveLength(8);
     });
 
     it('should read configuration from VS Code workspace', async () => {
