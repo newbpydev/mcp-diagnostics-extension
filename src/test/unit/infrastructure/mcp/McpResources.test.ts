@@ -73,7 +73,7 @@ describe('McpResources', () => {
     it('should register resources/list handler', () => {
       mcpResources.registerResources(mockServer);
       expect(mockServer.setRequestHandler).toHaveBeenCalledWith(
-        expect.any(Object),
+        'resources/list',
         expect.any(Function)
       );
     });
@@ -81,7 +81,7 @@ describe('McpResources', () => {
     it('should register resources/read handler', () => {
       mcpResources.registerResources(mockServer);
       expect(mockServer.setRequestHandler).toHaveBeenCalledWith(
-        expect.any(Object),
+        'resources/read',
         expect.any(Function)
       );
     });

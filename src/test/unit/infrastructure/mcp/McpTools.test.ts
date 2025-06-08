@@ -68,17 +68,11 @@ describe('McpTools', () => {
     });
 
     it('should register tools/list handler', () => {
-      expect(mockServer.setRequestHandler).toHaveBeenCalledWith(
-        expect.any(Object),
-        expect.any(Function)
-      );
+      expect(mockServer.setRequestHandler).toHaveBeenCalledWith('tools/list', expect.any(Function));
     });
 
     it('should register tools/call handler', () => {
-      expect(mockServer.setRequestHandler).toHaveBeenCalledWith(
-        expect.any(Object),
-        expect.any(Function)
-      );
+      expect(mockServer.setRequestHandler).toHaveBeenCalledWith('tools/call', expect.any(Function));
     });
 
     it('should return correct tools list', async () => {

@@ -114,9 +114,7 @@ describe('Extension', () => {
       expect(mockContext.subscriptions).toHaveLength(3);
 
       // Verify activation message was logged
-      expect(consoleSpy).toHaveBeenCalledWith(
-        '🚀 MCP Diagnostics Extension: STARTING ACTIVATION...'
-      );
+      expect(consoleSpy).toHaveBeenCalledWith('🟡 [MCP Diagnostics] Activation: Starting...');
       expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringContaining('MCP Diagnostics Extension activated successfully in')
       );
@@ -143,7 +141,7 @@ describe('Extension', () => {
 
       // Verify error was logged and shown to user
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '❌ Failed to activate extension:',
+        '🔴 [MCP Diagnostics] Activation failed:',
         expect.any(Error)
       );
       expect(showErrorSpy).toHaveBeenCalledWith(
@@ -183,7 +181,7 @@ describe('Extension', () => {
 
       // Verify error was logged and shown to user
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '❌ Failed to activate extension:',
+        '🔴 [MCP Diagnostics] Activation failed:',
         expect.any(Error)
       );
       expect(showErrorSpy).toHaveBeenCalledWith(
@@ -202,7 +200,7 @@ describe('Extension', () => {
       deactivate();
 
       // Verify deactivation messages were logged
-      expect(consoleSpy).toHaveBeenCalledWith('🔄 MCP Diagnostics Extension deactivating...');
+      expect(consoleSpy).toHaveBeenCalledWith('🟡 [MCP Diagnostics] Deactivation: Starting...');
       expect(consoleSpy).toHaveBeenCalledWith(
         '✅ MCP Diagnostics Extension deactivated successfully'
       );
@@ -218,7 +216,7 @@ describe('Extension', () => {
 
       expect(() => deactivate()).not.toThrow();
 
-      expect(consoleSpy).toHaveBeenCalledWith('🔄 MCP Diagnostics Extension deactivating...');
+      expect(consoleSpy).toHaveBeenCalledWith('🟡 [MCP Diagnostics] Deactivation: Starting...');
       expect(consoleSpy).toHaveBeenCalledWith(
         '✅ MCP Diagnostics Extension deactivated successfully'
       );

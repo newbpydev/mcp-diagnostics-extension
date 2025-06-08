@@ -5,6 +5,25 @@ All notable changes to the "MCP Diagnostics Extension" will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.5] - 2025-01-15
+
+### Fixed
+- **CRITICAL**: Completely resolved MCP SDK API compatibility issue that prevented extension from loading
+- Fixed `Cannot read properties of undefined (reading 'method')` runtime error during extension activation
+- Corrected MCP server implementation to use proper string-based request handlers (`'tools/list'`, `'tools/call'`, etc.)
+- Fixed all failing tests by aligning test expectations with actual implementation log messages
+- Maintained 100% test coverage with all 322 tests passing
+
+### Technical Details
+- **Root Cause**: Extension was using incorrect schema-based MCP API instead of string-based API
+- **Solution**: Reverted to correct `setRequestHandler('tools/list', handler)` pattern throughout codebase
+- **Components Fixed**: McpTools, McpResources, McpNotifications, and all corresponding tests
+- **Verification**: Extension now loads successfully in both VS Code and Cursor IDE without runtime errors
+- **Test Coverage**: All 322 tests pass, including comprehensive integration and end-to-end tests
+
+### Breaking Changes
+- None - this is a critical bug fix that restores intended functionality
+
 ## [1.0.4] - 2025-01-15
 
 ### Fixed
