@@ -3,20 +3,11 @@ import { DiagnosticsWatcher } from '@core/diagnostics/DiagnosticsWatcher';
 import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
 /**
- * Interface for MCP request structure
- */
-interface McpRequest {
-  params: {
-    name: string;
-    arguments: unknown;
-  };
-}
-
-/**
  * Interface for MCP server that can register request handlers
  */
 interface McpServer {
-  setRequestHandler<T>(schema: T, handler: (request?: McpRequest) => Promise<unknown>): void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  setRequestHandler(schema: any, handler: (request: any) => Promise<any>): void;
 }
 
 /**
@@ -66,62 +57,78 @@ export class McpTools {
    * @param server - The MCP server to register tools with
    */
   public registerTools(server: McpServer): void {
-    server.setRequestHandler(ListToolsRequestSchema, async () => ({
-      tools: [
-        {
-          name: 'getProblems',
-          description: 'Get all diagnostic problems or filter by file/severity',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              filePath: { type: 'string', description: 'Optional file path filter' },
-              severity: {
-                type: 'string',
-                enum: ['Error', 'Warning', 'Information', 'Hint'],
-                description: 'Optional severity filter',
+    try {
+      // Register the list tools handler
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      server.setRequestHandler(ListToolsRequestSchema, async (_request: any) => {
+        console.log('[MCP Tools] Handling ListToolsRequest');
+        return {
+          tools: [
+            {
+              name: 'getProblems',
+              description: 'Get all diagnostic problems or filter by file/severity',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  filePath: { type: 'string', description: 'Optional file path filter' },
+                  severity: {
+                    type: 'string',
+                    enum: ['Error', 'Warning', 'Information', 'Hint'],
+                    description: 'Optional severity filter',
+                  },
+                },
               },
             },
-          },
-        },
-        {
-          name: 'getProblemsForFile',
-          description: 'Get problems for specific file',
-          inputSchema: {
-            type: 'object',
-            properties: { filePath: { type: 'string' } },
-            required: ['filePath'],
-          },
-        },
-        {
-          name: 'getProblemsForWorkspace',
-          description: 'Get problems for specific workspace',
-          inputSchema: {
-            type: 'object',
-            properties: { workspaceName: { type: 'string' } },
-            required: ['workspaceName'],
-          },
-        },
-      ],
-    }));
+            {
+              name: 'getProblemsForFile',
+              description: 'Get problems for specific file',
+              inputSchema: {
+                type: 'object',
+                properties: { filePath: { type: 'string' } },
+                required: ['filePath'],
+              },
+            },
+            {
+              name: 'getProblemsForWorkspace',
+              description: 'Get problems for specific workspace',
+              inputSchema: {
+                type: 'object',
+                properties: { workspaceName: { type: 'string' } },
+                required: ['workspaceName'],
+              },
+            },
+          ],
+        };
+      });
 
-    server.setRequestHandler(CallToolRequestSchema, async (request?: McpRequest) => {
-      if (!request?.params) {
-        throw new Error('Invalid request: missing params');
-      }
+      // Register the call tool handler
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
+        console.log('[MCP Tools] Handling CallToolRequest:', request.params?.name);
 
-      const { name, arguments: args } = request.params;
+        if (!request.params) {
+          throw new Error('Invalid request: missing params');
+        }
 
-      switch (name) {
-        case 'getProblems':
-          return this.handleGetProblems(args);
-        case 'getProblemsForFile':
-          return this.handleGetProblemsForFile(args);
-        case 'getProblemsForWorkspace':
-          return this.handleGetProblemsForWorkspace(args);
-        default:
-          throw new Error(`Unknown tool: ${name}`);
-      }
-    });
+        const { name, arguments: args } = request.params;
+
+        switch (name) {
+          case 'getProblems':
+            return this.handleGetProblems(args);
+          case 'getProblemsForFile':
+            return this.handleGetProblemsForFile(args);
+          case 'getProblemsForWorkspace':
+            return this.handleGetProblemsForWorkspace(args);
+          default:
+            throw new Error(`Unknown tool: ${name}`);
+        }
+      });
+
+      console.log('[MCP Tools] Tools registered successfully');
+    } catch (error) {
+      console.error('[MCP Tools] Error registering tools:', error);
+      throw error;
+    }
   }
 
   /**

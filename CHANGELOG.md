@@ -5,6 +5,13 @@ All notable changes to the "MCP Diagnostics Extension" will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.7] - 2025-01-05
+
+### Fixed
+- Fixed MCP server startup error "Cannot read properties of undefined (reading 'method')"
+- Corrected MCP SDK request handler registration to use proper function signatures
+- Added defensive logging during handler registration for better debugging
+
 ## [1.0.6] - 2025-06-08
 
 ### 🔧 Fixed
