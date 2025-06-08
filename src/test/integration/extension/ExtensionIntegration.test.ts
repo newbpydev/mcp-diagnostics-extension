@@ -360,7 +360,7 @@ describe('Extension Integration', () => {
       });
       const errorSpy = jest.spyOn(console, 'error').mockImplementation();
       expect(() => deactivate()).not.toThrow();
-      expect(errorSpy).toHaveBeenCalledWith('Error during deactivation:', expect.any(Error));
+      expect(errorSpy).toHaveBeenCalledWith('❌ Error during deactivation:', expect.any(Error));
       errorSpy.mockRestore();
     });
   });
