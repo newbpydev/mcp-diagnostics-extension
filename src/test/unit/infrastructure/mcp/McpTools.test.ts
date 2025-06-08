@@ -1,6 +1,7 @@
 import { McpTools } from '@infrastructure/mcp/McpTools';
 import { DiagnosticsWatcher } from '@core/diagnostics/DiagnosticsWatcher';
 import { ProblemItem } from '@shared/types';
+import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
 describe('McpTools', () => {
   let mockWatcher: jest.Mocked<DiagnosticsWatcher>;
@@ -68,11 +69,17 @@ describe('McpTools', () => {
     });
 
     it('should register tools/list handler', () => {
-      expect(mockServer.setRequestHandler).toHaveBeenCalledWith('tools/list', expect.any(Function));
+      expect(mockServer.setRequestHandler).toHaveBeenCalledWith(
+        ListToolsRequestSchema,
+        expect.any(Function)
+      );
     });
 
     it('should register tools/call handler', () => {
-      expect(mockServer.setRequestHandler).toHaveBeenCalledWith('tools/call', expect.any(Function));
+      expect(mockServer.setRequestHandler).toHaveBeenCalledWith(
+        CallToolRequestSchema,
+        expect.any(Function)
+      );
     });
 
     it('should return correct tools list', async () => {

@@ -1,8 +1,8 @@
 {
   "name": "mcp-diagnostics-extension",
-  "displayName": "MCP Diagnostics Server",
-  "description": "Exposes VS Code diagnostic problems via Model Context Protocol for AI agents",
-  "version": "1.0.5",
+  "displayName": "MCP Diagnostics Extension",
+  "description": "A VS Code extension that exposes diagnostic information via Model Context Protocol (MCP) for AI agents",
+  "version": "1.0.6",
   "publisher": "newbpydev",
   "author": {
     "name": "Juan Antonio Gomez Pena",

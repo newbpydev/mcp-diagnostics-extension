@@ -1,5 +1,9 @@
 import { DiagnosticsWatcher } from '@core/diagnostics/DiagnosticsWatcher';
 import { ProblemItem } from '@shared/types';
+import {
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js';
 
 // Resource URI constants for better maintainability
 const RESOURCE_URIS = {
@@ -64,7 +68,7 @@ interface ResourceListResponse {
  * Interface for MCP server that can register request handlers
  */
 interface McpServer {
-  setRequestHandler: (method: string, handler: (request?: unknown) => Promise<unknown>) => void;
+  setRequestHandler<T>(schema: T, handler: (request?: unknown) => Promise<unknown>): void;
 }
 
 /**
@@ -111,23 +115,26 @@ export class McpResources {
    * Registers MCP resource handlers with the server
    *
    * Sets up request handlers for:
-   * - resources/list: Returns available resource definitions
-   * - resources/read: Handles resource content requests
+   * - ListResourcesRequestSchema: Returns available resource definitions
+   * - ReadResourceRequestSchema: Handles resource content requests
    *
    * @param server - The MCP server to register resources with
    */
   public registerResources(server: McpServer): void {
-    server.setRequestHandler('resources/list', async (): Promise<ResourceListResponse> => {
-      try {
-        return this.generateResourceList();
-      } catch (error) {
-        console.error('Error generating resource list:', error);
-        throw error;
+    server.setRequestHandler(
+      ListResourcesRequestSchema,
+      async (): Promise<ResourceListResponse> => {
+        try {
+          return this.generateResourceList();
+        } catch (error) {
+          console.error('Error generating resource list:', error);
+          throw error;
+        }
       }
-    });
+    );
 
     server.setRequestHandler(
-      'resources/read',
+      ReadResourceRequestSchema,
       async (request?: unknown): Promise<ResourceResponse> => {
         try {
           const typedRequest = request as ResourceReadRequest;

@@ -1,5 +1,9 @@
-import { McpResources } from '../../../../infrastructure/mcp/McpResources';
-import { ProblemItem } from '../../../../shared/types';
+import { McpResources } from '@infrastructure/mcp/McpResources';
+import { ProblemItem } from '@shared/types';
+import {
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js';
 
 // Mock the DiagnosticsWatcher
 const mockDiagnosticsWatcher = {
@@ -56,6 +60,7 @@ describe('McpResources', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockDiagnosticsWatcher.getAllProblems.mockReturnValue(mockProblems);
     mcpResources = new McpResources(mockDiagnosticsWatcher);
   });
 
@@ -73,7 +78,7 @@ describe('McpResources', () => {
     it('should register resources/list handler', () => {
       mcpResources.registerResources(mockServer);
       expect(mockServer.setRequestHandler).toHaveBeenCalledWith(
-        'resources/list',
+        ListResourcesRequestSchema,
         expect.any(Function)
       );
     });
@@ -81,7 +86,7 @@ describe('McpResources', () => {
     it('should register resources/read handler', () => {
       mcpResources.registerResources(mockServer);
       expect(mockServer.setRequestHandler).toHaveBeenCalledWith(
-        'resources/read',
+        ReadResourceRequestSchema,
         expect.any(Function)
       );
     });
