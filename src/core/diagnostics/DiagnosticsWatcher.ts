@@ -152,6 +152,121 @@ export class DiagnosticsWatcher extends EventEmitter {
   }
 
   /**
+   * Gets filtered problems based on criteria
+   *
+   * @param filter - Filter criteria for problems
+   * @returns Array of filtered ProblemItems
+   */
+  public getFilteredProblems(
+    filter: {
+      severity?: string;
+      workspaceFolder?: string;
+      filePath?: string;
+    } = {}
+  ): ProblemItem[] {
+    if (this.isDisposed) {
+      return [];
+    }
+
+    let problems = this.getAllProblems();
+
+    if (filter.severity) {
+      problems = problems.filter((p) => p.severity === filter.severity);
+    }
+
+    if (filter.workspaceFolder) {
+      problems = problems.filter((p) => p.workspaceFolder === filter.workspaceFolder);
+    }
+
+    if (filter.filePath) {
+      problems = problems.filter((p) => p.filePath === filter.filePath);
+    }
+
+    return problems;
+  }
+
+  /**
+   * Gets workspace summary statistics
+   *
+   * @param groupBy - How to group the summary (optional)
+   * @returns Summary object with statistics
+   */
+  public getWorkspaceSummary(groupBy?: string): object {
+    if (this.isDisposed) {
+      return {};
+    }
+
+    const allProblems = this.getAllProblems();
+    const summary: {
+      totalProblems: number;
+      bySeverity: Record<string, number>;
+      byWorkspace: Record<string, number>;
+      bySource: Record<string, number>;
+      fileCount: number;
+    } = {
+      totalProblems: allProblems.length,
+      bySeverity: {
+        Error: 0,
+        Warning: 0,
+        Information: 0,
+        Hint: 0,
+      },
+      byWorkspace: {} as Record<string, number>,
+      bySource: {} as Record<string, number>,
+      fileCount: this.problemsByUri.size,
+    };
+
+    // Count by severity
+    allProblems.forEach((problem) => {
+      // Use type assertion since ProblemItemSchema guarantees severity is required
+      const severity = problem.severity as string;
+      if (severity && severity in summary.bySeverity) {
+        const currentCount = summary.bySeverity[severity];
+        if (currentCount !== undefined) {
+          summary.bySeverity[severity] = currentCount + 1;
+        }
+      }
+
+      // Count by workspace
+      if (problem.workspaceFolder) {
+        summary.byWorkspace[problem.workspaceFolder] =
+          (summary.byWorkspace[problem.workspaceFolder] || 0) + 1;
+      }
+
+      // Count by source
+      if (problem.source) {
+        summary.bySource[problem.source] = (summary.bySource[problem.source] || 0) + 1;
+      }
+    });
+
+    if (groupBy === 'severity') {
+      return summary.bySeverity;
+    } else if (groupBy === 'workspaceFolder') {
+      return summary.byWorkspace;
+    } else if (groupBy === 'source') {
+      return summary.bySource;
+    }
+
+    return summary;
+  }
+
+  /**
+   * Gets list of files that have problems
+   *
+   * @returns Array of file paths that have diagnostics
+   */
+  public getFilesWithProblems(): string[] {
+    if (this.isDisposed) {
+      return [];
+    }
+
+    return Array.from(this.problemsByUri.keys()).filter((uri) => {
+      const problems = this.problemsByUri.get(uri);
+      return problems && problems.length > 0;
+    });
+  }
+
+  /**
    * Disposes of all resources and subscriptions
    * Safe to call multiple times
    */

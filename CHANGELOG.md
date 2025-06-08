@@ -5,7 +5,15 @@ All notable changes to the "MCP Diagnostics Extension" will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.7] - 2025-01-05
+## [1.0.8] - 2025-06-08
+
+### Fixed
+- Fixed MCP server initialization by removing incompatible notification handler setup
+- Resolved "Cannot read properties of undefined (reading 'method')" error during extension activation
+- Improved error handling in MCP server startup process
+- Extension now activates successfully in both VS Code and Cursor
+
+## [1.0.7] - 2025-06-08
 
 ### Fixed
 - Fixed MCP server startup error "Cannot read properties of undefined (reading 'method')"
