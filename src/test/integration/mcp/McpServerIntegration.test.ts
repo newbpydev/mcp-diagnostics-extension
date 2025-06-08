@@ -180,11 +180,13 @@ describe('MCP Server Integration', () => {
         (call: any[]) => call[0] === 'problemsChanged'
       )?.[1];
 
-      // Mock the notifications to throw an error
-      const notifications = mcpServer.getNotifications();
-      jest.spyOn(notifications, 'sendProblemsChangedNotification').mockImplementation(() => {
-        throw new Error('Notification error');
-      });
+      // Mock the notifications property directly to throw an error
+      const originalNotifications = mcpServer.notifications;
+      mcpServer.notifications = {
+        sendProblemsChangedNotification: jest.fn().mockImplementation(() => {
+          throw new Error('Notification error');
+        }),
+      };
 
       const changeEvent: DiagnosticsChangeEvent = {
         uri: '/workspace/src/test.ts',
@@ -198,6 +200,8 @@ describe('MCP Server Integration', () => {
         expect.any(Error)
       );
 
+      // Restore original notifications
+      mcpServer.notifications = originalNotifications;
       consoleSpy.mockRestore();
     });
   });

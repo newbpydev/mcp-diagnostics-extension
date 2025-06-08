@@ -477,11 +477,19 @@ describe('McpServerWrapper', () => {
       );
     });
 
-    it('should log debug message when stopping server with debug enabled', () => {
+    it('should log debug message when stopping server with debug enabled', async () => {
       const debugServer = new McpServerWrapper(mockWatcher, { enableDebugLogging: true });
       // @ts-ignore
       debugServer.isStarted = true;
+
+      // Clear console spy to only capture the dispose logs
+      consoleSpy.log.mockClear();
+
       debugServer.dispose();
+
+      // Wait for async dispose to complete
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
       expect(consoleSpy.log).toHaveBeenCalledWith('MCP Server stopped');
     });
 
