@@ -1,13 +1,17 @@
 # Changelog
 
-All notable changes to the "MCP Diagnostics Extension" will be documented in this file.
+All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [1.2.0](https://github.com/newbpydev/mcp-diagnostics-extension/compare/v1.1.0...v1.2.0) (2025-06-09)
+
+### Documentation
+
+- **CHANGELOG.md:** update version 1.1.0 with new features and improvements ([06e52d6](https://github.com/newbpydev/mcp-diagnostics-extension/commit/06e52d60b1eb4dc540d4d97a6e0744f36872dd7d))
 
 ## [1.1.0] - 2025-06-08
 
 ### Added
+
 - **🚀 Automatic MCP Server Registration**: Seamless "one-click" integration experience similar to Wallaby.js
   - **Multi-Strategy Registration**: Tries multiple approaches for maximum compatibility
     - Workspace MCP configuration (`.vscode/mcp.json`)
@@ -25,16 +29,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **🔧 Improved Error Handling**: Graceful fallbacks for test environments and edge cases
 
 ### Changed
+
 - **📱 Setup Guide Layout**: Completely redesigned with modern UI/UX best practices
 - **🎯 JSON Configuration**: Improved formatting and readability for Cursor users
 - **🔄 Registration Flow**: More robust with multiple fallback strategies
 
 ### Fixed
+
 - **🐛 Test Environment Compatibility**: Fixed undefined return values in test environments
 - **💾 Memory Management**: Improved disposal of event listeners and resources
 - **🔒 Type Safety**: Enhanced TypeScript strict mode compliance
 
 ### Technical Improvements
+
 - **📊 Test Coverage**: Maintained 100% test pass rate (322/322 tests)
 - **🏗️ Architecture**: Clean separation of registration strategies
 - **🎨 UI Components**: Modern CSS with VS Code theme integration
@@ -43,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.9] - 2025-06-08
 
 ### Fixed
+
 - Fixed MCP server initialization by removing incompatible notification handler setup
 - Resolved "Cannot read properties of undefined (reading 'method')" error during extension activation
 - Improved error handling in MCP server startup process
@@ -51,6 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.8] - 2025-06-07
 
 ### Fixed
+
 - Fixed MCP server startup error "Cannot read properties of undefined (reading 'method')"
 - Corrected MCP SDK request handler registration to use proper function signatures
 - Added defensive logging during handler registration for better debugging
@@ -58,6 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.7] - 2025-06-07
 
 ### Fixed
+
 - Fixed MCP server startup error "Cannot read properties of undefined (reading 'method')"
 - Corrected MCP SDK request handler registration to use proper function signatures
 - Added defensive logging during handler registration for better debugging
@@ -65,6 +75,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.6] - 2025-06-07
 
 ### 🔧 Fixed
+
 - **CRITICAL:** Complete resolution of MCP SDK API compatibility issue preventing extension activation
 - Fixed "Cannot read properties of undefined (reading 'method')" runtime error in Cursor IDE and VS Code
 - Updated McpTools.ts to use schema-based request handlers (`ListToolsRequestSchema`, `CallToolRequestSchema`) instead of deprecated string-based methods
@@ -73,12 +84,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated test expectations to match new schema-based API implementation
 
 ### 🧪 Technical Details
+
 - **Root Cause:** String-based method registration (`'tools/list'`, `'resources/read'`) incompatible with MCP SDK v1.12.1
 - **Solution:** Migrated to official schema object pattern per [MCP TypeScript SDK documentation](https://github.com/modelcontextprotocol/typescript-sdk)
 - **Testing:** All 322 tests passing with comprehensive validation of new API patterns
 - **Compatibility:** Fully compatible with both VS Code and Cursor IDE environments
 
 ### 📈 Quality Metrics
+
 - Test Coverage: 322/322 tests passing (100%)
 - Extension Size: 189.01 KB (109 files)
 - Activation Time: <2 seconds
@@ -87,6 +100,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.5] - 2025-01-15
 
 ### Fixed
+
 - **CRITICAL**: Completely resolved MCP SDK API compatibility issue that prevented extension from loading
 - Fixed `Cannot read properties of undefined (reading 'method')` runtime error during extension activation
 - Corrected MCP server implementation to use proper string-based request handlers (`'tools/list'`, `'tools/call'`, etc.)
@@ -94,6 +108,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Maintained 100% test coverage with all 322 tests passing
 
 ### Technical Details
+
 - **Root Cause**: Extension was using incorrect schema-based MCP API instead of string-based API
 - **Solution**: Reverted to correct `setRequestHandler('tools/list', handler)` pattern throughout codebase
 - **Components Fixed**: McpTools, McpResources, McpNotifications, and all corresponding tests
@@ -101,11 +116,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Test Coverage**: All 322 tests pass, including comprehensive integration and end-to-end tests
 
 ### Breaking Changes
+
 - None - this is a critical bug fix that restores intended functionality
 
 ## [1.0.4] - 2025-01-15
 
 ### Fixed
+
 - **CRITICAL**: Fixed MCP SDK API compatibility issue that prevented extension from loading
 - Updated MCP server implementation to use schema-based request handlers instead of string-based handlers
 - Fixed `Cannot read properties of undefined (reading 'method')` error during extension activation
@@ -113,6 +130,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed test suite to work with new schema-based API
 
 ### Technical Details
+
 - Migrated from `server.setRequestHandler('tools/list', handler)` to `server.setRequestHandler(ListToolsRequestSchema, handler)`
 - Updated all MCP integration tests to use correct handler indexing
 - Maintained backward compatibility for all MCP tool functionality
@@ -120,6 +138,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.3] - 2025-01-14
 
 ### Added
+
 - **Enhanced Debugging**: Added comprehensive activation logging with step-by-step progress indicators
 - **Visible Activation Feedback**: Added notification messages to confirm extension activation attempts
 - **Multiple Activation Events**: Added command-specific and wildcard activation events for better compatibility
@@ -127,16 +146,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Extension Debug Script**: Added scripts/debug-extension.js for automated issue detection
 
 ### Fixed
+
 - **Activation Reliability**: Improved extension activation with multiple trigger events
 - **Command Registration**: Enhanced command registration reliability across different VS Code variants
 - **Cursor Compatibility**: Added specific activation events and debugging for Cursor IDE compatibility
 
 ### Changed
+
 - **Error Reporting**: Enhanced error logging with stack traces and detailed context
 - **Activation Events**: Expanded from single "onStartupFinished" to multiple activation triggers
 - **Console Logging**: Added emoji indicators and structured logging for better debugging experience
 
 ### Technical Details
+
 - Added `onCommand:` activation events for both MCP commands
 - Added wildcard `*` activation event as fallback for compatibility
 - Enhanced extension.ts with comprehensive logging throughout activation process
@@ -146,11 +168,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.2] - 2025-01-14
 
 ### Fixed
+
 - **Critical**: Fixed TypeScript path alias resolution preventing extension from loading
 - **Extension Commands**: Fixed "command not found" errors for `mcpDiagnostics.restart` and `mcpDiagnostics.showStatus`
-- **Module Resolution**: Converted TypeScript path aliases (@core/*, @infrastructure/*, etc.) to relative imports for proper runtime resolution
+- **Module Resolution**: Converted TypeScript path aliases (@core/_, @infrastructure/_, etc.) to relative imports for proper runtime resolution
 
 ### Technical Details
+
 - Updated all main source files to use relative imports instead of path aliases
 - Fixed import paths in extension.ts, ExtensionCommands.ts, McpServerWrapper.ts, DiagnosticsWatcher.ts, and VsCodeApiAdapter.ts
 - Resolved module resolution issues that prevented VS Code from loading extension components
@@ -159,17 +183,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.1] - 2025-01-11
 
 ### Changed
+
 - Updated package.json metadata for marketplace publishing
 - Enhanced README with comprehensive setup instructions
 - Added extension icon and gallery banner
 
 ### Fixed
+
 - Corrected publisher information and repository URLs
 - Fixed marketplace category assignment
 
 ## [1.0.0] - 2025-01-11
 
 ### Added
+
 - Initial release of MCP Diagnostics Extension
 - Real-time monitoring of VS Code Problems panel
 - Model Context Protocol (MCP) server integration
@@ -181,6 +208,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Extension commands for server management and status display
 
 ### Features
+
 - **Real-time Diagnostics**: Monitors VS Code diagnostics in real-time
 - **MCP Integration**: Exposes diagnostics via Model Context Protocol
 - **Performance Optimized**: Handles large workspaces efficiently
@@ -190,6 +218,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Type Safety**: Full TypeScript support with strict configuration
 
 ### Technical Details
+
 - Built with TypeScript and strict type checking
 - Uses @modelcontextprotocol/sdk v1.12.1+
 - Supports VS Code 1.100.0+

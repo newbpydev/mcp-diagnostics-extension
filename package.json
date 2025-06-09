@@ -2,7 +2,7 @@
   "name": "mcp-diagnostics-extension",
   "displayName": "MCP Diagnostics Extension",
   "description": "A VS Code extension that exposes diagnostic information via Model Context Protocol (MCP) for AI agents",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "publisher": "newbpydev",
   "author": {
     "name": "Juan Antonio Gomez Pena",
@@ -86,7 +86,12 @@
         },
         "mcpDiagnostics.debug.logLevel": {
           "type": "string",
-          "enum": ["error", "warn", "info", "debug"],
+          "enum": [
+            "error",
+            "warn",
+            "info",
+            "debug"
+          ],
           "default": "info",
           "description": "Logging level for debug output"
         },
