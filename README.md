@@ -1,124 +1,198 @@
 # MCP Diagnostics Extension
 
-[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/newbpydev.mcp-diagnostics-extension.svg)](https://marketplace.visualstudio.com/items?itemName=newbpydev.mcp-diagnostics-extension)
-[![Downloads](https://img.shields.io/visual-studio-marketplace/d/newbpydev.mcp-diagnostics-extension.svg)](https://marketplace.visualstudio.com/items?itemName=newbpydev.mcp-diagnostics-extension)
-[![Rating](https://img.shields.io/visual-studio-marketplace/r/newbpydev.mcp-diagnostics-extension.svg)](https://marketplace.visualstudio.com/items?itemName=newbpydev.mcp-diagnostics-extension)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.3+-blue.svg)](https://www.typescriptlang.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+<!-- Marketplace & Distribution Badges -->
+[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/newbpydev.mcp-diagnostics-extension.svg?style=flat-square&logo=visual-studio-code&color=007ACC)](https://marketplace.visualstudio.com/items?itemName=newbpydev.mcp-diagnostics-extension)
+[![Downloads](https://img.shields.io/visual-studio-marketplace/d/newbpydev.mcp-diagnostics-extension.svg?style=flat-square&color=brightgreen)](https://marketplace.visualstudio.com/items?itemName=newbpydev.mcp-diagnostics-extension)
+[![Rating](https://img.shields.io/visual-studio-marketplace/r/newbpydev.mcp-diagnostics-extension.svg?style=flat-square&color=yellow)](https://marketplace.visualstudio.com/items?itemName=newbpydev.mcp-diagnostics-extension)
+[![Installs](https://img.shields.io/visual-studio-marketplace/i/newbpydev.mcp-diagnostics-extension.svg?style=flat-square&color=blue)](https://marketplace.visualstudio.com/items?itemName=newbpydev.mcp-diagnostics-extension)
 
-A Visual Studio Code extension that exposes diagnostic problems (errors, warnings, etc.) via the Model Context Protocol (MCP) for consumption by AI agents and other MCP-enabled tools.
+<!-- Build & Quality Badges -->
+[![CI/CD Pipeline](https://img.shields.io/github/actions/workflow/status/newbpydev/mcp-diagnostics-extension/ci-cd.yml?style=flat-square&logo=github&label=CI%2FCD)](https://github.com/newbpydev/mcp-diagnostics-extension/actions/workflows/ci-cd.yml)
+[![Release Pipeline](https://img.shields.io/github/actions/workflow/status/newbpydev/mcp-diagnostics-extension/release.yml?style=flat-square&logo=github&label=Release)](https://github.com/newbpydev/mcp-diagnostics-extension/actions/workflows/release.yml)
+[![Tests](https://img.shields.io/badge/tests-322%20passing-brightgreen?style=flat-square&logo=jest)](https://github.com/newbpydev/mcp-diagnostics-extension/actions)
+[![Test Coverage](https://img.shields.io/badge/coverage-75.74%25-orange?style=flat-square&logo=jest)](https://github.com/newbpydev/mcp-diagnostics-extension/actions)
 
-## ✨ Features
+<!-- Technology & Standards Badges -->
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-blue.svg?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
+[![VS Code Engine](https://img.shields.io/badge/VS%20Code-1.96.0+-007ACC?style=flat-square&logo=visual-studio-code)](https://code.visualstudio.com/)
+[![MCP SDK](https://img.shields.io/badge/MCP%20SDK-1.12.1-purple?style=flat-square)](https://github.com/modelcontextprotocol/typescript-sdk)
+[![Node.js](https://img.shields.io/badge/Node.js-22.x-green?style=flat-square&logo=node.js)](https://nodejs.org/)
 
-- **🔍 Real-time Diagnostics Monitoring**: Automatically captures all diagnostic problems from VS Code's Problems panel
-- **🤖 MCP Server Integration**: Exposes diagnostics through standardized MCP tools and resources
-- **⚡ Performance Optimized**: Debounced event handling for large workspaces (300ms default)
-- **🏢 Multi-workspace Support**: Handles complex project structures with multiple workspace folders
-- **📡 Real-time Notifications**: Pushes diagnostic changes to connected MCP clients
-- **📊 Status Bar Integration**: Shows live error/warning counts with quick access to server status
-- **🎛️ Command Palette**: Restart server and view detailed status via Command Palette
-- **🔧 Configurable**: Customizable port, debounce timing, and logging options
+<!-- License & Security Badges -->
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![Security Policy](https://img.shields.io/badge/Security-Policy-red?style=flat-square&logo=shield)](https://github.com/newbpydev/mcp-diagnostics-extension/security/policy)
+[![Dependabot](https://img.shields.io/badge/Dependabot-enabled-brightgreen?style=flat-square&logo=dependabot)](https://github.com/newbpydev/mcp-diagnostics-extension/network/dependencies)
+
+<!-- Project Status & Community Badges -->
+[![GitHub Release](https://img.shields.io/github/v/release/newbpydev/mcp-diagnostics-extension?style=flat-square&logo=github)](https://github.com/newbpydev/mcp-diagnostics-extension/releases)
+[![GitHub Issues](https://img.shields.io/github/issues/newbpydev/mcp-diagnostics-extension?style=flat-square&logo=github)](https://github.com/newbpydev/mcp-diagnostics-extension/issues)
+[![GitHub Stars](https://img.shields.io/github/stars/newbpydev/mcp-diagnostics-extension?style=flat-square&logo=github)](https://github.com/newbpydev/mcp-diagnostics-extension/stargazers)
+[![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg?style=flat-square)](https://conventionalcommits.org/)
+
+---
+
+**A VS Code extension that exposes diagnostic problems (errors, warnings, etc.) in real-time via the Model Context Protocol (MCP) for seamless consumption by AI agents and MCP-enabled tools.**
+
+## 🚀 What is this?
+
+The MCP Diagnostics Extension bridges VS Code's powerful diagnostic system with the Model Context Protocol, enabling AI agents to access your code problems in real-time. Whether you're debugging TypeScript errors, ESLint warnings, or custom linter issues, this extension makes all diagnostic information instantly available to your AI tools.
+
+### Why was this built?
+
+- **🤖 AI-First Development**: Modern development increasingly relies on AI assistance. This extension ensures your AI tools have complete visibility into your codebase health.
+- **⚡ Real-time Integration**: No more manually copying error messages or explaining problems to AI tools - they see everything instantly.
+- **🔧 Universal Diagnostics**: Works with any VS Code diagnostic provider (TypeScript, ESLint, custom linters, etc.)
+- **📊 Enhanced Productivity**: AI agents can provide more contextual help when they understand your current problems.
+
+### What problem does it solve?
+
+Before this extension, AI agents couldn't see your VS Code problems panel, making it difficult for them to:
+- Understand compilation errors when suggesting fixes
+- Provide relevant solutions for linting issues
+- Help with project-wide diagnostic patterns
+- Assist with debugging based on current error state
+
+### Key Features Learned & Implemented
+
+- **🔍 Real-time Diagnostics Monitoring**: Automatically captures all diagnostic problems from VS Code's Problems panel using advanced event debouncing (300ms configurable)
+- **🤖 MCP Server Integration**: Exposes diagnostics through standardized MCP tools and resources with comprehensive filtering capabilities
+- **⚡ Performance Optimized**: Handles large workspaces efficiently with smart caching and memory management
+- **🏢 Multi-workspace Support**: Seamlessly works with complex project structures and multiple workspace folders
+- **📡 Real-time Notifications**: Pushes diagnostic changes instantly to connected MCP clients with structured payloads
+- **📊 Status Bar Integration**: Live error/warning counts with quick access to detailed server status
+- **🎛️ Command Palette**: Full integration with VS Code commands for server management and status viewing
+- **🔧 Highly Configurable**: Customizable port, debounce timing, logging options, and performance settings
+- **🚀 Automatic Registration**: One-click setup with intelligent MCP server registration across different environments
+- **🧪 Test Workspace**: Comprehensive testing environment with intentional errors for validation
+- **🛡️ Robust Error Handling**: Graceful degradation and comprehensive error recovery mechanisms
 
 ## 📦 Installation
 
-### From VS Code Marketplace
+### From VS Code Marketplace (Recommended)
 
-1. Open VS Code
-2. Go to Extensions (Ctrl+Shift+X / Cmd+Shift+X)
-3. Search for "MCP Diagnostics Server"
-4. Click **Install**
+1. **Open VS Code**
+2. **Go to Extensions** (Ctrl+Shift+X / Cmd+Shift+X)
+3. **Search for** "MCP Diagnostics Extension"
+4. **Click Install**
+5. **Reload VS Code** if prompted
+
+The extension will automatically activate and register itself as an MCP server.
 
 ### From VSIX File
 
-1. Download the latest `.vsix` file from [Releases](https://github.com/newbpydev/mcp-diagnostics-extension/releases)
+1. Download the latest `.vsix` file from [GitHub Releases](https://github.com/newbpydev/mcp-diagnostics-extension/releases)
 2. Open VS Code
 3. Run command: `Extensions: Install from VSIX...`
 4. Select the downloaded file
 
-### From Source
+### From Source (Development)
 
 ```bash
+# Clone the repository
 git clone https://github.com/newbpydev/mcp-diagnostics-extension.git
 cd mcp-diagnostics-extension
+
+# Install dependencies
 npm install
+
+# Compile TypeScript
 npm run compile
-# Press F5 to launch Extension Development Host
+
+# Launch Extension Development Host
+# Press F5 in VS Code or run:
+code --extensionDevelopmentPath=.
 ```
 
-## 🚀 Usage
+## 🚀 Quick Start
 
-### Basic Setup
+### 1. **Installation & Activation**
+After installing from the marketplace, the extension automatically:
+- ✅ Activates when VS Code starts
+- ✅ Registers as an MCP server
+- ✅ Starts monitoring diagnostics
+- ✅ Shows status in the status bar
 
-The extension activates automatically when VS Code starts. No additional configuration is required for basic usage.
+### 2. **Verify It's Working**
+Look for the status bar item: `$(bug) MCP: XE YW` (X errors, Y warnings)
 
-**Status Bar**: Look for the status bar item showing `$(bug) MCP: XE YW` (X errors, Y warnings)
-
-### MCP Client Connection
-
-Connect your MCP client to the server using stdio transport:
+### 3. **Connect Your MCP Client**
+Add to your MCP client configuration:
 
 ```json
 {
   "mcpServers": {
     "vscode-diagnostics": {
       "command": "node",
-      "args": ["/path/to/mcp-diagnostics-extension/out/mcp-server.js"]
+      "args": ["/path/to/extension/out/mcp-server.js"]
     }
   }
 }
 ```
 
+### 4. **Start Using MCP Tools**
+Your AI agent can now access three powerful tools:
+- `getProblems` - Get all diagnostics with filtering
+- `getProblemsForFile` - Get problems for specific files
+- `getWorkspaceSummary` - Get workspace-wide statistics
+
+## 🛠️ Usage Guide
+
 ### Available Commands
 
-Access these commands via Command Palette (Ctrl+Shift+P / Cmd+Shift+P):
+Access via Command Palette (Ctrl+Shift+P / Cmd+Shift+P):
 
-- **`MCP Diagnostics: Restart Server`** - Restart the MCP server
-- **`MCP Diagnostics: Show Status`** - Display detailed server status and statistics
+- **`MCP Diagnostics: Show Status`** - Opens detailed status webview with:
+  - Server connection status
+  - Problem statistics by severity and source
+  - File-by-file breakdown
+  - Workspace folder information
+  - Performance metrics
 
-### Available MCP Tools
+- **`MCP Diagnostics: Restart Server`** - Restarts the MCP server with progress indication
 
-#### `getProblems`
-Get all diagnostic problems with optional filtering:
+### MCP Tools Reference
+
+#### 🔍 `getProblems` - Universal Problem Query
+Get all diagnostic problems with powerful filtering options:
 
 ```json
 {
   "name": "getProblems",
   "arguments": {
-    "filePath": "/path/to/file.ts",     // Optional: filter by file
-    "severity": "Error",               // Optional: Error, Warning, Information, Hint
-    "workspaceFolder": "my-project",   // Optional: filter by workspace
-    "limit": 100,                      // Optional: limit results (default: 1000)
-    "offset": 0                        // Optional: pagination offset
+    "filePath": "/path/to/file.ts",        // Optional: filter by specific file
+    "severity": "Error",                   // Optional: Error, Warning, Information, Hint
+    "workspaceFolder": "my-project",       // Optional: filter by workspace
+    "source": "typescript",               // Optional: filter by diagnostic source
+    "limit": 100,                         // Optional: limit results (default: 1000)
+    "offset": 0                           // Optional: pagination offset
   }
 }
 ```
 
-**Response:**
+**Example Response:**
 ```json
 {
-  "content": [
-    {
-      "type": "text",
-      "text": "[{\"filePath\":\"/workspace/src/app.ts\",\"severity\":\"Error\",\"message\":\"Cannot find name 'foo'\",\"range\":{\"start\":{\"line\":10,\"character\":5},\"end\":{\"line\":10,\"character\":8}},\"source\":\"typescript\",\"workspaceFolder\":\"/workspace\"}]"
-    }
-  ]
+  "content": [{
+    "type": "text",
+    "text": "[{\"filePath\":\"/workspace/src/app.ts\",\"severity\":\"Error\",\"message\":\"Cannot find name 'foo'\",\"range\":{\"start\":{\"line\":10,\"character\":5},\"end\":{\"line\":10,\"character\":8}},\"source\":\"typescript\",\"workspaceFolder\":\"/workspace\",\"code\":\"2304\"}]"
+  }]
 }
 ```
 
-#### `getProblemsForFile`
-Get problems for a specific file:
+#### 📄 `getProblemsForFile` - File-Specific Diagnostics
+Get all problems for a specific file:
 
 ```json
 {
   "name": "getProblemsForFile",
   "arguments": {
-    "filePath": "/path/to/file.ts"
+    "filePath": "/absolute/path/to/file.ts"
   }
 }
 ```
 
-#### `getWorkspaceSummary`
-Get summary statistics of problems across workspace:
+#### 📊 `getWorkspaceSummary` - Workspace Statistics
+Get comprehensive workspace diagnostic statistics:
 
 ```json
 {
@@ -129,27 +203,27 @@ Get summary statistics of problems across workspace:
 }
 ```
 
-**Response:**
+**Example Response:**
 ```json
 {
-  "content": [
-    {
-      "type": "text",
-      "text": "{\"totalProblems\":15,\"byFile\":{\"app.ts\":3,\"utils.ts\":2},\"bySeverity\":{\"Error\":5,\"Warning\":10},\"byWorkspace\":{\"main\":15}}"
-    }
-  ]
+  "content": [{
+    "type": "text",
+    "text": "{\"totalProblems\":15,\"byFile\":{\"app.ts\":3,\"utils.ts\":2},\"bySeverity\":{\"Error\":5,\"Warning\":10},\"bySource\":{\"typescript\":8,\"eslint\":7},\"byWorkspace\":{\"main\":15},\"timestamp\":\"2024-01-15T10:30:00.000Z\"}"
+  }]
 }
 ```
 
-### Available MCP Resources
+### MCP Resources
 
-- **`diagnostics://summary`** - Overall problems summary with statistics
+Dynamic resources providing structured access to diagnostic data:
+
+- **`diagnostics://summary`** - Overall workspace problems summary
 - **`diagnostics://file/{encodedFilePath}`** - Problems for specific file
 - **`diagnostics://workspace/{encodedWorkspaceName}`** - Problems for specific workspace
 
 ### Real-time Notifications
 
-The server sends `problemsChanged` notifications when diagnostics change:
+The server automatically sends `problemsChanged` notifications when diagnostics change:
 
 ```json
 {
@@ -161,352 +235,232 @@ The server sends `problemsChanged` notifications when diagnostics change:
       "uri": "/path/to/file.ts",
       "problemCount": 3,
       "problems": [...],
-      "timestamp": "2025-01-15T10:30:00.000Z"
+      "timestamp": "2024-01-15T10:30:00.000Z"
     }
   }
 }
 ```
 
-## 🧪 Testing & Development
-
-### Real vs Mock Server
-
-This extension provides **two different ways** to access diagnostic data:
-
-1. **🔴 Real VS Code Extension** (Recommended)
-   - Gets actual diagnostics from VS Code's Problems panel
-   - Automatically activated when extension is installed
-   - Provides real-time diagnostic data from your workspace
-
-2. **🧪 Mock Standalone Server** (Testing Only)
-   - Provides simulated diagnostic data for testing MCP integration
-   - Located in `scripts/standalone-mcp-server.js`
-   - Used by `cursor-mcp-config.json` for testing purposes
-
-### Test Workspace
-
-The extension includes a `test-workspace/` directory with intentional errors for testing:
-
-- **`example.ts`**: TypeScript errors (type mismatches, undefined variables)
-- **`utils.js`**: ESLint warnings (unused variables, style issues)
-
-To test the extension:
-
-1. **Open VS Code Extension Development Host** (Press F5)
-2. **Open the test workspace** or any workspace with diagnostic issues
-3. **View Problems panel** (Ctrl+Shift+M) to see real diagnostics
-4. **Use MCP tools** to query the diagnostic data
-
-### Configuration Files
-
-- **`cursor-mcp-config.json`**: Uses mock server for testing
-- **`mcp-server-config.json`**: Uses real extension (requires VS Code)
-
-For real diagnostic data, always use the VS Code extension, not the standalone mock server.
-
 ## ⚙️ Configuration
 
-Configure the extension through VS Code settings (`Ctrl+,` / `Cmd+,`):
+Customize the extension via VS Code settings (`Ctrl+,` / `Cmd+,`):
 
 ```json
 {
   "mcpDiagnostics.server.port": 6070,
   "mcpDiagnostics.debounceMs": 300,
-  "mcpDiagnostics.enablePerformanceLogging": false,
   "mcpDiagnostics.enableDebugLogging": false,
-  "mcpDiagnostics.maxProblemsPerFile": 1000
+  "mcpDiagnostics.enablePerformanceLogging": false,
+  "mcpDiagnostics.maxProblemsPerFile": 1000,
+  "mcpDiagnostics.debug.logLevel": "info",
+  "mcpDiagnostics.showAutoRegistrationNotification": true
 }
 ```
 
-### Settings Reference
+### Configuration Options
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `server.port` | `6070` | Port for the MCP server |
-| `debounceMs` | `300` | Debounce interval in milliseconds for diagnostic events |
-| `enablePerformanceLogging` | `false` | Enable performance logging for debugging |
-| `enableDebugLogging` | `false` | Enable detailed debug logging |
-| `maxProblemsPerFile` | `1000` | Maximum number of problems to track per file |
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `server.port` | number | 6070 | MCP server port (1024-65535) |
+| `debounceMs` | number | 300 | Debounce interval for diagnostic events (50-5000ms) |
+| `enableDebugLogging` | boolean | false | Enable detailed debug logging |
+| `enablePerformanceLogging` | boolean | false | Enable performance metrics logging |
+| `maxProblemsPerFile` | number | 1000 | Maximum problems to track per file (1-10000) |
+| `debug.logLevel` | string | "info" | Logging level (error, warn, info, debug) |
+| `showAutoRegistrationNotification` | boolean | true | Show MCP server registration notifications |
 
-## 🔧 Troubleshooting
+## 🧪 Testing & Development
 
-### Server Not Starting
+### Real vs Mock Server
 
-1. **Check VS Code Output panel** for error messages:
-   - View → Output → Select "MCP Diagnostics" from dropdown
-2. **Verify port availability**: Ensure port 6070 is not in use by another application
-3. **Try restarting VS Code** completely
-4. **Use the restart command**: `MCP Diagnostics: Restart Server` from Command Palette
+The extension provides **two operational modes**:
 
-### No Diagnostics Appearing
+#### 🔴 **Real VS Code Extension** (Production Mode)
+- **Purpose**: Production use with actual VS Code diagnostics
+- **Data Source**: Live VS Code Problems panel
+- **Activation**: Automatic when extension is installed
+- **Use Case**: Real development workflows with AI agents
 
-1. **Ensure you have actual problems**:
-   - Open a file with syntax errors or linting issues
-   - Check that the Problems panel (View → Problems) shows diagnostics
-2. **Verify language servers are running**:
-   - TypeScript: Check that `.ts` files show IntelliSense
-   - ESLint: Ensure ESLint extension is installed and configured
-3. **Enable debug logging**:
-   ```json
-   {
-     "mcpDiagnostics.enableDebugLogging": true
-   }
-   ```
-4. **Check the status**: Use `MCP Diagnostics: Show Status` command
+#### 🧪 **Mock Standalone Server** (Testing Mode)
+- **Purpose**: Testing MCP integration without VS Code
+- **Data Source**: Simulated diagnostic data
+- **Location**: `scripts/standalone-mcp-server.js`
+- **Configuration**: `cursor-mcp-config.json`
+- **Use Case**: Testing, development, and CI/CD environments
 
-### Performance Issues
+### Test Workspace
 
-1. **Increase debounce interval** for large workspaces:
-   ```json
-   {
-     "mcpDiagnostics.debounceMs": 500
-   }
-   ```
-2. **Reduce max problems per file** if needed:
-   ```json
-   {
-     "mcpDiagnostics.maxProblemsPerFile": 500
-   }
-   ```
-3. **Enable performance logging** to identify bottlenecks:
-   ```json
-   {
-     "mcpDiagnostics.enablePerformanceLogging": true
-   }
-   ```
+The extension includes `test-workspace/` with intentional errors:
 
-### MCP Client Connection Issues
+- **`example.ts`**: TypeScript errors (type mismatches, undefined variables, invalid assignments)
+- **`utils.js`**: ESLint warnings (unused variables, style issues, best practice violations)
 
-1. **Verify server is running**: Check status bar shows `MCP: Running`
-2. **Check port configuration**: Ensure client connects to correct port (default: 6070)
-3. **Review client logs**: Check your MCP client's connection logs
-4. **Test with simple client**: Use a basic MCP client to verify server functionality
+**To test the extension:**
 
-## 🏗️ Architecture
-
-### Clean Architecture Principles
-
-- **Core Layer**: Framework-independent business logic
-- **Infrastructure Layer**: Adapters for external systems (VS Code, MCP)
-- **Shared Layer**: Common types, constants, and utilities
-
-### Key Components
-
-#### DiagnosticsWatcher
-- Monitors VS Code's `onDidChangeDiagnostics` events
-- Converts `vscode.Diagnostic` to `ProblemItem` models
-- Implements debouncing for performance optimization
-
-#### MCP Server
-- Exposes diagnostics via Model Context Protocol
-- Provides tools for querying problems
-- Sends real-time notifications on changes
-
-#### ExtensionCommands
-- Status bar integration with live problem counts
-- Command Palette commands for server management
-- Webview for detailed status and statistics
-
-#### ProblemItem Model
-```typescript
-interface ProblemItem {
-  readonly filePath: string;
-  readonly workspaceFolder: string;
-  readonly range: Range;
-  readonly severity: ProblemSeverity;
-  readonly message: string;
-  readonly source: string;
-  readonly code?: string | number;
-}
-```
-
-## 🛠️ Development
-
-### Prerequisites
-
-- VS Code 1.85.0 or higher
-- Node.js 18.0 or higher
-- npm 8.0 or higher
-
-### Project Structure
-
-```
-src/
-├── extension.ts              # Main activation/deactivation logic
-├── commands/                 # VS Code commands and UI integration
-│   └── ExtensionCommands.ts  # Status bar and command implementations
-├── core/                     # Core business logic (framework-independent)
-│   ├── models/              # Domain entities and value objects
-│   └── services/            # Business logic and use cases
-├── infrastructure/          # External system adapters
-│   ├── mcp/                # MCP server implementation
-│   └── vscode/             # VS Code API wrapper for testing
-├── shared/                  # Shared types, constants, utilities
-│   ├── types.ts            # Core interfaces (ProblemItem, etc.)
-│   └── constants.ts        # Configuration and constants
-└── test/                   # Test files
-    ├── setup.ts            # VS Code API mocking
-    ├── helpers/            # Test utilities
-    ├── unit/               # Unit tests
-    ├── integration/        # Integration tests
-    └── fixtures/           # Test data
-```
-
-### Available Scripts
-
-```bash
-# Development
-npm run compile          # Compile TypeScript
-npm run watch           # Watch mode compilation
-npm run lint            # Run ESLint
-npm run lint:fix        # Fix ESLint errors
-npm run format          # Format code with Prettier
-npm run format:check    # Check code formatting
-
-# Testing
-npm test               # Run all tests
-npm run test:watch     # Run tests in watch mode
-npm run test:coverage  # Generate coverage report
-
-# VS Code Extension
-npm run vscode:prepublish  # Prepare for publishing
-npm run package        # Create VSIX package
-npm run publish        # Publish to marketplace
-```
-
-### Development Workflow
-
-1. **Test-Driven Development**: Write tests first, then implementation
-2. **Clean Architecture**: Keep core logic independent of frameworks
-3. **Type Safety**: Use strict TypeScript with runtime validation
-4. **Performance**: Monitor with debouncing and efficient caching
-
-### Testing
-
-The project uses Jest with comprehensive VS Code API mocking:
-
-```bash
-# Run all tests (300+ tests)
-npm test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Generate coverage report
-npm run test:coverage
-```
-
-#### Test Structure
-
-- **Unit Tests**: Test individual components in isolation
-- **Integration Tests**: Test component interactions
-- **VS Code API Mocking**: Complete mock framework for VS Code APIs
-
-## 🚀 Performance
-
-### Optimization Strategies
-
-- **Debouncing**: 300ms debounce on diagnostic change events
-- **Caching**: Efficient in-memory caching of problem items
-- **Lazy Loading**: Load diagnostics only when requested
-- **Memory Management**: Proper cleanup and disposal
-
-### Performance Thresholds
-
-- Extension activation: < 2 seconds
-- Diagnostic processing: < 500ms per change event
-- MCP tool response: < 100ms
-- Memory usage: < 50MB baseline, < 100MB with large workspace
-- Support: 10,000+ file workspaces
-
-## 🤝 Contributing
+1. **Launch Extension Development Host** (Press F5 in VS Code)
+2. **Open test workspace** or any workspace with diagnostic issues
+3. **View Problems panel** (Ctrl+Shift+M) to see real diagnostics
+4. **Use MCP tools** to query the diagnostic data
+5. **Check status bar** for live error/warning counts
 
 ### Development Setup
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Install dependencies: `npm install`
-4. Make your changes following the coding standards
-5. Run tests: `npm test`
-6. Commit your changes: `git commit -m 'Add amazing feature'`
-7. Push to the branch: `git push origin feature/amazing-feature`
-8. Open a Pull Request
+```bash
+# Install dependencies
+npm install
 
-### Coding Standards
+# Run tests (322 tests)
+npm test
 
-- **TypeScript**: Strict mode with explicit return types
-- **ESLint**: Follow configured rules with Prettier integration
-- **Testing**: Write tests for all new functionality (TDD approach)
-- **Documentation**: Update README and inline documentation
-- **Performance**: Consider impact on large workspaces
+# Run tests with coverage
+npm run test:coverage
 
-### Pull Request Process
+# Lint code
+npm run lint
 
-1. Ensure all tests pass (`npm test`)
-2. Update documentation as needed
-3. Follow conventional commit messages
-4. Request review from maintainers
-5. Address feedback promptly
+# Format code
+npm run format
 
-## 📊 Test Coverage
+# Compile TypeScript
+npm run compile
 
-Current test coverage: **300+ tests** with comprehensive coverage across:
+# Package extension
+npm run package
 
-- **Unit Tests**: 90%+ coverage of core components
-- **Integration Tests**: Component interaction testing
-- **E2E Tests**: Critical user workflow validation
-- **VS Code API Mocking**: Complete mock framework
+# Run CI checks
+npm run ci:check
+```
 
-### Test Categories
+### MCP Client Configuration Examples
 
-- DiagnosticsWatcher: Event handling, debouncing, conversion logic
-- MCP Server: Tools, resources, notifications, error handling
-- ExtensionCommands: Status bar, commands, webview integration
-- Performance: Memory usage, response times, large workspace handling
+#### Cursor IDE
+```json
+// cursor-mcp-config.json
+{
+  "mcpServers": {
+    "vscode-diagnostics-mock": {
+      "command": "node",
+      "args": ["./scripts/standalone-mcp-server.js"]
+    }
+  }
+}
+```
 
-## 🚀 Project Status
+#### Claude Desktop
+```json
+// claude_desktop_config.json
+{
+  "mcpServers": {
+    "vscode-diagnostics": {
+      "command": "node",
+      "args": ["/path/to/extension/out/mcp-server.js"]
+    }
+  }
+}
+```
 
-**PRODUCTION READY - Marketplace Publication Approved**
+#### Custom MCP Client
+```typescript
+import { Client } from '@modelcontextprotocol/client';
 
-This project has undergone a comprehensive audit and **fully meets all requirements** of the original vision. Key achievements:
-- ✅ **322 passing tests** with 96%+ coverage
-- ✅ **All performance benchmarks met** (activation <2s, processing <500ms, MCP <100ms)
-- ✅ **Clean Architecture** with proper separation of concerns
-- ✅ **Complete CI/CD pipeline** with multi-platform support
-- ✅ **Professional documentation** and marketplace assets
+const client = new Client({
+  name: "my-client",
+  version: "1.0.0"
+});
 
-📋 **[View Comprehensive Project Audit Report](internal-docs/COMPREHENSIVE-PROJECT-AUDIT-REPORT.md)**
+// Connect to extension
+await client.connect({
+  command: "node",
+  args: ["/path/to/extension/out/mcp-server.js"]
+});
+
+// Use tools
+const problems = await client.callTool({
+  name: "getProblems",
+  arguments: { severity: "Error" }
+});
+```
+
+## 📚 Documentation
+
+### Additional Resources
+
+- **[MCP Server Guide](./MCP_SERVER_GUIDE.md)** - Comprehensive setup and configuration guide
+- **[Troubleshooting Guide](./TROUBLESHOOTING.md)** - Common issues and solutions
+- **[Contributing Guide](./CONTRIBUTING.md)** - Development and contribution guidelines
+- **[Changelog](./CHANGELOG.md)** - Version history and release notes
+- **[Security Policy](./SECURITY.md)** - Security reporting and policies
+
+### API Documentation
+
+Comprehensive TypeScript documentation is available for all public APIs:
+
+- **[DiagnosticsWatcher API](./src/core/diagnostics/)** - Core diagnostic monitoring
+- **[MCP Tools API](./src/infrastructure/mcp/)** - MCP server implementation
+- **[Extension Commands API](./src/commands/)** - VS Code command integration
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](./CONTRIBUTING.md) for details.
+
+### Quick Contribution Steps
+
+1. **Fork the repository**
+2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
+3. **Make changes** following our coding standards
+4. **Run tests**: `npm test` (all 322 tests must pass)
+5. **Lint code**: `npm run lint`
+6. **Commit changes**: `npm run commit` (uses conventional commits)
+7. **Push to branch**: `git push origin feature/amazing-feature`
+8. **Open a Pull Request**
+
+### Development Requirements
+
+- Node.js 22.x or higher
+- VS Code 1.96.0 or higher
+- TypeScript 5.8.3 or higher
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+#### Extension Not Activating
+1. Check VS Code version compatibility (requires 1.96.0+)
+2. Look for activation errors in Developer Tools Console
+3. Try reloading VS Code window (Ctrl+Shift+P → "Reload Window")
+
+#### MCP Connection Issues
+1. Verify MCP client configuration paths
+2. Check that the extension is active (status bar shows MCP status)
+3. Restart the MCP server: Command Palette → "MCP Diagnostics: Restart Server"
+
+#### No Diagnostics Showing
+1. Ensure you have files with actual errors/warnings open
+2. Check VS Code Problems panel (Ctrl+Shift+M) - MCP data comes from here
+3. Verify diagnostic providers (TypeScript, ESLint) are working
+
+For more detailed troubleshooting, see our [Troubleshooting Guide](./TROUBLESHOOTING.md).
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 📝 Changelog
-
-See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
-- [VS Code Extension API](https://code.visualstudio.com/api) for the comprehensive extension framework
-- [Model Context Protocol](https://modelcontextprotocol.io/) for the standardized AI agent communication
-- [TypeScript](https://www.typescriptlang.org/) for type safety and developer experience
-- [Jest](https://jestjs.io/) for the testing framework
+- **VS Code Team** - For the excellent Extension API and diagnostic system
+- **Model Context Protocol Team** - For creating the MCP standard enabling AI tool integration
+- **TypeScript Team** - For the robust type system making this extension reliable
+- **Community Contributors** - For testing, feedback, and contributions
 
-## 📞 Support
+## 📞 Support & Community
 
-- 📖 [Documentation](https://github.com/newbpydev/mcp-diagnostics-extension/wiki)
-- 🐛 [Issue Tracker](https://github.com/newbpydev/mcp-diagnostics-extension/issues)
-- 💬 [Discussions](https://github.com/newbpydev/mcp-diagnostics-extension/discussions)
-- 📧 [Email Support](mailto:support@newbpydev.com)
-
-## 🌟 Show Your Support
-
-If this extension helps you, please:
-- ⭐ Star the repository
-- 📝 Leave a review on the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=newbpydev.mcp-diagnostics-extension)
-- 🐛 Report issues or suggest features
-- 🤝 Contribute to the project
+- **🐛 Bug Reports**: [GitHub Issues](https://github.com/newbpydev/mcp-diagnostics-extension/issues)
+- **💡 Feature Requests**: [GitHub Discussions](https://github.com/newbpydev/mcp-diagnostics-extension/discussions)
+- **📧 Email**: [newbpydev@gmail.com](mailto:newbpydev@gmail.com)
+- **🔗 GitHub**: [@newbpydev](https://github.com/newbpydev)
 
 ---
 
-**Built with ❤️ for the VS Code and AI agent community**
+**Made with ❤️ for the VS Code and AI development community**
+
+*If you find this extension helpful, please consider giving it a ⭐ on GitHub and leaving a review on the VS Code Marketplace!*
