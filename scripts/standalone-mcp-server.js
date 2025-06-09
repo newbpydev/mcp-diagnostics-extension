@@ -2,7 +2,14 @@
 
 /**
  * Standalone MCP Server for Diagnostics
- * This script runs the MCP server independently for use with Cursor
+ *
+ * ⚠️  IMPORTANT: This is a MOCK server for testing MCP integration!
+ *
+ * This script provides a standalone MCP server that simulates diagnostic data
+ * for testing purposes when the VS Code extension is not available.
+ *
+ * For REAL diagnostics from VS Code, use the actual extension in VS Code
+ * Extension Development Host (F5) which connects to the real VS Code API.
  */
 
 const { Server } = require('@modelcontextprotocol/sdk/server/index.js');
@@ -16,7 +23,7 @@ class StandaloneMcpServer {
   constructor() {
     this.server = new Server(
       {
-        name: 'vscode-diagnostics-server',
+        name: 'vscode-diagnostics-server-mock',
         version: '1.0.9',
       },
       {
@@ -32,12 +39,12 @@ class StandaloneMcpServer {
   setupHandlers() {
     // List available tools
     this.server.setRequestHandler(ListToolsRequestSchema, async () => {
-      console.error('[MCP Server] Handling ListToolsRequest');
+      console.error('[MOCK MCP Server] Handling ListToolsRequest');
       return {
         tools: [
           {
             name: 'getProblems',
-            description: 'Get all current problems/diagnostics from the workspace',
+            description: '🧪 MOCK: Get simulated problems/diagnostics (not real VS Code data)',
             inputSchema: {
               type: 'object',
               properties: {
@@ -59,7 +66,7 @@ class StandaloneMcpServer {
           },
           {
             name: 'getProblemsForFile',
-            description: 'Get problems for a specific file',
+            description: '🧪 MOCK: Get simulated problems for a specific file',
             inputSchema: {
               type: 'object',
               properties: {
@@ -73,7 +80,7 @@ class StandaloneMcpServer {
           },
           {
             name: 'getWorkspaceSummary',
-            description: 'Get summary statistics of problems across workspace',
+            description: '🧪 MOCK: Get simulated workspace summary statistics',
             inputSchema: {
               type: 'object',
               properties: {
@@ -91,40 +98,73 @@ class StandaloneMcpServer {
 
     // Handle tool calls
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
-      console.error(`[MCP Server] Handling tool call: ${request.params.name}`);
+      console.error(`[MOCK MCP Server] Handling tool call: ${request.params.name}`);
+
+      // Move require statements to the top of the handler
+      const fs = require('fs');
+      const path = require('path');
 
       try {
         switch (request.params.name) {
           case 'getProblems': {
             const args = request.params.arguments || {};
 
-            // Mock response for demonstration
-            const mockProblems = [
-              {
-                filePath: '/workspace/src/example.ts',
-                workspaceFolder: 'current-workspace',
-                range: {
-                  start: { line: 10, character: 5 },
-                  end: { line: 10, character: 15 }
-                },
-                severity: 'Error',
-                message: 'Type error: Cannot assign string to number',
-                source: 'typescript',
-                code: '2322'
-              },
-              {
-                filePath: '/workspace/src/utils.js',
-                workspaceFolder: 'current-workspace',
-                range: {
-                  start: { line: 25, character: 0 },
-                  end: { line: 25, character: 20 }
-                },
-                severity: 'Warning',
-                message: 'Unused variable: unusedVar',
-                source: 'eslint',
-                code: 'no-unused-vars'
+            // Check if we're in a real workspace with test files
+
+            let mockProblems = [];
+
+            // Try to detect if we're in the extension workspace
+            const testFilePath = path.join(process.cwd(), 'test-workspace/example.ts');
+            const testJsFilePath = path.join(process.cwd(), 'test-workspace/utils.js');
+
+            if (fs.existsSync(testFilePath)) {
+              // We're in the extension workspace, provide realistic mock data
+              mockProblems = [
+                {
+                  filePath: testFilePath,
+                  workspaceFolder: 'mcp-diagnostics-extension',
+                  range: {
+                    start: { line: 10, character: 5 },
+                    end: { line: 10, character: 9 }
+                  },
+                  severity: 'Error',
+                  message: 'Type \'string\' is not assignable to type \'number\'',
+                  source: 'typescript',
+                  code: '2322'
+                }
+              ];
+
+              if (fs.existsSync(testJsFilePath)) {
+                mockProblems.push({
+                  filePath: testJsFilePath,
+                  workspaceFolder: 'mcp-diagnostics-extension',
+                  range: {
+                    start: { line: 4, character: 6 },
+                    end: { line: 4, character: 15 }
+                  },
+                  severity: 'Warning',
+                  message: '\'unusedVar\' is assigned a value but never used',
+                  source: 'eslint',
+                  code: 'no-unused-vars'
+                });
               }
-            ];
+            } else {
+              // Generic mock data for other workspaces
+              mockProblems = [
+                {
+                  filePath: path.join(process.cwd(), 'example-file.ts'),
+                  workspaceFolder: path.basename(process.cwd()),
+                  range: {
+                    start: { line: 1, character: 0 },
+                    end: { line: 1, character: 10 }
+                  },
+                  severity: 'Information',
+                  message: '🧪 MOCK: This is simulated diagnostic data. For real diagnostics, use the VS Code extension.',
+                  source: 'mock-server',
+                  code: 'MOCK001'
+                }
+              ];
+            }
 
             // Apply filters if provided
             let filteredProblems = mockProblems;
@@ -144,10 +184,12 @@ class StandaloneMcpServer {
                   type: 'text',
                   text: JSON.stringify(
                     {
+                      notice: "🧪 MOCK SERVER: This is simulated data. For real VS Code diagnostics, use the extension in VS Code Extension Development Host (F5).",
                       problems: filteredProblems,
                       count: filteredProblems.length,
                       timestamp: new Date().toISOString(),
-                      filters: args
+                      filters: args,
+                      serverType: "mock-standalone"
                     },
                     null,
                     2
@@ -167,15 +209,15 @@ class StandaloneMcpServer {
             const fileProblems = [
               {
                 filePath: args.filePath,
-                workspaceFolder: 'current-workspace',
+                workspaceFolder: path.basename(process.cwd()),
                 range: {
-                  start: { line: 5, character: 10 },
-                  end: { line: 5, character: 20 }
+                  start: { line: 1, character: 0 },
+                  end: { line: 1, character: 10 }
                 },
-                severity: 'Error',
-                message: 'Syntax error: Missing semicolon',
-                source: 'typescript',
-                code: '1005'
+                severity: 'Information',
+                message: '🧪 MOCK: Simulated diagnostic for requested file. Use VS Code extension for real diagnostics.',
+                source: 'mock-server',
+                code: 'MOCK002'
               }
             ];
 
@@ -185,10 +227,12 @@ class StandaloneMcpServer {
                   type: 'text',
                   text: JSON.stringify(
                     {
+                      notice: "🧪 MOCK SERVER: This is simulated data for the requested file.",
                       filePath: args.filePath,
                       problems: fileProblems,
                       count: fileProblems.length,
                       timestamp: new Date().toISOString(),
+                      serverType: "mock-standalone"
                     },
                     null,
                     2
@@ -203,22 +247,23 @@ class StandaloneMcpServer {
 
             // Mock workspace summary
             const summary = {
-              totalProblems: 2,
-              bySevertiy: {
-                Error: 1,
-                Warning: 1,
-                Information: 0,
+              notice: "🧪 MOCK SERVER: This is simulated workspace summary data.",
+              totalProblems: 1,
+              bySeverity: {
+                Error: 0,
+                Warning: 0,
+                Information: 1,
                 Hint: 0
               },
               bySource: {
-                typescript: 1,
-                eslint: 1
+                'mock-server': 1
               },
               byWorkspace: {
-                'current-workspace': 2
+                [path.basename(process.cwd())]: 1
               },
-              affectedFiles: 2,
-              groupBy: args.groupBy || 'severity'
+              affectedFiles: 1,
+              groupBy: args.groupBy || 'severity',
+              serverType: "mock-standalone"
             };
 
             return {
@@ -242,12 +287,12 @@ class StandaloneMcpServer {
             throw new Error(`Unknown tool: ${request.params.name}`);
         }
       } catch (error) {
-        console.error('[MCP Server] Tool execution error:', error);
+        console.error('[MOCK MCP Server] Tool execution error:', error);
         return {
           content: [
             {
               type: 'text',
-              text: `Error: ${error.message}`,
+              text: `🧪 MOCK SERVER ERROR: ${error.message}`,
             },
           ],
           isError: true,
@@ -259,29 +304,31 @@ class StandaloneMcpServer {
   async start() {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
-    console.error('[MCP Server] ✅ MCP Diagnostics server started successfully!');
-    console.error('[MCP Server] Available tools:');
-    console.error('[MCP Server] - getProblems: Get all current problems/diagnostics');
-    console.error('[MCP Server] - getProblemsForFile: Get problems for a specific file');
-    console.error('[MCP Server] - getWorkspaceSummary: Get summary statistics of problems');
-    console.error('[MCP Server] Server is ready to accept MCP connections via stdio');
+    console.error('[MOCK MCP Server] ✅ Mock MCP Diagnostics server started!');
+    console.error('[MOCK MCP Server] ⚠️  WARNING: This is a MOCK server with simulated data!');
+    console.error('[MOCK MCP Server] 📋 Available tools:');
+    console.error('[MOCK MCP Server] - getProblems: Get simulated problems/diagnostics');
+    console.error('[MOCK MCP Server] - getProblemsForFile: Get simulated problems for a file');
+    console.error('[MOCK MCP Server] - getWorkspaceSummary: Get simulated workspace summary');
+    console.error('[MOCK MCP Server] 🔧 For REAL diagnostics, use the VS Code extension in Extension Development Host (F5)');
+    console.error('[MOCK MCP Server] Server is ready to accept MCP connections via stdio');
   }
 }
 
 // Handle graceful shutdown
 process.on('SIGINT', () => {
-  console.error('[MCP Server] Shutting down gracefully...');
+  console.error('[MOCK MCP Server] Shutting down gracefully...');
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
-  console.error('[MCP Server] Received SIGTERM, shutting down...');
+  console.error('[MOCK MCP Server] Received SIGTERM, shutting down...');
   process.exit(0);
 });
 
 // Start the server
 const server = new StandaloneMcpServer();
 server.start().catch((error) => {
-  console.error('[MCP Server] ❌ Failed to start MCP server:', error);
+  console.error('[MOCK MCP Server] ❌ Failed to start mock MCP server:', error);
   process.exit(1);
 });

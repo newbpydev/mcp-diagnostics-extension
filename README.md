@@ -167,6 +167,43 @@ The server sends `problemsChanged` notifications when diagnostics change:
 }
 ```
 
+## 🧪 Testing & Development
+
+### Real vs Mock Server
+
+This extension provides **two different ways** to access diagnostic data:
+
+1. **🔴 Real VS Code Extension** (Recommended)
+   - Gets actual diagnostics from VS Code's Problems panel
+   - Automatically activated when extension is installed
+   - Provides real-time diagnostic data from your workspace
+
+2. **🧪 Mock Standalone Server** (Testing Only)
+   - Provides simulated diagnostic data for testing MCP integration
+   - Located in `scripts/standalone-mcp-server.js`
+   - Used by `cursor-mcp-config.json` for testing purposes
+
+### Test Workspace
+
+The extension includes a `test-workspace/` directory with intentional errors for testing:
+
+- **`example.ts`**: TypeScript errors (type mismatches, undefined variables)
+- **`utils.js`**: ESLint warnings (unused variables, style issues)
+
+To test the extension:
+
+1. **Open VS Code Extension Development Host** (Press F5)
+2. **Open the test workspace** or any workspace with diagnostic issues
+3. **View Problems panel** (Ctrl+Shift+M) to see real diagnostics
+4. **Use MCP tools** to query the diagnostic data
+
+### Configuration Files
+
+- **`cursor-mcp-config.json`**: Uses mock server for testing
+- **`mcp-server-config.json`**: Uses real extension (requires VS Code)
+
+For real diagnostic data, always use the VS Code extension, not the standalone mock server.
+
 ## ⚙️ Configuration
 
 Configure the extension through VS Code settings (`Ctrl+,` / `Cmd+,`):

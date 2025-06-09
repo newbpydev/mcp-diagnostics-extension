@@ -4,6 +4,37 @@ All notable changes to this project will be documented in this file. See [standa
 
 ## [1.2.0](https://github.com/newbpydev/mcp-diagnostics-extension/compare/v1.1.0...v1.2.0) (2025-06-09)
 
+### Fixed
+
+- **🐛 Critical**: Resolved hardcoded test data issue in standalone MCP server
+  - Fixed mock server returning same diagnostic data across different environments
+  - Updated standalone server to clearly indicate it's for testing purposes only
+  - Added proper differentiation between real VS Code extension and mock server
+
+### Added
+
+- **📁 Test Workspace**: Created comprehensive test workspace with real diagnostic issues
+  - Added `test-workspace/example.ts` with intentional TypeScript errors for testing
+  - Added `test-workspace/utils.js` with ESLint warnings and errors for testing
+  - Provides realistic test data for MCP server validation
+
+- **📖 MCP Server Guide**: Created comprehensive `MCP_SERVER_GUIDE.md`
+  - Clear documentation of real vs mock server configurations
+  - Step-by-step setup instructions for different environments
+  - Troubleshooting guide for common configuration issues
+
+### Changed
+
+- **🔧 Configuration**: Updated TypeScript and ESLint configurations to exclude test workspace
+- **🧪 Mock Server**: Enhanced standalone server with better error messages and documentation
+- **📝 Documentation**: Improved clarity between extension and standalone server usage
+
+### Technical Improvements
+
+- **✅ Test Coverage**: All 322 tests passing with comprehensive validation
+- **🏗️ Build Process**: Improved packaging and compilation workflow
+- **🔍 Debugging**: Enhanced logging and error reporting for better troubleshooting
+
 ### Documentation
 
 - **CHANGELOG.md:** update version 1.1.0 with new features and improvements ([06e52d6](https://github.com/newbpydev/mcp-diagnostics-extension/commit/06e52d60b1eb4dc540d4d97a6e0744f36872dd7d))
