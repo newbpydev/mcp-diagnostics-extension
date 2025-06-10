@@ -1,6 +1,6 @@
 # VS Code MCP Diagnostics Extension - Workflow Best Practices
 
-**Last Updated:** January 2025
+**Last Updated:** June 9, 2025
 **Purpose:** Establish systematic workflows to prevent critical issues and ensure consistent, high-quality releases
 
 ## 🚨 Critical Issue Prevention Framework

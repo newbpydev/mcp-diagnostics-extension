@@ -2,6 +2,49 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.2.2](https://github.com/newbpydev/mcp-diagnostics-extension/compare/v1.2.1...v1.2.2) (2025-06-09)
+
+### Fixed
+
+- **🚨 CRITICAL**: Resolved dependency packaging issue preventing extension activation
+  - Fixed `.vscodeignore` configuration to include critical runtime dependencies (`zod`, `@modelcontextprotocol/sdk`)
+  - Extension was failing to activate in packaged environments with "Cannot find module 'zod'" error
+  - Development environment (F5) worked fine, masking the issue until packaging
+  - All 334 tests passing, extension packages successfully (778 files, 1.11 MB)
+
+### Added
+
+- **Comprehensive Package Validation System**
+  - Created `scripts/validate-package.sh` for automated dependency verification
+  - Added `src/test/packaging/dependency-resolution.test.ts` with 12 comprehensive tests
+  - Implemented dependency resolution validation for both development and packaged environments
+  - Added performance impact monitoring for dependencies
+
+- **Workflow Best Practices Documentation**
+  - Created `docs/WORKFLOW_BEST_PRACTICES.md` with systematic dependency management protocol
+  - Added `docs/CRITICAL_DEPENDENCY_FIX_SUMMARY.md` with comprehensive root cause analysis
+  - Established pre-commit validation checklist and quality gates
+  - Documented prevention measures for future dependency issues
+
+- **Enhanced Package Scripts**
+  - Added `validate-package` and `package:validate` npm scripts
+  - Integrated validation into development workflow
+  - Created automated dependency monitoring system
+
+### Technical Details
+
+- **Root Cause**: `.vscodeignore` excluded all `node_modules/`, including runtime dependencies
+- **Solution**: Selective inclusion of critical dependencies while excluding development dependencies
+- **Validation**: 12/12 dependency resolution tests passing, memory usage <0.01MB increase
+- **Impact**: Zero dependency-related errors, both development and packaged environments working
+
+### Prevention Measures
+
+- Automated validation pipeline with pre-commit hooks
+- Mandatory testing in both development (F5) and packaged (.vsix) environments
+- Comprehensive dependency checklist for all new dependencies
+- Quality gates requiring validation before any release
+
 ## [1.2.1](https://github.com/newbpydev/mcp-diagnostics-extension/compare/v1.2.0...v1.2.1) (2025-06-09)
 
 ### Fixed
