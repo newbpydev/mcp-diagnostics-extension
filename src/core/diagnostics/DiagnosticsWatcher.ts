@@ -1,9 +1,33 @@
 import { EventEmitter } from 'events';
-import { debounce } from 'lodash';
 import { ProblemItem, DiagnosticsChangeEvent } from '../../shared/types';
 import { DEFAULT_CONFIG, EVENT_NAMES } from '../../shared/constants';
 import { DiagnosticConverter } from './DiagnosticConverter';
 import { PerformanceMonitor, PerformanceSummary } from './PerformanceMonitor';
+
+/**
+ * Simple debounce implementation to avoid external dependencies
+ *
+ * @param func - Function to debounce
+ * @param wait - Wait time in milliseconds
+ * @returns Debounced function
+ */
+function debounce<F extends (...args: Parameters<F>) => ReturnType<F>>(
+  func: F,
+  wait: number
+): (...args: Parameters<F>) => void {
+  let timeout: NodeJS.Timeout | undefined;
+
+  return (...args: Parameters<F>) => {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+
+    timeout = setTimeout(() => {
+      timeout = undefined;
+      func(...args);
+    }, wait);
+  };
+}
 
 /**
  * VS Code diagnostic change event interface

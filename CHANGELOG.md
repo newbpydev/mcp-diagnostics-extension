@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.2.1](https://github.com/newbpydev/mcp-diagnostics-extension/compare/v1.2.0...v1.2.1) (2025-06-09)
+
+### Fixed
+
+- **🚨 CRITICAL**: Resolved missing lodash dependency preventing extension activation
+  - Fixed "Cannot find module 'lodash'" error that prevented extension from loading in packaged form
+  - Replaced lodash dependency with custom debounce implementation to eliminate external dependencies
+  - Extension now works correctly when installed from marketplace (.vsix package)
+  - Issue only affected packaged extension, not Extension Development Host (F5) debugging
+
+### Technical Details
+
+- **Root Cause**: `.vscodeignore` excluded `node_modules/` which prevented lodash from being bundled
+- **Solution**: Implemented native TypeScript debounce function replacing lodash.debounce
+- **Impact**: Eliminates external dependency, reduces bundle size, improves reliability
+- **Validation**: All 322 tests passing, no functional changes to extension behavior
+
+### Removed
+
+- **Dependencies**: Removed `lodash` from production dependencies
+- **Dev Dependencies**: Removed `@types/lodash` from development dependencies
+
 ## [1.2.0](https://github.com/newbpydev/mcp-diagnostics-extension/compare/v1.1.0...v1.2.0) (2025-06-09)
 
 ### Fixed
