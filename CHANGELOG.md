@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.2.3](https://github.com/newbpydev/mcp-diagnostics-extension/compare/v1.2.2...v1.2.3) (2025-06-10)
+
+### Bug Fixes
+
+- resolve critical dependency packaging issue preventing extension activation ([bcc6657](https://github.com/newbpydev/mcp-diagnostics-extension/commit/bcc6657393440a93b3bcfed131777d6a3bf753ab))
+
 ## [1.2.2](https://github.com/newbpydev/mcp-diagnostics-extension/compare/v1.2.1...v1.2.2) (2025-06-09)
 
 ### Fixed
@@ -15,12 +21,14 @@ All notable changes to this project will be documented in this file. See [standa
 ### Added
 
 - **Comprehensive Package Validation System**
+
   - Created `scripts/validate-package.sh` for automated dependency verification
   - Added `src/test/packaging/dependency-resolution.test.ts` with 12 comprehensive tests
   - Implemented dependency resolution validation for both development and packaged environments
   - Added performance impact monitoring for dependencies
 
 - **Workflow Best Practices Documentation**
+
   - Created `docs/WORKFLOW_BEST_PRACTICES.md` with systematic dependency management protocol
   - Added `docs/CRITICAL_DEPENDENCY_FIX_SUMMARY.md` with comprehensive root cause analysis
   - Established pre-commit validation checklist and quality gates
@@ -79,6 +87,7 @@ All notable changes to this project will be documented in this file. See [standa
 ### Added
 
 - **📁 Test Workspace**: Created comprehensive test workspace with real diagnostic issues
+
   - Added `test-workspace/example.ts` with intentional TypeScript errors for testing
   - Added `test-workspace/utils.js` with ESLint warnings and errors for testing
   - Provides realistic test data for MCP server validation
