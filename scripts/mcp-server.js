@@ -38,7 +38,7 @@ async function runTypeScriptDiagnostics() {
 
     console.error('[Real Diagnostics] Running TypeScript diagnostics...');
 
-    const tsc = spawn('npx', ['tsc', '--noEmit', '--pretty', 'false'], {
+    const tsc = spawn('npx', ['tsc', '--noEmit', '--pretty', 'false', '--skipLibCheck'], {
       cwd: extensionDir,
       stdio: ['ignore', 'pipe', 'pipe'],
       shell: true
@@ -80,7 +80,7 @@ async function runESLintDiagnostics() {
 
     console.error('[Real Diagnostics] Running ESLint diagnostics...');
 
-    const eslint = spawn('npx', ['eslint', '.', '--format', 'json'], {
+    const eslint = spawn('npx', ['eslint', '.', '--format', 'json', '--ignore-pattern', 'out/**', '--ignore-pattern', 'dist/**', '--ignore-pattern', 'coverage/**', '--ignore-pattern', 'node_modules/**', '--ignore-pattern', '*.js.map'], {
       cwd: extensionDir,
       stdio: ['ignore', 'pipe', 'pipe'],
       shell: true
@@ -412,7 +412,28 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           throw new Error('filePath is required');
         }
 
-        const problems = diagnosticsCache.get(filePath) || [];
+        // Normalize the file path for comparison
+        const normalizedRequestPath = path.resolve(filePath);
+
+        // Try direct lookup first
+        let problems = diagnosticsCache.get(filePath) || [];
+
+        // If no direct match, try normalized path
+        if (problems.length === 0) {
+          problems = diagnosticsCache.get(normalizedRequestPath) || [];
+        }
+
+        // If still no match, search through all keys for partial matches
+        if (problems.length === 0) {
+          for (const [cachedPath, cachedProblems] of diagnosticsCache.entries()) {
+            const normalizedCachedPath = path.resolve(cachedPath);
+            if (normalizedCachedPath === normalizedRequestPath) {
+              problems = cachedProblems;
+              break;
+            }
+          }
+        }
+
         return {
           content: [
             {
@@ -421,7 +442,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 filePath,
                 problems,
                 count: problems.length,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                debug: {
+                  requestedPath: filePath,
+                  normalizedPath: normalizedRequestPath,
+                  cacheKeys: Array.from(diagnosticsCache.keys()).slice(0, 5) // Show first 5 for debugging
+                }
               }, null, 2)
             }
           ]
@@ -481,10 +507,10 @@ async function main() {
   try {
     process.chdir(extensionDir);
     console.error(`[Real MCP Server] Changed to extension directory: ${process.cwd()}`);
-  } catch (error) {
+    } catch (error) {
     console.error(`[Real MCP Server] Failed to change directory: ${error.message}`);
-    process.exit(1);
-  }
+      process.exit(1);
+    }
 
   // Initial diagnostics refresh
   await refreshDiagnostics();
@@ -520,10 +546,10 @@ process.on('SIGINT', () => {
 process.on('SIGTERM', () => {
   console.error('[Real MCP Server] Received SIGTERM, shutting down...');
   process.exit(0);
-});
+  });
 
-// Start the server
+  // Start the server
 main().catch((error) => {
   console.error('[Real MCP Server] ❌ Failed to start MCP server:', error);
-  process.exit(1);
-});
+    process.exit(1);
+  });
