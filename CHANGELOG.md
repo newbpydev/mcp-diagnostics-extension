@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.2.10](https://github.com/newbpydev/mcp-diagnostics-extension/compare/v1.2.9...v1.2.10) (2025-06-10)
+
+### Bug Fixes
+
+- comprehensive MCP server path matching and output exclusion fixes ([530a7a6](https://github.com/newbpydev/mcp-diagnostics-extension/commit/530a7a62eefa8f584df3f7f59fe31657a9936be6))
+
 ### [1.2.9](https://github.com/newbpydev/mcp-diagnostics-extension/compare/v1.2.8...v1.2.9) (2025-06-10)
 
 ### Bug Fixes
