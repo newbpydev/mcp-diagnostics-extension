@@ -15,6 +15,9 @@ coverage/
 
 # Development dependencies and configs
 node_modules/
+# CRITICAL: Include essential runtime dependencies
+!node_modules/zod/**
+!node_modules/@modelcontextprotocol/**
 .vscode/
 .git/
 .gitignore
