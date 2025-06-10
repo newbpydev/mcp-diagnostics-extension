@@ -287,7 +287,7 @@ export class McpServerRegistration {
   /**
    * Show MCP setup guide
    */
-  private showMcpSetupGuide(): void {
+  public showMcpSetupGuide(): void {
     const panel = vscode.window.createWebviewPanel(
       'mcpSetupGuide',
       'MCP Diagnostics Setup Guide',
@@ -302,11 +302,7 @@ export class McpServerRegistration {
    * Create server definitions for the proposed API
    */
   private createServerDefinitions(): McpServerDefinition[] {
-    const serverScriptPath = path.join(
-      this.context.extensionPath,
-      'scripts',
-      'standalone-mcp-server.js'
-    );
+    const serverScriptPath = path.join(this.context.extensionPath, 'scripts', 'mcp-server.js');
 
     const server = new McpStdioServerDefinition({
       label: 'MCP Diagnostics',
@@ -330,11 +326,7 @@ export class McpServerRegistration {
     server: McpServerDefinition
   ): Promise<McpServerDefinition | undefined> {
     if (server.label === 'MCP Diagnostics') {
-      const serverScriptPath = path.join(
-        this.context.extensionPath,
-        'scripts',
-        'standalone-mcp-server.js'
-      );
+      const serverScriptPath = path.join(this.context.extensionPath, 'scripts', 'mcp-server.js');
 
       try {
         await vscode.workspace.fs.stat(vscode.Uri.file(serverScriptPath));
@@ -374,11 +366,7 @@ export class McpServerRegistration {
    * Create server configuration
    */
   private createServerConfiguration(): McpServerConfig {
-    const serverScriptPath = path.join(
-      this.context.extensionPath,
-      'scripts',
-      'standalone-mcp-server.js'
-    );
+    const serverScriptPath = path.join(this.context.extensionPath, 'scripts', 'mcp-server.js');
 
     return {
       type: 'stdio',
@@ -563,7 +551,7 @@ export class McpServerRegistration {
 
           <div class="step">
             <h3><span class="warning">🎯</span> For Cursor Users</h3>
-            <div class="config-title">Add this configuration to your Cursor MCP settings:</div>
+            <div class="config-title">Add this configuration to your Cursor MCP settings for <strong>real VS Code diagnostics</strong>:</div>
             <div class="json-config">
               <div class="code-block">
                 <button class="copy-button" onclick="copyToClipboard('cursor-config')">Copy</button>
@@ -572,7 +560,7 @@ export class McpServerRegistration {
     "vscode-diagnostics": {
       "command": "node",
       "args": [
-        "<span class="path-highlight">${this.context.extensionPath.replace(/\\/g, '/')}/scripts/standalone-mcp-server.js</span>"
+        "<span class="path-highlight">${this.context.extensionPath.replace(/\\/g, '/')}/scripts/mcp-server.js</span>"
       ],
       "env": {
         "NODE_ENV": "production",

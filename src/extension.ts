@@ -110,22 +110,19 @@ export async function activate(
     await mcpServer.start();
     console.log('🟢 [MCP Diagnostics] MCP Server started.');
 
-    // Step 3: ExtensionCommands
-    console.log('🟡 [MCP Diagnostics] Registering extension commands...');
-    extensionCommands = new ExtensionCommands(mcpServer, diagnosticsWatcher);
-
-    // Register extension commands using the ExtensionCommands class
-    extensionCommands.registerCommands(context);
+    // Step 3: Optional MCP Registration and ExtensionCommands
+    console.log('🟡 [MCP Diagnostics] Setting up MCP registration and extension commands...');
 
     // Optional: Register automatic MCP server provider (only if supported)
+    let mcpRegistration: McpServerRegistration | undefined;
     try {
-      const mcpRegistration = new McpServerRegistration(context);
+      mcpRegistration = new McpServerRegistration(context);
       mcpRegistration.registerMcpServerProvider();
 
       // Add command for refreshing MCP definitions after restart
       context.subscriptions.push(
         vscode.commands.registerCommand('mcpDiagnostics.refreshMcp', () => {
-          mcpRegistration.refreshServerDefinitions();
+          mcpRegistration?.refreshServerDefinitions();
           vscode.window.showInformationMessage('MCP server definitions refreshed');
         }),
         mcpRegistration
@@ -135,6 +132,17 @@ export async function activate(
       console.log('🟡 [MCP Diagnostics] MCP auto-registration not available:', error);
       // Continue without auto-registration - extension still works normally
     }
+
+    // Create ExtensionCommands with mcpRegistration
+    if (!mcpRegistration) {
+      // Fallback: create a registration instance for the setup guide
+      mcpRegistration = new McpServerRegistration(context);
+    }
+
+    extensionCommands = new ExtensionCommands(mcpServer, diagnosticsWatcher, mcpRegistration);
+
+    // Register extension commands using the ExtensionCommands class
+    extensionCommands.registerCommands(context);
 
     console.log('🟢 [MCP Diagnostics] Extension commands registered.');
 

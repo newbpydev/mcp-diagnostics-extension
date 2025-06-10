@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { ExtensionCommands } from '@/commands/ExtensionCommands';
 import { McpServerWrapper } from '@infrastructure/mcp/McpServerWrapper';
 import { DiagnosticsWatcher } from '@core/diagnostics/DiagnosticsWatcher';
+import { McpServerRegistration } from '@infrastructure/mcp/McpServerRegistration';
 import { ProblemItem } from '@shared/types';
 
 // Mock VS Code API
@@ -28,6 +29,7 @@ describe('ExtensionCommands', () => {
   let extensionCommands: ExtensionCommands;
   let mockMcpServer: jest.Mocked<McpServerWrapper>;
   let mockDiagnosticsWatcher: jest.Mocked<DiagnosticsWatcher>;
+  let mockMcpRegistration: jest.Mocked<McpServerRegistration>;
   let mockStatusBarItem: jest.Mocked<vscode.StatusBarItem>;
   let mockContext: jest.Mocked<vscode.ExtensionContext>;
 
@@ -65,13 +67,23 @@ describe('ExtensionCommands', () => {
       removeAllListeners: jest.fn(),
     } as any;
 
+    // Create mock MCP registration
+    mockMcpRegistration = {
+      showMcpSetupGuide: jest.fn(),
+      dispose: jest.fn(),
+    } as any;
+
     // Create mock extension context
     mockContext = {
       subscriptions: [],
     } as any;
 
     // Create extension commands instance
-    extensionCommands = new ExtensionCommands(mockMcpServer, mockDiagnosticsWatcher);
+    extensionCommands = new ExtensionCommands(
+      mockMcpServer,
+      mockDiagnosticsWatcher,
+      mockMcpRegistration
+    );
   });
 
   afterEach(() => {
@@ -165,7 +177,11 @@ describe('ExtensionCommands', () => {
       mockDiagnosticsWatcher.getAllProblems.mockReturnValue(mockProblems);
 
       // Create new instance to trigger status bar update
-      const commands = new ExtensionCommands(mockMcpServer, mockDiagnosticsWatcher);
+      const commands = new ExtensionCommands(
+        mockMcpServer,
+        mockDiagnosticsWatcher,
+        mockMcpRegistration
+      );
 
       expect(mockStatusBarItem.text).toBe('$(error) MCP: 1E 1W');
       expect(mockStatusBarItem.backgroundColor).toEqual({ id: 'statusBarItem.errorBackground' });
@@ -189,7 +205,11 @@ describe('ExtensionCommands', () => {
       mockDiagnosticsWatcher.getAllProblems.mockReturnValue(mockProblems);
 
       // Create new instance to trigger status bar update
-      const commands = new ExtensionCommands(mockMcpServer, mockDiagnosticsWatcher);
+      const commands = new ExtensionCommands(
+        mockMcpServer,
+        mockDiagnosticsWatcher,
+        mockMcpRegistration
+      );
 
       expect(mockStatusBarItem.text).toBe('$(warning) MCP: 0E 1W');
       expect(mockStatusBarItem.backgroundColor).toEqual({ id: 'statusBarItem.warningBackground' });
@@ -199,7 +219,11 @@ describe('ExtensionCommands', () => {
     });
 
     it('should show loading status when provided', () => {
-      const commands = new ExtensionCommands(mockMcpServer, mockDiagnosticsWatcher);
+      const commands = new ExtensionCommands(
+        mockMcpServer,
+        mockDiagnosticsWatcher,
+        mockMcpRegistration
+      );
 
       // Access private method for testing
       (commands as any).updateStatusBar('Restarting...');

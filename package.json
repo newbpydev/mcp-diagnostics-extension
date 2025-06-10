@@ -46,7 +46,8 @@
   "activationEvents": [
     "onStartupFinished",
     "onCommand:mcpDiagnostics.restart",
-    "onCommand:mcpDiagnostics.showStatus"
+    "onCommand:mcpDiagnostics.showStatus",
+    "onCommand:mcpDiagnostics.showSetupGuide"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -110,6 +111,10 @@
       {
         "command": "mcpDiagnostics.restart",
         "title": "MCP Diagnostics: Restart Server"
+      },
+      {
+        "command": "mcpDiagnostics.showSetupGuide",
+        "title": "MCP Diagnostics: Show Setup Guide"
       }
     ]
   },

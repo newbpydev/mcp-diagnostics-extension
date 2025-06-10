@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { McpServerWrapper } from '../infrastructure/mcp/McpServerWrapper';
 import { DiagnosticsWatcher } from '../core/diagnostics/DiagnosticsWatcher';
 import { ProblemItem } from '../shared/types';
+import { McpServerRegistration } from '../infrastructure/mcp/McpServerRegistration';
 
 interface StatusSummary {
   totalProblems: number;
@@ -21,7 +22,8 @@ export class ExtensionCommands {
 
   constructor(
     private mcpServer: McpServerWrapper,
-    private diagnosticsWatcher: DiagnosticsWatcher
+    private diagnosticsWatcher: DiagnosticsWatcher,
+    private mcpRegistration: McpServerRegistration
   ) {
     this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
     this.updateStatusBar();
@@ -39,6 +41,10 @@ export class ExtensionCommands {
     const commands = [
       vscode.commands.registerCommand('mcpDiagnostics.restart', this.restartServer.bind(this)),
       vscode.commands.registerCommand('mcpDiagnostics.showStatus', this.showStatus.bind(this)),
+      vscode.commands.registerCommand(
+        'mcpDiagnostics.showSetupGuide',
+        this.showSetupGuide.bind(this)
+      ),
     ];
 
     context.subscriptions.push(...commands, this.statusBarItem);
@@ -76,6 +82,13 @@ export class ExtensionCommands {
     );
 
     panel.webview.html = this.generateStatusHtml(summary);
+  }
+
+  /**
+   * Command handler to show the MCP setup guide.
+   */
+  private async showSetupGuide(): Promise<void> {
+    this.mcpRegistration.showMcpSetupGuide();
   }
 
   /**

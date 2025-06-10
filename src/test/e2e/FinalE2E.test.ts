@@ -7,6 +7,7 @@ import { DiagnosticsWatcher } from '@core/diagnostics/DiagnosticsWatcher';
 import { McpServerWrapper } from '@infrastructure/mcp/McpServerWrapper';
 import { VsCodeApiAdapter } from '@infrastructure/vscode/VsCodeApiAdapter';
 import { ExtensionCommands } from '@commands/ExtensionCommands';
+import { McpServerRegistration } from '@infrastructure/mcp/McpServerRegistration';
 import { DEFAULT_CONFIG } from '@shared/constants';
 import { ProblemItem, ProblemSeverity } from '@shared/types';
 
@@ -31,7 +32,9 @@ describe('Task 3.4.1: End-to-End Testing - Final Validation', () => {
       const adapter = new VsCodeApiAdapter(mockVsCodeApi as any);
       const watcher = new DiagnosticsWatcher(adapter);
       const mcpServer = new McpServerWrapper(watcher, DEFAULT_CONFIG);
-      const commands = new ExtensionCommands(mcpServer, watcher);
+      const mockContext = { subscriptions: [] } as any;
+      const mcpRegistration = new McpServerRegistration(mockContext);
+      const commands = new ExtensionCommands(mcpServer, watcher, mcpRegistration);
 
       expect(watcher).toBeDefined();
       expect(mcpServer).toBeDefined();
