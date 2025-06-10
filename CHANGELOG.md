@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.2.4](https://github.com/newbpydev/mcp-diagnostics-extension/compare/v1.2.3...v1.2.4) (2025-06-10)
+
+### Bug Fixes
+
+- resolve TypeScript path alias resolution issue preventing extension activation ([566968e](https://github.com/newbpydev/mcp-diagnostics-extension/commit/566968ebc0beaad9bb9904eefd644820e9086967))
+
+### Documentation
+
+- **cursorrules:** update test count in checklist to reflect the increase in tests from 322 to 334 ([e1a1ab1](https://github.com/newbpydev/mcp-diagnostics-extension/commit/e1a1ab1675705caaf81651c3c32b1d50a8989057))
+
 ### [1.2.3](https://github.com/newbpydev/mcp-diagnostics-extension/compare/v1.2.2...v1.2.3) (2025-06-10)
 
 ### Bug Fixes
