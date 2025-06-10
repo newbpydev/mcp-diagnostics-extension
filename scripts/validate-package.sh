@@ -141,6 +141,14 @@ else
     print_status $GREEN "✅ Source files properly excluded"
 fi
 
+# Check for @modelcontextprotocol/sdk
+if ls extension/node_modules/@modelcontextprotocol/ >/dev/null 2>&1; then
+  print_status $GREEN "✅ @modelcontextprotocol/sdk included in package"
+else
+  print_status $RED "❌ @modelcontextprotocol/sdk missing from package"
+  validation_failed=true
+fi
+
 # Cleanup
 rm -rf "$temp_dir"
 
