@@ -1,22 +1,25 @@
 #!/usr/bin/env node
 
 /**
- * Real VS Code Diagnostics MCP Server
- * This script runs the MCP server independently of VS Code
- * and provides REAL diagnostic data from workspace analysis
+ * Standalone Real VS Code Diagnostics MCP Server
+ * This script provides REAL diagnostic data from workspace analysis
+ * without depending on the VS Code extension runtime
  */
 
+const { Server } = require('@modelcontextprotocol/sdk/server/index.js');
+const { StdioServerTransport } = require('@modelcontextprotocol/sdk/server/stdio.js');
+const {
+  CallToolRequestSchema,
+  ListToolsRequestSchema
+} = require('@modelcontextprotocol/sdk/types.js');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
 
-// Add the project root to the module path
-const projectRoot = path.resolve(__dirname, '..');
-require('module').globalPaths.push(path.join(projectRoot, 'out'));
-
 // Real diagnostics cache
 let diagnosticsCache = new Map();
 let lastRefresh = 0;
+let refreshPromise = null;
 
 // Function to run TypeScript diagnostics
 async function runTypeScriptDiagnostics() {
@@ -34,7 +37,8 @@ async function runTypeScriptDiagnostics() {
 
     const tsc = spawn('npx', ['tsc', '--noEmit', '--pretty', 'false'], {
       cwd: process.cwd(),
-      stdio: ['ignore', 'pipe', 'pipe']
+      stdio: ['ignore', 'pipe', 'pipe'],
+      shell: true
     });
 
     let output = '';
@@ -75,7 +79,8 @@ async function runESLintDiagnostics() {
 
     const eslint = spawn('npx', ['eslint', '.', '--format', 'json'], {
       cwd: process.cwd(),
-      stdio: ['ignore', 'pipe', 'pipe']
+      stdio: ['ignore', 'pipe', 'pipe'],
+      shell: true
     });
 
     let output = '';
@@ -109,17 +114,19 @@ function parseTypeScriptOutput(output) {
     const match = line.match(/^(.+?)\((\d+),(\d+)\):\s+(error|warning|info)\s+TS(\d+):\s+(.+)$/);
     if (match) {
       const [, filePath, lineNum, col, severity, code, message] = match;
+      const absolutePath = path.resolve(process.cwd(), filePath);
 
       problems.push({
+        filePath: absolutePath,
+        workspaceFolder: path.basename(process.cwd()),
         range: {
           start: { line: parseInt(lineNum) - 1, character: parseInt(col) - 1 },
           end: { line: parseInt(lineNum) - 1, character: parseInt(col) - 1 + 10 }
         },
-        severity: severity === 'error' ? 2 : severity === 'warning' ? 1 : 0, // VS Code DiagnosticSeverity
+        severity: severity === 'error' ? 'Error' : severity === 'warning' ? 'Warning' : 'Information',
         message,
         source: 'typescript',
-        code: `TS${code}`,
-        filePath: path.resolve(process.cwd(), filePath)
+        code: `TS${code}`
       });
     }
   }
@@ -137,15 +144,16 @@ function parseESLintOutput(output) {
     for (const file of eslintResults) {
       for (const message of file.messages) {
         problems.push({
+          filePath: file.filePath,
+          workspaceFolder: path.basename(process.cwd()),
           range: {
             start: { line: (message.line || 1) - 1, character: (message.column || 1) - 1 },
             end: { line: (message.endLine || message.line || 1) - 1, character: (message.endColumn || message.column || 1) - 1 }
           },
-          severity: message.severity === 2 ? 2 : 1, // VS Code DiagnosticSeverity
+          severity: message.severity === 2 ? 'Error' : 'Warning',
           message: message.message,
           source: 'eslint',
-          code: message.ruleId || 'unknown',
-          filePath: file.filePath
+          code: message.ruleId || 'unknown'
         });
       }
     }
@@ -158,157 +166,287 @@ function parseESLintOutput(output) {
 
 // Refresh diagnostics cache
 async function refreshDiagnostics() {
+  // If a refresh is already in progress, return the existing promise
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
   // Check if we have recent diagnostics (less than 30 seconds old)
   if (lastRefresh && Date.now() - lastRefresh < 30000) {
     return;
   }
 
-  console.error('[Real Diagnostics] Refreshing diagnostics...');
+  refreshPromise = (async () => {
+    console.error('[Real Diagnostics] Refreshing diagnostics...');
 
-  try {
-    // Run TypeScript diagnostics
-    const tsResults = await runTypeScriptDiagnostics();
+    try {
+      // Run TypeScript diagnostics
+      const tsResults = await runTypeScriptDiagnostics();
 
-    // Run ESLint diagnostics
-    const eslintResults = await runESLintDiagnostics();
+      // Run ESLint diagnostics
+      const eslintResults = await runESLintDiagnostics();
 
-    // Combine and update cache
-    const allResults = [...tsResults, ...eslintResults];
+      // Combine and update cache
+      const allResults = [...tsResults, ...eslintResults];
 
-    // Clear existing cache
-    diagnosticsCache.clear();
+      // Clear existing cache
+      diagnosticsCache.clear();
 
-    // Group problems by file
-    for (const problem of allResults) {
-      const filePath = problem.filePath;
-      if (!diagnosticsCache.has(filePath)) {
-        diagnosticsCache.set(filePath, []);
+      // Group problems by file
+      for (const problem of allResults) {
+        const filePath = problem.filePath;
+        if (!diagnosticsCache.has(filePath)) {
+          diagnosticsCache.set(filePath, []);
+        }
+        diagnosticsCache.get(filePath).push(problem);
       }
-      diagnosticsCache.get(filePath).push(problem);
-    }
 
-    lastRefresh = Date.now();
-    console.error(`[Real Diagnostics] Found ${allResults.length} diagnostic issues in ${diagnosticsCache.size} files`);
-  } catch (error) {
-    console.error('[Real Diagnostics] Error refreshing diagnostics:', error);
-  }
+      lastRefresh = Date.now();
+      console.error(`[Real Diagnostics] Found ${allResults.length} diagnostic issues in ${diagnosticsCache.size} files`);
+    } catch (error) {
+      console.error('[Real Diagnostics] Error refreshing diagnostics:', error);
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
 }
 
-try {
-  // Import our compiled modules
-  const { McpServerWrapper } = require('../out/infrastructure/mcp/McpServerWrapper.js');
-  const { DiagnosticsWatcher } = require('../out/core/diagnostics/DiagnosticsWatcher.js');
-  const { VsCodeApiAdapter } = require('../out/infrastructure/vscode/VsCodeApiAdapter.js');
+// Get all problems with optional filtering
+function getAllProblems(filter = {}) {
+  const allProblems = [];
 
-  // Create a REAL VS Code API that provides actual diagnostic data
-  const realVscode = {
-    languages: {
-      onDidChangeDiagnostics: (callback) => {
-        // Simulate diagnostic changes by periodically refreshing
-        const interval = setInterval(async () => {
-          await refreshDiagnostics();
-          // Trigger callback with all files that have diagnostics
-          const uris = Array.from(diagnosticsCache.keys()).map(filePath => ({
-            toString: () => filePath,
-            fsPath: filePath
-          }));
-          if (uris.length > 0) {
-            callback({ uris });
-          }
-        }, 10000); // Refresh every 10 seconds
+  for (const [filePath, problems] of diagnosticsCache.entries()) {
+    for (const problem of problems) {
+      // Apply filters
+      if (filter.severity && problem.severity !== filter.severity) continue;
+      if (filter.workspaceFolder && problem.workspaceFolder !== filter.workspaceFolder) continue;
+      if (filter.filePath && problem.filePath !== filter.filePath) continue;
 
-        return {
-          dispose: () => {
-            clearInterval(interval);
-          }
-        };
-      },
-      getDiagnostics: (uri) => {
-        if (uri) {
-          // Return diagnostics for specific file
-          const filePath = uri.toString();
-          return diagnosticsCache.get(filePath) || [];
-        } else {
-          // Return all diagnostics as [uri, diagnostics[]] tuples
-          const result = [];
-          for (const [filePath, diagnostics] of diagnosticsCache.entries()) {
-            result.push([
-              { toString: () => filePath, fsPath: filePath },
-              diagnostics
-            ]);
-          }
-          return result;
-        }
-      }
-    },
-    workspace: {
-      getWorkspaceFolder: (uri) => {
-        // Return a real workspace folder
-        return {
-          name: path.basename(process.cwd()),
-          uri: { fsPath: process.cwd() }
-        };
-      }
+      allProblems.push(problem);
     }
+  }
+
+  return allProblems;
+}
+
+// Get workspace summary
+function getWorkspaceSummary() {
+  const summary = {
+    totalProblems: 0,
+    problemsBySeverity: {
+      Error: 0,
+      Warning: 0,
+      Information: 0,
+      Hint: 0
+    },
+    problemsBySource: {},
+    affectedFiles: diagnosticsCache.size,
+    workspaceFolder: path.basename(process.cwd()),
+    lastUpdated: new Date(lastRefresh).toISOString()
   };
 
-  console.log('[Real MCP Server] Starting REAL MCP Diagnostics server...');
-  console.log(`[Real MCP Server] Workspace: ${process.cwd()}`);
+  for (const problems of diagnosticsCache.values()) {
+    for (const problem of problems) {
+      summary.totalProblems++;
+      summary.problemsBySeverity[problem.severity]++;
+
+      if (!summary.problemsBySource[problem.source]) {
+        summary.problemsBySource[problem.source] = 0;
+      }
+      summary.problemsBySource[problem.source]++;
+    }
+  }
+
+  return summary;
+}
+
+// Create and configure the MCP server
+const server = new Server(
+  {
+    name: 'vscode-diagnostics-server',
+    version: '1.0.0',
+  },
+  {
+    capabilities: {
+      tools: {},
+    },
+  }
+);
+
+// List available tools
+server.setRequestHandler(ListToolsRequestSchema, async () => {
+  return {
+    tools: [
+      {
+        name: 'getProblems',
+        description: 'Get all current problems/diagnostics from workspace analysis',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            severity: {
+              type: 'string',
+              enum: ['Error', 'Warning', 'Information', 'Hint'],
+              description: 'Filter by severity level'
+            },
+            workspaceFolder: {
+              type: 'string',
+              description: 'Filter by workspace folder name'
+            },
+            filePath: {
+              type: 'string',
+              description: 'Filter by specific file path'
+            }
+          }
+        }
+      },
+      {
+        name: 'getProblemsForFile',
+        description: 'Get problems for a specific file',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            filePath: {
+              type: 'string',
+              description: 'Absolute file path'
+            }
+          },
+          required: ['filePath']
+        }
+      },
+      {
+        name: 'getWorkspaceSummary',
+        description: 'Get summary statistics of problems across workspace',
+        inputSchema: {
+          type: 'object',
+          properties: {}
+        }
+      }
+    ]
+  };
+});
+
+// Handle tool calls
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  const { name, arguments: args } = request.params;
+
+  try {
+    // Refresh diagnostics before serving any tool
+    await refreshDiagnostics();
+
+    switch (name) {
+      case 'getProblems': {
+        const problems = getAllProblems(args || {});
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                problems,
+                count: problems.length,
+                timestamp: new Date().toISOString(),
+                note: 'Real diagnostic data from workspace analysis'
+              }, null, 2)
+            }
+          ]
+        };
+      }
+
+      case 'getProblemsForFile': {
+        const { filePath } = args || {};
+        if (!filePath) {
+          throw new Error('filePath is required');
+        }
+
+        const problems = diagnosticsCache.get(filePath) || [];
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                filePath,
+                problems,
+                count: problems.length,
+                timestamp: new Date().toISOString()
+              }, null, 2)
+            }
+          ]
+        };
+      }
+
+      case 'getWorkspaceSummary': {
+        const summary = getWorkspaceSummary();
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(summary, null, 2)
+            }
+          ]
+        };
+      }
+
+      default:
+        throw new Error(`Unknown tool: ${name}`);
+    }
+  } catch (error) {
+    console.error(`Error handling tool ${name}:`, error);
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Error: ${error.message}`
+        }
+      ],
+      isError: true
+    };
+  }
+});
+
+// Initialize and start the server
+async function main() {
+  console.error('[Real MCP Server] Starting REAL MCP Diagnostics server...');
+  console.error(`[Real MCP Server] Workspace: ${process.cwd()}`);
 
   // Initial diagnostics refresh
-  refreshDiagnostics().then(() => {
-  // Create the adapter and watcher
-    const adapter = new VsCodeApiAdapter(realVscode);
-  const watcher = new DiagnosticsWatcher(adapter);
+  await refreshDiagnostics();
 
-  // Create and start the MCP server
-  const server = new McpServerWrapper(watcher, {
-    enableDebugLogging: true,
-    port: 6070
-  });
+  // Create transport and connect
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
 
-  // Handle graceful shutdown
-  process.on('SIGINT', async () => {
-      console.log('[Real MCP Server] Shutting down gracefully...');
+  console.error('[Real MCP Server] ✅ REAL MCP Diagnostics server started successfully!');
+  console.error('[Real MCP Server] 📊 Providing REAL diagnostic data from workspace analysis');
+  console.error('[Real MCP Server] Available tools:');
+  console.error('[Real MCP Server] - getProblems: Get real current problems/diagnostics');
+  console.error('[Real MCP Server] - getProblemsForFile: Get real problems for a specific file');
+  console.error('[Real MCP Server] - getWorkspaceSummary: Get real summary statistics of problems');
+  console.error('[Real MCP Server] Server is ready to accept MCP connections via stdio');
+
+  // Set up periodic refresh
+  setInterval(async () => {
     try {
-      await server.stop();
-      watcher.dispose();
-      process.exit(0);
+      await refreshDiagnostics();
     } catch (error) {
-        console.error('[Real MCP Server] Error during shutdown:', error);
-      process.exit(1);
+      console.error('[Real MCP Server] Error during periodic refresh:', error);
     }
-  });
-
-  process.on('SIGTERM', async () => {
-      console.log('[Real MCP Server] Received SIGTERM, shutting down...');
-    try {
-      await server.stop();
-      watcher.dispose();
-      process.exit(0);
-    } catch (error) {
-        console.error('[Real MCP Server] Error during shutdown:', error);
-      process.exit(1);
-    }
-  });
-
-  // Start the server
-  server.start().then(() => {
-      console.log('[Real MCP Server] ✅ REAL MCP Diagnostics server started successfully!');
-      console.log('[Real MCP Server] 📊 Providing REAL diagnostic data from workspace analysis');
-      console.log('[Real MCP Server] Available tools:');
-      console.log('[Real MCP Server] - getProblems: Get real current problems/diagnostics');
-      console.log('[Real MCP Server] - getProblemsForFile: Get real problems for a specific file');
-      console.log('[Real MCP Server] - getWorkspaceSummary: Get real summary statistics of problems');
-      console.log('[Real MCP Server] Server is ready to accept MCP connections via stdio');
-  }).catch((error) => {
-      console.error('[Real MCP Server] ❌ Failed to start MCP server:', error);
-    process.exit(1);
-    });
-  });
-
-} catch (error) {
-  console.error('[Real MCP Server] ❌ Failed to initialize MCP server:', error);
-  console.error('[Real MCP Server] Make sure the project is compiled with: npm run compile');
-  process.exit(1);
+  }, 30000); // Refresh every 30 seconds
 }
+
+// Handle graceful shutdown
+process.on('SIGINT', () => {
+  console.error('[Real MCP Server] Shutting down gracefully...');
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  console.error('[Real MCP Server] Received SIGTERM, shutting down...');
+  process.exit(0);
+});
+
+// Start the server
+main().catch((error) => {
+  console.error('[Real MCP Server] ❌ Failed to start MCP server:', error);
+  process.exit(1);
+});

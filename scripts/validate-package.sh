@@ -143,9 +143,9 @@ fi
 
 # Check for @modelcontextprotocol/sdk
 if find "$temp_dir" -path "*/node_modules/@modelcontextprotocol*" -type d | grep -q .; then
-    print_status $GREEN "✅ @modelcontextprotocol/sdk included in package"
+  print_status $GREEN "✅ @modelcontextprotocol/sdk included in package"
 else
-    print_status $RED "❌ @modelcontextprotocol/sdk missing from package"
+  print_status $RED "❌ @modelcontextprotocol/sdk missing from package"
     rm -rf "$temp_dir"
     exit 1
 fi
