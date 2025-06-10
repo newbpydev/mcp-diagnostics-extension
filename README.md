@@ -9,7 +9,7 @@
 <!-- Build & Quality Badges -->
 [![CI/CD Pipeline](https://img.shields.io/github/actions/workflow/status/newbpydev/mcp-diagnostics-extension/ci-cd.yml?style=flat-square&logo=github&label=CI%2FCD)](https://github.com/newbpydev/mcp-diagnostics-extension/actions/workflows/ci-cd.yml)
 [![Release Pipeline](https://img.shields.io/github/actions/workflow/status/newbpydev/mcp-diagnostics-extension/release.yml?style=flat-square&logo=github&label=Release)](https://github.com/newbpydev/mcp-diagnostics-extension/actions/workflows/release.yml)
-[![Tests](https://img.shields.io/badge/tests-322%20passing-brightgreen?style=flat-square&logo=jest)](https://github.com/newbpydev/mcp-diagnostics-extension/actions)
+[![Tests](https://img.shields.io/badge/tests-336%20passing-brightgreen?style=flat-square&logo=jest)](https://github.com/newbpydev/mcp-diagnostics-extension/actions)
 [![Test Coverage](https://img.shields.io/badge/coverage-75.74%25-orange?style=flat-square&logo=jest)](https://github.com/newbpydev/mcp-diagnostics-extension/actions)
 
 <!-- Technology & Standards Badges -->
@@ -59,8 +59,8 @@ Before this extension, AI agents couldn't see your VS Code problems panel, makin
 - **⚡ Performance Optimized**: Handles large workspaces efficiently with smart caching and memory management
 - **🏢 Multi-workspace Support**: Seamlessly works with complex project structures and multiple workspace folders
 - **📡 Real-time Notifications**: Pushes diagnostic changes instantly to connected MCP clients with structured payloads
-- **📊 Status Bar Integration**: Live error/warning counts with quick access to detailed server status
-- **🎛️ Command Palette**: Full integration with VS Code commands for server management and status viewing
+- **🎨 Enhanced Status Bar**: Color-coded status bar with red (errors), orange (warnings), green (clean) backgrounds and real-time updates
+- **🎛️ Command Palette**: Full integration with VS Code commands for server management and detailed status viewing with webview
 - **🔧 Highly Configurable**: Customizable port, debounce timing, logging options, and performance settings
 - **🚀 Automatic Registration**: One-click setup with intelligent MCP server registration across different environments
 - **🧪 Test Workspace**: Comprehensive testing environment with intentional errors for validation
@@ -309,7 +309,7 @@ The extension includes `test-workspace/` with intentional errors:
 # Install dependencies
 npm install
 
-# Run tests (322 tests)
+# Run tests (336 tests)
 npm test
 
 # Run tests with coverage
@@ -408,7 +408,7 @@ We welcome contributions! Please see our [Contributing Guide](./CONTRIBUTING.md)
 1. **Fork the repository**
 2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
 3. **Make changes** following our coding standards
-4. **Run tests**: `npm test` (all 322 tests must pass)
+4. **Run tests**: `npm test` (all 336 tests must pass)
 5. **Lint code**: `npm run lint`
 6. **Commit changes**: `npm run commit` (uses conventional commits)
 7. **Push to branch**: `git push origin feature/amazing-feature`

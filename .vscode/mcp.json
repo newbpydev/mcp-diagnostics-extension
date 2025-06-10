@@ -4,8 +4,9 @@
       "type": "stdio",
       "command": "node",
       "args": [
-        "c:\\Users\\Remym\\.cursor\\extensions\\newbpydev.mcp-diagnostics-extension-1.2.4\\scripts\\standalone-mcp-server.js"
+        "scripts/mcp-server.js"
       ],
+      "cwd": "C:/Users/Remym/pythonProject/__personal-projects/mcp-diagnostics-extension",
       "env": {
         "NODE_ENV": "production",
         "MCP_DEBUG": "false"

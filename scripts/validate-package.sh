@@ -91,7 +91,7 @@ fi
 
 # Verify package contents
 echo "🔍 Verifying package contents..."
-VSIX_FILE=$(ls *.vsix | head -n1)
+VSIX_FILE=$(ls *.vsix | sort -V | tail -n1)
 
 if [ ! -f "$VSIX_FILE" ]; then
     print_status $RED "❌ VSIX file not found"
@@ -142,11 +142,12 @@ else
 fi
 
 # Check for @modelcontextprotocol/sdk
-if ls extension/node_modules/@modelcontextprotocol/ >/dev/null 2>&1; then
-  print_status $GREEN "✅ @modelcontextprotocol/sdk included in package"
+if find "$temp_dir" -path "*/node_modules/@modelcontextprotocol*" -type d | grep -q .; then
+    print_status $GREEN "✅ @modelcontextprotocol/sdk included in package"
 else
-  print_status $RED "❌ @modelcontextprotocol/sdk missing from package"
-  validation_failed=true
+    print_status $RED "❌ @modelcontextprotocol/sdk missing from package"
+    rm -rf "$temp_dir"
+    exit 1
 fi
 
 # Cleanup
