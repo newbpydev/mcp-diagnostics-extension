@@ -21,6 +21,7 @@ jest.mock('vscode', () => ({
   ViewColumn: {
     One: 1,
   },
+  ThemeColor: jest.fn().mockImplementation((id) => ({ id })),
 }));
 
 describe('ExtensionCommands', () => {
@@ -39,6 +40,7 @@ describe('ExtensionCommands', () => {
       text: '',
       tooltip: '',
       command: '',
+      backgroundColor: undefined,
       show: jest.fn(),
       hide: jest.fn(),
       dispose: jest.fn(),
@@ -54,9 +56,13 @@ describe('ExtensionCommands', () => {
       isServerStarted: jest.fn().mockReturnValue(true),
     } as any;
 
-    // Create mock diagnostics watcher
+    // Create mock diagnostics watcher with EventEmitter methods
     mockDiagnosticsWatcher = {
       getAllProblems: jest.fn().mockReturnValue([]),
+      on: jest.fn(),
+      off: jest.fn(),
+      emit: jest.fn(),
+      removeAllListeners: jest.fn(),
     } as any;
 
     // Create mock extension context
@@ -69,7 +75,9 @@ describe('ExtensionCommands', () => {
   });
 
   afterEach(() => {
-    extensionCommands.dispose();
+    if (extensionCommands) {
+      extensionCommands.dispose();
+    }
   });
 
   describe('constructor', () => {
@@ -81,9 +89,19 @@ describe('ExtensionCommands', () => {
     });
 
     it('should initialize status bar with default state', () => {
-      expect(mockStatusBarItem.text).toBe('$(bug) MCP: 0E 0W');
-      expect(mockStatusBarItem.tooltip).toBe('MCP Diagnostics Server Status');
+      expect(mockStatusBarItem.text).toBe('$(check) MCP: 0E 0W');
+      expect(mockStatusBarItem.tooltip).toBe(
+        'MCP Diagnostics Server Status\nErrors: 0, Warnings: 0\nClick to show details'
+      );
       expect(mockStatusBarItem.command).toBe('mcpDiagnostics.showStatus');
+      expect(mockStatusBarItem.backgroundColor).toBeUndefined();
+    });
+
+    it('should set up event listener for problems changed', () => {
+      expect(mockDiagnosticsWatcher.on).toHaveBeenCalledWith(
+        'problemsChanged',
+        expect.any(Function)
+      );
     });
   });
 
@@ -124,7 +142,7 @@ describe('ExtensionCommands', () => {
   });
 
   describe('updateStatusBar', () => {
-    it('should display problem counts correctly', () => {
+    it('should display problem counts correctly with error styling', () => {
       const mockProblems: ProblemItem[] = [
         {
           filePath: '/test/file1.ts',
@@ -142,12 +160,28 @@ describe('ExtensionCommands', () => {
           message: 'Test warning',
           source: 'eslint',
         },
+      ];
+
+      mockDiagnosticsWatcher.getAllProblems.mockReturnValue(mockProblems);
+
+      // Create new instance to trigger status bar update
+      const commands = new ExtensionCommands(mockMcpServer, mockDiagnosticsWatcher);
+
+      expect(mockStatusBarItem.text).toBe('$(error) MCP: 1E 1W');
+      expect(mockStatusBarItem.backgroundColor).toEqual({ id: 'statusBarItem.errorBackground' });
+
+      // Clean up
+      commands.dispose();
+    });
+
+    it('should display warning styling when only warnings present', () => {
+      const mockProblems: ProblemItem[] = [
         {
-          filePath: '/test/file3.ts',
+          filePath: '/test/file2.ts',
           workspaceFolder: '/test',
-          range: { start: { line: 2, character: 0 }, end: { line: 2, character: 10 } },
+          range: { start: { line: 1, character: 0 }, end: { line: 1, character: 10 } },
           severity: 'Warning',
-          message: 'Another warning',
+          message: 'Test warning',
           source: 'eslint',
         },
       ];
@@ -157,7 +191,8 @@ describe('ExtensionCommands', () => {
       // Create new instance to trigger status bar update
       const commands = new ExtensionCommands(mockMcpServer, mockDiagnosticsWatcher);
 
-      expect(mockStatusBarItem.text).toBe('$(bug) MCP: 1E 2W');
+      expect(mockStatusBarItem.text).toBe('$(warning) MCP: 0E 1W');
+      expect(mockStatusBarItem.backgroundColor).toEqual({ id: 'statusBarItem.warningBackground' });
 
       // Clean up
       commands.dispose();
@@ -170,6 +205,7 @@ describe('ExtensionCommands', () => {
       (commands as any).updateStatusBar('Restarting...');
 
       expect(mockStatusBarItem.text).toBe('$(sync~spin) MCP: Restarting...');
+      expect(mockStatusBarItem.backgroundColor).toBeUndefined();
 
       // Clean up
       commands.dispose();
@@ -227,7 +263,7 @@ describe('ExtensionCommands', () => {
       await restartHandler();
 
       // Should show restarting status, then return to normal
-      expect(mockStatusBarItem.text).toBe('$(bug) MCP: 0E 0W');
+      expect(mockStatusBarItem.text).toBe('$(check) MCP: 0E 0W');
     });
   });
 

@@ -25,6 +25,11 @@ export class ExtensionCommands {
   ) {
     this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
     this.updateStatusBar();
+
+    // Listen for problems changes to update status bar
+    this.diagnosticsWatcher.on('problemsChanged', () => {
+      this.onProblemsChanged();
+    });
   }
 
   /**
@@ -83,11 +88,24 @@ export class ExtensionCommands {
 
     if (status) {
       this.statusBarItem.text = `$(sync~spin) MCP: ${status}`;
+      this.statusBarItem.backgroundColor = undefined;
     } else {
-      this.statusBarItem.text = `$(bug) MCP: ${errorCount}E ${warningCount}W`;
+      // Use different icons and colors based on error count
+      if (errorCount > 0) {
+        this.statusBarItem.text = `$(error) MCP: ${errorCount}E ${warningCount}W`;
+        this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
+      } else if (warningCount > 0) {
+        this.statusBarItem.text = `$(warning) MCP: ${errorCount}E ${warningCount}W`;
+        this.statusBarItem.backgroundColor = new vscode.ThemeColor(
+          'statusBarItem.warningBackground'
+        );
+      } else {
+        this.statusBarItem.text = `$(check) MCP: ${errorCount}E ${warningCount}W`;
+        this.statusBarItem.backgroundColor = undefined;
+      }
     }
 
-    this.statusBarItem.tooltip = 'MCP Diagnostics Server Status';
+    this.statusBarItem.tooltip = `MCP Diagnostics Server Status\nErrors: ${errorCount}, Warnings: ${warningCount}\nClick to show details`;
     this.statusBarItem.command = 'mcpDiagnostics.showStatus';
   }
 

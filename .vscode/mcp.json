@@ -1,0 +1,15 @@
+{
+  "servers": {
+    "mcpDiagnostics": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "c:\\Users\\Remym\\.cursor\\extensions\\newbpydev.mcp-diagnostics-extension-1.2.4\\scripts\\standalone-mcp-server.js"
+      ],
+      "env": {
+        "NODE_ENV": "production",
+        "MCP_DEBUG": "false"
+      }
+    }
+  }
+}

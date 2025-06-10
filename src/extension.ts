@@ -114,20 +114,27 @@ export async function activate(
     console.log('🟡 [MCP Diagnostics] Registering extension commands...');
     extensionCommands = new ExtensionCommands(mcpServer, diagnosticsWatcher);
 
-    // Register automatic MCP server provider (for VS Code Agent mode and Cursor)
-    const mcpRegistration = new McpServerRegistration(context);
-    mcpRegistration.registerMcpServerProvider();
-
     // Register extension commands using the ExtensionCommands class
     extensionCommands.registerCommands(context);
 
-    // Add additional command for refreshing MCP definitions after restart
-    context.subscriptions.push(
-      vscode.commands.registerCommand('mcpDiagnostics.refreshMcp', () => {
-        mcpRegistration.refreshServerDefinitions();
-        vscode.window.showInformationMessage('MCP server definitions refreshed');
-      })
-    );
+    // Optional: Register automatic MCP server provider (only if supported)
+    try {
+      const mcpRegistration = new McpServerRegistration(context);
+      mcpRegistration.registerMcpServerProvider();
+
+      // Add command for refreshing MCP definitions after restart
+      context.subscriptions.push(
+        vscode.commands.registerCommand('mcpDiagnostics.refreshMcp', () => {
+          mcpRegistration.refreshServerDefinitions();
+          vscode.window.showInformationMessage('MCP server definitions refreshed');
+        }),
+        mcpRegistration
+      );
+      console.log('🟢 [MCP Diagnostics] MCP auto-registration enabled.');
+    } catch (error) {
+      console.log('🟡 [MCP Diagnostics] MCP auto-registration not available:', error);
+      // Continue without auto-registration - extension still works normally
+    }
 
     console.log('🟢 [MCP Diagnostics] Extension commands registered.');
 
@@ -136,8 +143,7 @@ export async function activate(
     context.subscriptions.push(
       { dispose: () => diagnosticsWatcher?.dispose() },
       { dispose: () => mcpServer?.dispose() },
-      { dispose: () => extensionCommands?.dispose() },
-      mcpRegistration
+      { dispose: () => extensionCommands?.dispose() }
     );
 
     console.log('🟢 [MCP Diagnostics] All disposables pushed to context.');

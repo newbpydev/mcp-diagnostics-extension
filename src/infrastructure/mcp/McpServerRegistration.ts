@@ -208,8 +208,19 @@ export class McpServerRegistration {
    */
   private tryUserSettingsConfiguration(): boolean {
     try {
-      const config = vscode.workspace.getConfiguration('mcp');
-      const existingServers = config.get('servers', {});
+      console.log('[MCP Registration] Attempting user settings configuration...');
+
+      // Check if mcp.servers configuration is available
+      const config = vscode.workspace.getConfiguration();
+      const inspection = config.inspect('mcp.servers');
+
+      if (!inspection) {
+        console.log('[MCP Registration] mcp.servers configuration not available in this editor');
+        return false;
+      }
+
+      const mcpConfig = vscode.workspace.getConfiguration('mcp');
+      const existingServers = mcpConfig.get('servers', {});
 
       // Check if our server is already configured
       if (
@@ -229,7 +240,7 @@ export class McpServerRegistration {
       };
 
       // Update user settings
-      config.update('servers', updatedServers, vscode.ConfigurationTarget.Global);
+      mcpConfig.update('servers', updatedServers, vscode.ConfigurationTarget.Global);
 
       console.log('[MCP Registration] Added MCP server to user settings');
       this.showSuccessNotification('User Settings');
