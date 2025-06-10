@@ -21,14 +21,17 @@ let diagnosticsCache = new Map();
 let lastRefresh = 0;
 let refreshPromise = null;
 
+// Get the extension directory (where this script is located)
+const extensionDir = path.dirname(__dirname);
+
 // Function to run TypeScript diagnostics
 async function runTypeScriptDiagnostics() {
   return new Promise((resolve) => {
     const results = [];
-    const tsconfigPath = path.join(process.cwd(), 'tsconfig.json');
+    const tsconfigPath = path.join(extensionDir, 'tsconfig.json');
 
     if (!fs.existsSync(tsconfigPath)) {
-      console.error('[Real Diagnostics] No tsconfig.json found, skipping TypeScript diagnostics');
+      console.error(`[Real Diagnostics] No tsconfig.json found at ${tsconfigPath}, skipping TypeScript diagnostics`);
       resolve([]);
       return;
     }
@@ -36,7 +39,7 @@ async function runTypeScriptDiagnostics() {
     console.error('[Real Diagnostics] Running TypeScript diagnostics...');
 
     const tsc = spawn('npx', ['tsc', '--noEmit', '--pretty', 'false'], {
-      cwd: process.cwd(),
+      cwd: extensionDir,
       stdio: ['ignore', 'pipe', 'pipe'],
       shell: true
     });
@@ -66,11 +69,11 @@ async function runESLintDiagnostics() {
     const results = [];
     const eslintConfigs = ['.eslintrc.js', '.eslintrc.json', 'eslint.config.js', 'eslint.config.mjs'];
     const hasEslintConfig = eslintConfigs.some(config =>
-      fs.existsSync(path.join(process.cwd(), config))
+      fs.existsSync(path.join(extensionDir, config))
     );
 
     if (!hasEslintConfig) {
-      console.error('[Real Diagnostics] No ESLint config found, skipping ESLint diagnostics');
+      console.error(`[Real Diagnostics] No ESLint config found in ${extensionDir}, skipping ESLint diagnostics`);
       resolve([]);
       return;
     }
@@ -78,7 +81,7 @@ async function runESLintDiagnostics() {
     console.error('[Real Diagnostics] Running ESLint diagnostics...');
 
     const eslint = spawn('npx', ['eslint', '.', '--format', 'json'], {
-      cwd: process.cwd(),
+      cwd: extensionDir,
       stdio: ['ignore', 'pipe', 'pipe'],
       shell: true
     });
@@ -114,11 +117,11 @@ function parseTypeScriptOutput(output) {
     const match = line.match(/^(.+?)\((\d+),(\d+)\):\s+(error|warning|info)\s+TS(\d+):\s+(.+)$/);
     if (match) {
       const [, filePath, lineNum, col, severity, code, message] = match;
-      const absolutePath = path.resolve(process.cwd(), filePath);
+      const absolutePath = path.resolve(extensionDir, filePath);
 
       problems.push({
         filePath: absolutePath,
-        workspaceFolder: path.basename(process.cwd()),
+        workspaceFolder: path.basename(extensionDir),
         range: {
           start: { line: parseInt(lineNum) - 1, character: parseInt(col) - 1 },
           end: { line: parseInt(lineNum) - 1, character: parseInt(col) - 1 + 10 }
@@ -145,7 +148,7 @@ function parseESLintOutput(output) {
       for (const message of file.messages) {
         problems.push({
           filePath: file.filePath,
-          workspaceFolder: path.basename(process.cwd()),
+          workspaceFolder: path.basename(extensionDir),
           range: {
             start: { line: (message.line || 1) - 1, character: (message.column || 1) - 1 },
             end: { line: (message.endLine || message.line || 1) - 1, character: (message.endColumn || message.column || 1) - 1 }
@@ -164,6 +167,33 @@ function parseESLintOutput(output) {
   return problems;
 }
 
+// Try to load diagnostics from VS Code extension export
+async function loadVSCodeExportedDiagnostics() {
+  try {
+    const exportPath = path.join(require('os').tmpdir(), 'vscode-diagnostics-export.json');
+
+    if (fs.existsSync(exportPath)) {
+      const stat = fs.statSync(exportPath);
+      const age = Date.now() - stat.mtime.getTime();
+
+      // Use exported data if it's less than 5 minutes old
+      if (age < 5 * 60 * 1000) {
+        const data = JSON.parse(fs.readFileSync(exportPath, 'utf8'));
+        console.error(`[Real Diagnostics] Loaded ${data.problemCount} VS Code problems from export (${Math.round(age/1000)}s old)`);
+        return data.problems || [];
+      } else {
+        console.error(`[Real Diagnostics] VS Code export is too old (${Math.round(age/1000)}s), using fallback analysis`);
+      }
+    } else {
+      console.error('[Real Diagnostics] No VS Code export found, using fallback analysis');
+    }
+  } catch (error) {
+    console.error('[Real Diagnostics] Error loading VS Code export:', error);
+  }
+
+  return null;
+}
+
 // Refresh diagnostics cache
 async function refreshDiagnostics() {
   // If a refresh is already in progress, return the existing promise
@@ -180,6 +210,29 @@ async function refreshDiagnostics() {
     console.error('[Real Diagnostics] Refreshing diagnostics...');
 
     try {
+      // First, try to load from VS Code extension export
+      const vscodeProblems = await loadVSCodeExportedDiagnostics();
+
+      if (vscodeProblems && vscodeProblems.length > 0) {
+        // Use VS Code export data
+        diagnosticsCache.clear();
+
+        for (const problem of vscodeProblems) {
+          const filePath = problem.filePath;
+          if (!diagnosticsCache.has(filePath)) {
+            diagnosticsCache.set(filePath, []);
+          }
+          diagnosticsCache.get(filePath).push(problem);
+        }
+
+        lastRefresh = Date.now();
+        console.error(`[Real Diagnostics] Using ${vscodeProblems.length} problems from VS Code export in ${diagnosticsCache.size} files`);
+        return;
+      }
+
+      // Fallback to standalone analysis
+      console.error('[Real Diagnostics] Using fallback standalone analysis...');
+
       // Run TypeScript diagnostics
       const tsResults = await runTypeScriptDiagnostics();
 
@@ -407,7 +460,31 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 // Initialize and start the server
 async function main() {
   console.error('[Real MCP Server] Starting REAL MCP Diagnostics server...');
-  console.error(`[Real MCP Server] Workspace: ${process.cwd()}`);
+  console.error(`[Real MCP Server] Extension Directory: ${extensionDir}`);
+  console.error(`[Real MCP Server] Initial CWD: ${process.cwd()}`);
+  console.error(`[Real MCP Server] Script Location: ${__filename}`);
+  console.error(`[Real MCP Server] Script Dir: ${__dirname}`);
+
+  // Verify extension directory exists
+  if (!fs.existsSync(extensionDir)) {
+    console.error(`[Real MCP Server] ERROR: Extension directory does not exist: ${extensionDir}`);
+    process.exit(1);
+  }
+
+  // Verify critical files exist
+  const tsConfigPath = path.join(extensionDir, 'tsconfig.json');
+  const eslintConfigPath = path.join(extensionDir, 'eslint.config.mjs');
+  console.error(`[Real MCP Server] Checking tsconfig.json: ${fs.existsSync(tsConfigPath) ? 'EXISTS' : 'MISSING'} at ${tsConfigPath}`);
+  console.error(`[Real MCP Server] Checking eslint.config.mjs: ${fs.existsSync(eslintConfigPath) ? 'EXISTS' : 'MISSING'} at ${eslintConfigPath}`);
+
+  // Change to extension directory for consistent operations
+  try {
+    process.chdir(extensionDir);
+    console.error(`[Real MCP Server] Changed to extension directory: ${process.cwd()}`);
+  } catch (error) {
+    console.error(`[Real MCP Server] Failed to change directory: ${error.message}`);
+    process.exit(1);
+  }
 
   // Initial diagnostics refresh
   await refreshDiagnostics();

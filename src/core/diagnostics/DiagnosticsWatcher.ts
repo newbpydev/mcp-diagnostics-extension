@@ -176,6 +176,43 @@ export class DiagnosticsWatcher extends EventEmitter {
   }
 
   /**
+   * Exports current problems to a JSON file for external MCP server access
+   *
+   * @param filePath - Path to export the problems to
+   */
+  public async exportProblemsToFile(filePath: string): Promise<void> {
+    if (this.isDisposed) {
+      return;
+    }
+
+    try {
+      const fs = await import('fs');
+      const path = await import('path');
+
+      const problems = this.getAllProblems();
+      const exportData = {
+        timestamp: new Date().toISOString(),
+        problemCount: problems.length,
+        fileCount: this.problemsByUri.size,
+        problems: problems,
+        summary: this.getWorkspaceSummary(),
+      };
+
+      // Ensure directory exists
+      const dir = path.dirname(filePath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+
+      // Write to file
+      fs.writeFileSync(filePath, JSON.stringify(exportData, null, 2), 'utf8');
+      console.log(`[DiagnosticsWatcher] Exported ${problems.length} problems to ${filePath}`);
+    } catch (error) {
+      console.error('[DiagnosticsWatcher] Failed to export problems:', error);
+    }
+  }
+
+  /**
    * Gets filtered problems based on criteria
    *
    * @param filter - Filter criteria for problems
@@ -389,5 +426,17 @@ export class DiagnosticsWatcher extends EventEmitter {
       uri: filePath,
       problems,
     } as DiagnosticsChangeEvent);
+
+    // Export problems to file for external MCP server access
+    try {
+      const path = require('path');
+      const os = require('os');
+      const exportPath = path.join(os.tmpdir(), 'vscode-diagnostics-export.json');
+      this.exportProblemsToFile(exportPath).catch(() => {
+        // Silently ignore export errors to not break normal operation
+      });
+    } catch {
+      // Silently ignore export errors to not break normal operation
+    }
   }
 }
