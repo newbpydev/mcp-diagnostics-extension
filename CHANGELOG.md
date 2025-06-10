@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.2.5](https://github.com/newbpydev/mcp-diagnostics-extension/compare/v1.2.4...v1.2.5) (2025-06-10)
+
+### Bug Fixes
+
+- resolve extension host error and add colored status bar with real-time updates ([f2d4092](https://github.com/newbpydev/mcp-diagnostics-extension/commit/f2d40929bbc30ec98cc51bde456b5890b6ba3cd9))
+
 ### [1.2.4](https://github.com/newbpydev/mcp-diagnostics-extension/compare/v1.2.3...v1.2.4) (2025-06-10)
 
 ### Bug Fixes
