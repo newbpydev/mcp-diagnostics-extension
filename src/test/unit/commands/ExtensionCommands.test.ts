@@ -55,6 +55,7 @@ describe('ExtensionCommands', () => {
     mockMcpServer = {
       dispose: jest.fn(),
       start: jest.fn(),
+      restart: jest.fn(),
       isServerStarted: jest.fn().mockReturnValue(true),
     } as any;
 
@@ -238,7 +239,8 @@ describe('ExtensionCommands', () => {
 
   describe('restartServer command', () => {
     it('should restart server successfully', async () => {
-      mockMcpServer.start.mockResolvedValue(undefined);
+      mockMcpServer.restart.mockResolvedValue(undefined);
+      mockMcpServer.isServerStarted.mockReturnValue(true);
 
       extensionCommands.registerCommands(mockContext);
 
@@ -249,16 +251,15 @@ describe('ExtensionCommands', () => {
 
       await restartHandler();
 
-      expect(mockMcpServer.dispose).toHaveBeenCalled();
-      expect(mockMcpServer.start).toHaveBeenCalled();
+      expect(mockMcpServer.restart).toHaveBeenCalled();
       expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
-        'MCP Diagnostics Server restarted successfully'
+        'MCP Diagnostics Server restarted successfully! Server is running.'
       );
     });
 
     it('should handle restart errors gracefully', async () => {
-      const error = new Error('Failed to start server');
-      mockMcpServer.start.mockRejectedValue(error);
+      const error = new Error('Failed to restart server');
+      mockMcpServer.restart.mockRejectedValue(error);
 
       extensionCommands.registerCommands(mockContext);
 
@@ -269,14 +270,32 @@ describe('ExtensionCommands', () => {
 
       await restartHandler();
 
-      expect(mockMcpServer.dispose).toHaveBeenCalled();
+      expect(mockMcpServer.restart).toHaveBeenCalled();
       expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
-        'Failed to restart MCP server: Error: Failed to start server'
+        'Failed to restart MCP server: Failed to restart server'
       );
     });
 
-    it('should update status bar during restart process', async () => {
-      mockMcpServer.start.mockResolvedValue(undefined);
+    it('should handle non-Error restart failures', async () => {
+      const error = 'String error message';
+      mockMcpServer.restart.mockRejectedValue(error);
+
+      extensionCommands.registerCommands(mockContext);
+
+      const restartHandler = (vscode.commands.registerCommand as jest.Mock).mock.calls.find(
+        (call) => call[0] === 'mcpDiagnostics.restart'
+      )[1];
+
+      await restartHandler();
+
+      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+        'Failed to restart MCP server: String error message'
+      );
+    });
+
+    it('should update status bar during restart', async () => {
+      mockMcpServer.restart.mockResolvedValue(undefined);
+      mockMcpServer.isServerStarted.mockReturnValue(true);
 
       extensionCommands.registerCommands(mockContext);
 
@@ -288,6 +307,23 @@ describe('ExtensionCommands', () => {
 
       // Should show restarting status, then return to normal
       expect(mockStatusBarItem.text).toBe('$(check) MCP: 0E 0W');
+    });
+
+    it('should show proper feedback when stopped', async () => {
+      mockMcpServer.restart.mockResolvedValue(undefined);
+      mockMcpServer.isServerStarted.mockReturnValue(false);
+
+      extensionCommands.registerCommands(mockContext);
+
+      const restartHandler = (vscode.commands.registerCommand as jest.Mock).mock.calls.find(
+        (call) => call[0] === 'mcpDiagnostics.restart'
+      )[1];
+
+      await restartHandler();
+
+      expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
+        'MCP Diagnostics Server restarted successfully! Server is stopped.'
+      );
     });
   });
 

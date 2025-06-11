@@ -57,13 +57,19 @@ export class ExtensionCommands {
   private async restartServer(): Promise<void> {
     try {
       this.updateStatusBar('Restarting...');
-      this.mcpServer.dispose();
-      await this.mcpServer.start();
+
+      // Use proper restart method that handles async stop/start cycle
+      await this.mcpServer.restart();
+
       this.updateStatusBar();
-      vscode.window.showInformationMessage('MCP Diagnostics Server restarted successfully');
+      vscode.window.showInformationMessage(
+        `MCP Diagnostics Server restarted successfully! Server is ${this.mcpServer.isServerStarted() ? 'running' : 'stopped'}.`
+      );
     } catch (error) {
       this.updateStatusBar('Error');
-      vscode.window.showErrorMessage(`Failed to restart MCP server: ${error}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      vscode.window.showErrorMessage(`Failed to restart MCP server: ${errorMessage}`);
+      console.error('[ExtensionCommands] Restart server error:', error);
     }
   }
 

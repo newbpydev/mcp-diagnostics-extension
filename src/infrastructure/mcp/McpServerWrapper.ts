@@ -463,8 +463,27 @@ export class McpServerWrapper {
    */
   public async restart(): Promise<void> {
     console.log('[MCP Server] Restarting MCP server...');
-    await this.stop();
-    await this.start();
+
+    const wasRunning = this.isRunning;
+
+    try {
+      // Stop the server if it's running
+      if (wasRunning) {
+        await this.stop();
+        console.log('[MCP Server] Server stopped for restart');
+      }
+
+      // Start the server
+      await this.start();
+      console.log('[MCP Server] Server restarted successfully');
+    } catch (error) {
+      console.error('[MCP Server] Error during restart:', error);
+      this.isRunning = false;
+      this.isStarted = false;
+      throw new Error(
+        `Failed to restart MCP server: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
   }
 
   /**
@@ -550,6 +569,15 @@ export class McpServerWrapper {
       this.stop().catch((error) => {
         console.error('[MCP Server] Error during disposal:', error);
       });
+    }
+  }
+
+  /**
+   * Async version of dispose for proper cleanup in restart scenarios
+   */
+  public async disposeAsync(): Promise<void> {
+    if (this.isRunning || this.isStarted) {
+      await this.stop();
     }
   }
 }
