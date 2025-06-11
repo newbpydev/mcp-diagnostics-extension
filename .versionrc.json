@@ -24,7 +24,7 @@
     "postchangelog": "npm run format -- CHANGELOG.md"
   },
   "writerOpts": {
-    "maxSubjectLength": 100,
+    "maxSubjectLength": 200,
     "maxLineWidth": 200
   },
   "bumpFiles": [
