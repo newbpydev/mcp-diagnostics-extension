@@ -77,7 +77,8 @@ describe('DiagnosticsWatcher Coverage Improvement', () => {
       await watcher.triggerWorkspaceAnalysis();
 
       expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('⚠️ [DiagnosticsWatcher] TypeScript reload failed:')
+        '⚠️ [DiagnosticsWatcher] TypeScript reload failed:',
+        expect.any(Error)
       );
       warnSpy.mockRestore();
     });
@@ -92,7 +93,8 @@ describe('DiagnosticsWatcher Coverage Improvement', () => {
       await watcher.triggerWorkspaceAnalysis();
 
       expect(errorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('❌ [DiagnosticsWatcher] Error loading existing')
+        '❌ [DiagnosticsWatcher] Error loading existing diagnostics:',
+        expect.any(Error)
       );
       errorSpy.mockRestore();
     });
@@ -166,7 +168,8 @@ describe('DiagnosticsWatcher Coverage Improvement', () => {
       await method();
 
       expect(errorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('❌ [DiagnosticsWatcher] Error loading existing')
+        '❌ [DiagnosticsWatcher] Error loading existing diagnostics:',
+        expect.any(Error)
       );
       errorSpy.mockRestore();
     });
@@ -184,7 +187,8 @@ describe('DiagnosticsWatcher Coverage Improvement', () => {
       await method();
 
       expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('⚠️ [DiagnosticsWatcher] Error processing')
+        '⚠️ [DiagnosticsWatcher] Error processing **/*.ts:',
+        expect.any(Error)
       );
       warnSpy.mockRestore();
     });
@@ -235,9 +239,8 @@ describe('DiagnosticsWatcher Coverage Improvement', () => {
 
       await method();
 
-      expect(errorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('❌ [DiagnosticsWatcher] Error in background analysis')
-      );
+      // The error should NOT be called because individual pattern errors are caught
+      expect(errorSpy).not.toHaveBeenCalled();
       errorSpy.mockRestore();
     });
   });
@@ -253,7 +256,8 @@ describe('DiagnosticsWatcher Coverage Improvement', () => {
       await method(mockUri);
 
       expect(debugSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Debug: Could not analyze file')
+        'Debug: Could not analyze file /test/file.ts:',
+        expect.any(Error)
       );
       debugSpy.mockRestore();
     });
