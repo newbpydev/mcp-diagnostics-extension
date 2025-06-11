@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.2.12](https://github.com/newbpydev/mcp-diagnostics-extension/compare/v1.2.10...v1.2.12) (2025-06-11)
+
+### Features
+
+- enhance test coverage for McpServerWrapper and DiagnosticsWatcher ([106de03](https://github.com/newbpydev/mcp-diagnostics-extension/commit/106de038f44034410a24783218ea800bfa3c9396))
+- resolve all TypeScript compilation errors - 415 tests passing ([52b9424](https://github.com/newbpydev/mcp-diagnostics-extension/commit/52b9424c78c86471e29a2b370399b09f61328cf1))
+- significant coverage improvement - 84.68% achieved ([756a1c8](https://github.com/newbpydev/mcp-diagnostics-extension/commit/756a1c8c04848960603751b5ab7ac25fdeaf8a05))
+
+### Bug Fixes
+
+- implement proper server restart method and enhance error handling in ExtensionCommands ([d5baeae](https://github.com/newbpydev/mcp-diagnostics-extension/commit/d5baeae08820c7d35f83beef6f0a48404dc614b4))
+- resolve TypeScript compilation errors in test files ([4219cb4](https://github.com/newbpydev/mcp-diagnostics-extension/commit/4219cb4ca6d513d97281bea5fa6e5da346667b1e))
+
 ### [1.2.10](https://github.com/newbpydev/mcp-diagnostics-extension/compare/v1.2.9...v1.2.10) (2025-06-10)
 
 ### Bug Fixes
