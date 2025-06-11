@@ -121,7 +121,7 @@ describe('McpServerRegistration', () => {
     mockedFs.readFileSync = jest.fn();
 
     // Setup path mocks with realistic implementations
-    mockedPath.join = jest.fn((...args) => args.join('/'));
+    mockedPath.join = jest.fn((...args: string[]) => args.join('/'));
     mockedPath.dirname = jest.fn((p: string) => p.split('/').slice(0, -1).join('/'));
 
     mcpRegistration = new McpServerRegistration(mockContext);
@@ -185,8 +185,8 @@ describe('McpServerRegistration', () => {
         if (filepath === '/test/workspace/.vscode/mcp.json') return false;
         return false;
       });
-      mockedFs.mkdirSync.mockImplementation();
-      mockedFs.writeFileSync.mockImplementation();
+      mockedFs.mkdirSync.mockImplementation(() => {});
+      mockedFs.writeFileSync.mockImplementation(() => {});
 
       // Mock workspace folder
       vscode.workspace.getWorkspaceFolder = jest.fn().mockReturnValue({
@@ -239,7 +239,7 @@ describe('McpServerRegistration', () => {
   });
 
   describe('registerMcpServerProvider', () => {
-    let consoleLogSpy: jest.SpyInstance | undefined;
+    let consoleLogSpy: any;
 
     beforeEach(() => {
       consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
@@ -264,7 +264,7 @@ describe('McpServerRegistration', () => {
         .mockReturnValue(false);
       const showManualSpy = jest
         .spyOn(mcpRegistration as any, 'showManualSetupInstructions')
-        .mockImplementation();
+        .mockImplementation(() => {});
 
       mcpRegistration.registerMcpServerProvider();
 
@@ -296,11 +296,11 @@ describe('McpServerRegistration', () => {
   });
 
   describe('tryUserSettingsConfiguration', () => {
-    let consoleLogSpy: jest.SpyInstance | undefined;
+    let consoleLogSpy: any;
     let mockConfig: any;
 
     beforeEach(() => {
-      consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+      consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
       mockConfig = {
         get: jest.fn(),
         update: jest.fn(),
@@ -351,7 +351,7 @@ describe('McpServerRegistration', () => {
         .mockReturnValue({ type: 'stdio', command: 'node', args: ['server.js'] });
       const showSuccessSpy = jest
         .spyOn(mcpRegistration as any, 'showSuccessNotification')
-        .mockImplementation();
+        .mockImplementation(() => {});
 
       const result = (mcpRegistration as any).tryUserSettingsConfiguration();
 
@@ -385,7 +385,7 @@ describe('McpServerRegistration', () => {
 
   describe('showManualSetupInstructions', () => {
     it('should show information message with setup button', () => {
-      const mockShowInfo = vscode.window.showInformationMessage as jest.Mock;
+      const mockShowInfo = vscode.window.showInformationMessage as any;
       mockShowInfo.mockResolvedValue(undefined);
 
       (mcpRegistration as any).showManualSetupInstructions();
@@ -399,12 +399,12 @@ describe('McpServerRegistration', () => {
     });
 
     it('should call showMcpSetupGuide when Setup MCP is clicked', async () => {
-      const mockShowInfo = vscode.window.showInformationMessage as jest.Mock;
+      const mockShowInfo = vscode.window.showInformationMessage as any;
       mockShowInfo.mockResolvedValue('Setup MCP');
 
       const showMcpSetupGuideSpy = jest
         .spyOn(mcpRegistration, 'showMcpSetupGuide')
-        .mockImplementation();
+        .mockImplementation(() => {});
 
       await (mcpRegistration as any).showManualSetupInstructions();
 
@@ -460,13 +460,14 @@ describe('McpServerRegistration', () => {
   describe('resolveServerDefinition', () => {
     it('should return resolved server definition', async () => {
       // Mock vscode.workspace.fs.stat to succeed for the server script
-      const mockStat = jest.fn().mockResolvedValue({});
+      const mockStat = jest.fn() as any;
+      mockStat.mockResolvedValue({});
       vscode.workspace.fs = {
         stat: mockStat,
       } as any;
 
       // Mock path.join to return proper path
-      mockedPath.join.mockImplementation((...args) => args.join('/'));
+      mockedPath.join.mockImplementation((...args: string[]) => args.join('/'));
 
       const mockServer = {
         label: 'MCP Diagnostics',
@@ -538,7 +539,7 @@ describe('McpServerRegistration', () => {
 
   describe('showSuccessNotification', () => {
     it('should show success message for each registration method', () => {
-      const mockShowInfo = vscode.window.showInformationMessage as jest.Mock;
+      const mockShowInfo = vscode.window.showInformationMessage as any;
       mockShowInfo.mockClear();
       mockShowInfo.mockResolvedValue(undefined);
 
@@ -714,7 +715,7 @@ describe('McpServerRegistration', () => {
         throw new Error('Permission denied');
       });
 
-      const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+      const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
       const result = (mcpRegistration as any).tryWorkspaceMcpConfiguration();
 
       expect(result).toBe(false);
@@ -745,7 +746,7 @@ describe('McpServerRegistration', () => {
     it('should handle large workspace configurations', () => {
       // Test with many workspace folders
       const manyFolders = Array.from({ length: 100 }, (_, i) => ({
-        uri: { fsPath: `/workspace-${i}` } as vscode.Uri,
+        uri: { fsPath: `/workspace-${i}` } as any,
         name: `workspace-${i}`,
         index: i,
       }));
@@ -759,7 +760,7 @@ describe('McpServerRegistration', () => {
   describe('Integration scenarios', () => {
     it('should handle cross-platform path scenarios', () => {
       // Test Windows paths
-      mockedPath.join.mockImplementation((...args) => args.join('\\'));
+      mockedPath.join.mockImplementation((...args: string[]) => args.join('\\'));
 
       const result = (mcpRegistration as any).createMcpConfiguration();
 
