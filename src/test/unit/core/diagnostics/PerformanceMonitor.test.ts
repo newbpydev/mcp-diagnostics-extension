@@ -9,11 +9,8 @@ describe('PerformanceMonitor', () => {
     monitor = new PerformanceMonitor();
     consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
 
-    // Mock performance.now() for consistent testing
-    const mockTime = 0;
-    performanceNowSpy = jest.spyOn(performance, 'now').mockImplementation(() => {
-      return mockTime;
-    });
+    // Create a fresh mock for performance.now() in each test
+    performanceNowSpy = jest.spyOn(performance, 'now').mockImplementation(() => 0);
   });
 
   afterEach(() => {
@@ -154,17 +151,16 @@ describe('PerformanceMonitor', () => {
       const customMonitor = new PerformanceMonitor({ maxMetricsHistory: 2 });
       const testFunction = () => 'result';
 
-      // Add 3 measurements, should only keep the last 2
-      performanceNowSpy
-        .mockReturnValueOnce(0)
-        .mockReturnValueOnce(100)
-        .mockReturnValueOnce(0)
-        .mockReturnValueOnce(150)
-        .mockReturnValueOnce(0)
-        .mockReturnValueOnce(200);
+      // First measurement: 100ms
+      performanceNowSpy.mockReturnValueOnce(0).mockReturnValueOnce(100);
+      customMonitor.measure('limited-operation', testFunction);
 
+      // Second measurement: 150ms
+      performanceNowSpy.mockReturnValueOnce(0).mockReturnValueOnce(150);
       customMonitor.measure('limited-operation', testFunction);
-      customMonitor.measure('limited-operation', testFunction);
+
+      // Third measurement: 200ms
+      performanceNowSpy.mockReturnValueOnce(0).mockReturnValueOnce(200);
       customMonitor.measure('limited-operation', testFunction);
 
       const metrics = customMonitor.getMetrics();

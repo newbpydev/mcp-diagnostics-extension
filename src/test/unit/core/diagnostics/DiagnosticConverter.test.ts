@@ -30,6 +30,17 @@ describe('DiagnosticConverter', () => {
       },
       workspace: {
         getWorkspaceFolder: mockGetWorkspaceFolder,
+        findFiles: jest.fn().mockResolvedValue([]),
+        openTextDocument: jest.fn().mockResolvedValue({}),
+      },
+      commands: {
+        executeCommand: jest.fn(),
+      },
+      window: {
+        showTextDocument: jest.fn().mockResolvedValue({}),
+      },
+      Uri: {
+        file: jest.fn().mockReturnValue({ fsPath: '', toString: () => '' }),
       },
     };
 
@@ -285,9 +296,176 @@ describe('DiagnosticConverter', () => {
       const result = converter.convertToProblemItem(createBasicDiagnostic(), mockUri);
       expect(result.relatedInformation).toBeUndefined();
     });
+
+    it('should handle related information with partial location data', () => {
+      const mockDiagnostic: VsCodeDiagnostic = {
+        range: { start: { line: 0, character: 0 }, end: { line: 0, character: 5 } },
+        message: 'Error with partial location data',
+        severity: 0,
+        relatedInformation: [
+          {
+            location: {
+              // Missing range
+              uri: 'file:///partial/location.ts',
+            },
+            message: 'Partial location data',
+          },
+        ],
+      };
+
+      const result = converter.convertToProblemItem(mockDiagnostic, mockUri);
+      expect(result.relatedInformation?.[0]?.location.range).toEqual({
+        start: { line: 0, character: 0 },
+        end: { line: 0, character: 0 },
+      });
+    });
+
+    it('should handle related information with null/undefined values', () => {
+      const mockDiagnostic: any = {
+        range: { start: { line: 0, character: 0 }, end: { line: 0, character: 5 } },
+        message: 'Error with null values',
+        severity: 0,
+        relatedInformation: [
+          {
+            location: {
+              uri: null,
+              range: {
+                start: null,
+                end: null,
+              },
+            },
+            message: null,
+          },
+        ],
+      };
+
+      const result = converter.convertToProblemItem(mockDiagnostic, mockUri);
+      expect(result.relatedInformation?.[0]).toEqual({
+        location: {
+          uri: 'unknown',
+          range: {
+            start: { line: 0, character: 0 },
+            end: { line: 0, character: 0 },
+          },
+        },
+        message: 'No message',
+      });
+    });
+
+    it('should handle related information with invalid range values', () => {
+      const mockDiagnostic: any = {
+        range: { start: { line: 0, character: 0 }, end: { line: 0, character: 5 } },
+        message: 'Error with invalid range',
+        severity: 0,
+        relatedInformation: [
+          {
+            location: {
+              uri: 'file:///invalid/range.ts',
+              range: {
+                start: { line: 'not a number' as any, character: 'x' as any },
+                end: { line: null, character: 'y' as any },
+              },
+            },
+            message: 'Invalid range values',
+          },
+        ],
+      };
+
+      const result = converter.convertToProblemItem(mockDiagnostic, mockUri);
+      expect(result.relatedInformation?.[0]?.location.range).toEqual({
+        start: { line: 'not a number', character: 'x' },
+        end: { line: 0, character: 'y' },
+      });
+    });
+
+    it('should handle related information with complex code objects', () => {
+      const mockDiagnostic: any = {
+        range: { start: { line: 0, character: 0 }, end: { line: 0, character: 5 } },
+        message: 'Error with complex code',
+        severity: 0,
+        code: {
+          value: 1234,
+          target: { name: 'TestTarget' },
+        },
+        relatedInformation: [
+          {
+            location: {
+              uri: 'file:///complex/code.ts',
+              range: { start: { line: 1, character: 2 }, end: { line: 3, character: 4 } },
+            },
+            message: 'Complex code object',
+          },
+        ],
+      };
+
+      const result = converter.convertToProblemItem(mockDiagnostic, mockUri);
+      expect(result.code).toBe(1234); // Should use the value property
+      expect(result.relatedInformation?.[0]?.message).toBe('Complex code object');
+    });
+
+    it('should handle exceptions during related information conversion', () => {
+      // Create an array with an object that will cause an exception when mapped
+      const malformedRelatedInfo = [
+        {
+          // This will cause TypeError when accessing properties
+          location: Object.create(null),
+          message: undefined,
+        },
+        // Add a Symbol which will cause serialization issues
+        Symbol('unserializable'),
+      ];
+
+      const mockDiagnostic: any = {
+        range: { start: { line: 0, character: 0 }, end: { line: 0, character: 5 } },
+        message: 'Error with malformed related info',
+        severity: 0,
+        relatedInformation: malformedRelatedInfo,
+      };
+
+      const result = converter.convertToProblemItem(mockDiagnostic, mockUri);
+      // The catch block should cause the relatedInformation to be undefined
+      expect(result.relatedInformation).toBeUndefined();
+    });
   });
 
   describe('Error Handling', () => {
+    it('should handle null or undefined range values', () => {
+      const mockDiagnostic: any = {
+        range: null, // This will exercise the range?.start?.line ?? 0 path
+        message: 'Diagnostic with null range',
+        severity: 1,
+        source: 'test',
+      };
+
+      const result = converter.convertToProblemItem(mockDiagnostic, mockUri);
+
+      // Should use fallback values for range
+      expect(result.range).toEqual({
+        start: { line: 0, character: 0 },
+        end: { line: 0, character: 0 },
+      });
+    });
+
+    it('should handle partial range objects', () => {
+      const mockDiagnostic: any = {
+        range: {
+          start: { line: undefined, character: null },
+          end: {},
+        },
+        message: 'Diagnostic with partial range',
+        severity: 1,
+        source: 'test',
+      };
+
+      const result = converter.convertToProblemItem(mockDiagnostic, mockUri);
+
+      // Should use fallback values for undefined/null properties
+      expect(result.range).toEqual({
+        start: { line: 0, character: 0 },
+        end: { line: 0, character: 0 },
+      });
+    });
+
     it('should handle conversion errors gracefully and return fallback ProblemItem', () => {
       // Test the workspace folder error handling path
       mockGetWorkspaceFolder.mockImplementation(() => {

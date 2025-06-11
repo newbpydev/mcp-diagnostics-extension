@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
   ListToolsRequestSchema,
   CallToolRequestSchema,
   ListResourcesRequestSchema,
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
+import * as path from 'path';
+import * as os from 'os';
 import { DiagnosticsWatcher } from '../../core/diagnostics/DiagnosticsWatcher';
 import { DiagnosticsChangeEvent } from '../../shared/types';
 
@@ -31,10 +32,10 @@ export interface McpServerConfig {
  */
 export class McpServerWrapper {
   private server: Server;
-  private transport: StdioServerTransport | null = null;
   private diagnosticsWatcher: DiagnosticsWatcher;
   private isRunning = false;
   private config: McpServerConfig;
+  private continuousExportInterval: NodeJS.Timeout | null = null;
 
   // Properties for test compatibility
   public notifications: { sendProblemsChangedNotification: (data: unknown) => void };
@@ -378,7 +379,24 @@ export class McpServerWrapper {
   }
 
   /**
-   * Starts the MCP server
+   * Starts continuous export of diagnostics for standalone MCP server
+   */
+  private startContinuousExport(): void {
+    // Export every 2 seconds for real-time updates
+    this.continuousExportInterval = setInterval(() => {
+      const exportPath = path.join(os.tmpdir(), 'vscode-diagnostics-export.json');
+      this.diagnosticsWatcher.exportProblemsToFile(exportPath).catch((error) => {
+        console.warn('[MCP Export] Export failed:', error);
+      });
+    }, 2000);
+
+    if (this.config.enableDebugLogging) {
+      console.log('[MCP Server] Continuous export started, exporting every 2 seconds');
+    }
+  }
+
+  /**
+   * Starts the MCP server diagnostic export service
    */
   public async start(): Promise<void> {
     if (this.isRunning) {
@@ -386,9 +404,9 @@ export class McpServerWrapper {
     }
 
     try {
-      console.log('[MCP Server] Starting MCP server...');
+      console.log('[MCP Server] Starting diagnostic export service...');
 
-      // Setup request handlers
+      // Setup request handlers for test compatibility
       try {
         this.setupRequestHandlers();
         // Call component registration methods for test compatibility
@@ -399,47 +417,43 @@ export class McpServerWrapper {
         throw error;
       }
 
-      // Create stdio transport
-      this.transport = new StdioServerTransport();
-
-      // Connect the server to the transport
-      await this.server.connect(this.transport);
+      // Start continuous export for standalone MCP server
+      this.startContinuousExport();
 
       this.isRunning = true;
       this.isStarted = true;
-      console.log('[MCP Server] MCP server started successfully on stdio transport');
+      console.log('[MCP Server] Diagnostic export service started');
     } catch (error) {
-      console.error('[MCP Server] Failed to start MCP server:', error);
+      console.error('[MCP Server] Failed to start diagnostic export service:', error);
       this.isRunning = false;
       throw new Error(
-        `Failed to start MCP server: ${error instanceof Error ? `Error: ${error.message}` : String(error)}`
+        `Failed to start diagnostic export service: ${error instanceof Error ? `Error: ${error.message}` : String(error)}`
       );
     }
   }
 
   /**
-   * Stops the MCP server
+   * Stops the MCP diagnostic export service
    */
   public async stop(): Promise<void> {
     try {
-      console.log('[MCP Server] Stopping MCP server...');
+      console.log('[MCP Server] Stopping diagnostic export service...');
 
       this.isRunning = false;
       this.isStarted = false;
 
-      if (this.transport && typeof this.transport.close === 'function') {
-        await this.transport.close();
-        this.transport = null;
+      // Clear continuous export interval
+      if (this.continuousExportInterval) {
+        clearInterval(this.continuousExportInterval);
+        this.continuousExportInterval = null;
       }
-
-      await this.server.close();
 
       if (this.config.enableDebugLogging) {
-        console.log('MCP Server stopped');
+        console.log('MCP diagnostic export service stopped');
       }
-      console.log('[MCP Server] MCP server stopped successfully');
+      console.log('[MCP Server] Diagnostic export service stopped successfully');
     } catch (error) {
-      console.error('Error stopping MCP server:', error);
+      console.error('Error stopping diagnostic export service:', error);
       throw error;
     }
   }

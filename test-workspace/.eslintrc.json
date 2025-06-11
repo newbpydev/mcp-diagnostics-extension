@@ -1,0 +1,20 @@
+{
+  "extends": ["../eslint.config.mjs"],
+  "env": {
+    "browser": true,
+    "es2021": true,
+    "node": true
+  },
+  "parserOptions": {
+    "ecmaVersion": 2021,
+    "sourceType": "module"
+  },
+  "rules": {
+    "@typescript-eslint/no-unused-vars": "warn",
+    "@typescript-eslint/no-explicit-any": "warn",
+    "prefer-const": "warn",
+    "no-var": "error",
+    "eqeqeq": "warn",
+    "no-console": "warn"
+  }
+}

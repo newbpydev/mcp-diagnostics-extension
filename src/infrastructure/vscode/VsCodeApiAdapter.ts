@@ -14,6 +14,9 @@ import {
 export class VsCodeApiAdapter implements IVsCodeApi {
   public readonly languages: IVsCodeApi['languages'];
   public readonly workspace: IVsCodeApi['workspace'];
+  public readonly commands: IVsCodeApi['commands'];
+  public readonly window: IVsCodeApi['window'];
+  public readonly Uri: IVsCodeApi['Uri'];
 
   constructor(private readonly vscodeApi: typeof vscode) {
     this.languages = {
@@ -59,6 +62,43 @@ export class VsCodeApiAdapter implements IVsCodeApi {
         return {
           name: folder.name,
         };
+      },
+      workspaceFolders: this.vscodeApi.workspace.workspaceFolders
+        ? this.vscodeApi.workspace.workspaceFolders.map((folder) => ({
+            uri: this.convertVsCodeUri(folder.uri),
+            name: folder.name,
+          }))
+        : undefined,
+      findFiles: (include: string, exclude?: string): Thenable<VsCodeUri[]> => {
+        return this.vscodeApi.workspace
+          .findFiles(include, exclude)
+          .then((uris) => uris.map((uri) => this.convertVsCodeUri(uri)));
+      },
+      openTextDocument: (uri: VsCodeUri): Thenable<unknown> => {
+        const vsCodeUri = vscode.Uri.parse(uri.toString());
+        return this.vscodeApi.workspace.openTextDocument(vsCodeUri);
+      },
+    };
+
+    this.commands = {
+      executeCommand: (command: string): Thenable<unknown> =>
+        this.vscodeApi.commands.executeCommand(command),
+    };
+
+    this.window = {
+      showTextDocument: (
+        uri: VsCodeUri,
+        options?: { preview?: boolean; preserveFocus?: boolean }
+      ): Thenable<unknown> => {
+        const vsCodeUri = vscode.Uri.parse(uri.toString());
+        return this.vscodeApi.window.showTextDocument(vsCodeUri, options);
+      },
+    };
+
+    this.Uri = {
+      file: (path: string): VsCodeUri => {
+        const vsCodeUri = this.vscodeApi.Uri.file(path);
+        return this.convertVsCodeUri(vsCodeUri);
       },
     };
   }
@@ -117,5 +157,15 @@ export class VsCodeApiAdapter implements IVsCodeApi {
     }
 
     return undefined;
+  }
+
+  /**
+   * Converts a VS Code URI to our interface format
+   */
+  private convertVsCodeUri(vsCodeUri: vscode.Uri): VsCodeUri {
+    return {
+      fsPath: vsCodeUri.fsPath,
+      toString: () => vsCodeUri.toString(),
+    };
   }
 }

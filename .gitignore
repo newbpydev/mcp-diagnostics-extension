@@ -140,3 +140,7 @@ debug.log
 # Local development
 .local/
 local/
+
+# Windsurf
+.windsurf/
+

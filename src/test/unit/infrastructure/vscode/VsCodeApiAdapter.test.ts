@@ -1,6 +1,12 @@
 import { VsCodeApiAdapter } from '@infrastructure/vscode/VsCodeApiAdapter';
 import { VsCodeUri } from '@core/diagnostics/DiagnosticsWatcher';
 
+// Helper function to create mock URIs
+const createMockUri = (path: string): VsCodeUri => ({
+  toString: jest.fn().mockReturnValue(path),
+  fsPath: path,
+});
+
 // Mock VS Code API
 const mockVscode = {
   languages: {
@@ -10,19 +16,21 @@ const mockVscode = {
   workspace: {
     getWorkspaceFolder: jest.fn(),
   },
+  commands: {
+    executeCommand: jest.fn(),
+  },
+  window: {
+    showTextDocument: jest.fn(),
+  },
   Uri: {
     parse: jest.fn(),
+    file: jest.fn(),
   },
 } as any;
 
 describe('VsCodeApiAdapter', () => {
   let adapter: VsCodeApiAdapter;
   let mockDisposable: { dispose: jest.Mock };
-
-  const createMockUri = (path: string): VsCodeUri => ({
-    toString: jest.fn().mockReturnValue(path),
-    fsPath: path,
-  });
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -131,6 +139,58 @@ describe('VsCodeApiAdapter', () => {
   });
 
   describe('Workspace API', () => {
+    describe('workspaceFolders', () => {
+      it('should return workspace folders if present', () => {
+        mockVscode.workspace.workspaceFolders = [
+          { uri: { fsPath: '/ws1', toString: () => '/ws1' }, name: 'WS1' },
+          { uri: { fsPath: '/ws2', toString: () => '/ws2' }, name: 'WS2' },
+        ];
+        adapter = new VsCodeApiAdapter(mockVscode);
+        expect(adapter.workspace.workspaceFolders).toHaveLength(2);
+        expect(adapter.workspace.workspaceFolders?.[0]?.name).toBe('WS1');
+        expect(adapter.workspace.workspaceFolders?.[1]?.name).toBe('WS2');
+      });
+      it('should return undefined if workspaceFolders is not present', () => {
+        mockVscode.workspace.workspaceFolders = undefined;
+        adapter = new VsCodeApiAdapter(mockVscode);
+        expect(adapter.workspace.workspaceFolders).toBeUndefined();
+      });
+    });
+    describe('findFiles', () => {
+      it('should resolve uris from findFiles', async () => {
+        mockVscode.workspace.findFiles = jest
+          .fn()
+          .mockResolvedValue([{ fsPath: '/found1', toString: () => '/found1' }]);
+        adapter = new VsCodeApiAdapter(mockVscode);
+        const uris = await adapter.workspace.findFiles('**/*');
+        expect(uris[0]?.fsPath).toBe('/found1');
+      });
+      it('should handle findFiles rejection', async () => {
+        mockVscode.workspace.findFiles = jest.fn().mockRejectedValue(new Error('fail'));
+        adapter = new VsCodeApiAdapter(mockVscode);
+        await expect(adapter.workspace.findFiles('**/*')).rejects.toThrow('fail');
+      });
+    });
+    describe('openTextDocument', () => {
+      it('should open text document for uri', async () => {
+        mockVscode.workspace.openTextDocument = jest.fn().mockResolvedValue({});
+        mockVscode.Uri.parse.mockReturnValue({ fsPath: '/doc', toString: () => '/doc' });
+        adapter = new VsCodeApiAdapter(mockVscode);
+        await expect(
+          adapter.workspace.openTextDocument(createMockUri('/doc'))
+        ).resolves.toBeDefined();
+        expect(mockVscode.workspace.openTextDocument).toHaveBeenCalled();
+      });
+      it('should handle openTextDocument rejection', async () => {
+        mockVscode.workspace.openTextDocument = jest.fn().mockRejectedValue(new Error('fail'));
+        mockVscode.Uri.parse.mockReturnValue({ fsPath: '/fail', toString: () => '/fail' });
+        adapter = new VsCodeApiAdapter(mockVscode);
+        await expect(adapter.workspace.openTextDocument(createMockUri('/fail'))).rejects.toThrow(
+          'fail'
+        );
+      });
+    });
+
     describe('getWorkspaceFolder', () => {
       it('should get workspace folder for URI', () => {
         const mockUri = createMockUri('/test/file.ts');
@@ -160,6 +220,112 @@ describe('VsCodeApiAdapter', () => {
     });
   });
 
+  describe('Commands API', () => {
+    it('should execute command', async () => {
+      mockVscode.commands.executeCommand = jest.fn().mockResolvedValue('ok');
+      adapter = new VsCodeApiAdapter(mockVscode);
+      await expect(adapter.commands.executeCommand('test')).resolves.toBe('ok');
+      expect(mockVscode.commands.executeCommand).toHaveBeenCalledWith('test');
+    });
+    it('should handle executeCommand rejection', async () => {
+      mockVscode.commands.executeCommand = jest.fn().mockRejectedValue(new Error('fail'));
+      adapter = new VsCodeApiAdapter(mockVscode);
+      await expect(adapter.commands.executeCommand('fail')).rejects.toThrow('fail');
+    });
+  });
+
+  describe('Window API', () => {
+    it('should show text document', async () => {
+      mockVscode.window.showTextDocument = jest.fn().mockResolvedValue({});
+      mockVscode.Uri.parse.mockReturnValue({ fsPath: '/shown', toString: () => '/shown' });
+      adapter = new VsCodeApiAdapter(mockVscode);
+      await expect(
+        adapter.window.showTextDocument(createMockUri('/shown'), { preview: true })
+      ).resolves.toBeDefined();
+      expect(mockVscode.window.showTextDocument).toHaveBeenCalled();
+    });
+    it('should handle showTextDocument rejection', async () => {
+      mockVscode.window.showTextDocument = jest.fn().mockRejectedValue(new Error('fail'));
+      mockVscode.Uri.parse.mockReturnValue({ fsPath: '/fail', toString: () => '/fail' });
+      adapter = new VsCodeApiAdapter(mockVscode);
+      await expect(
+        adapter.window.showTextDocument(createMockUri('/fail'), { preserveFocus: true })
+      ).rejects.toThrow('fail');
+    });
+  });
+
+  describe('Uri API', () => {
+    it('should convert file path to VsCodeUri', () => {
+      mockVscode.Uri.file = jest.fn().mockReturnValue({ fsPath: '/foo', toString: () => '/foo' });
+      adapter = new VsCodeApiAdapter(mockVscode);
+      const uri = adapter.Uri.file('/foo');
+      expect(uri.fsPath).toBe('/foo');
+      expect(uri.toString()).toBe('/foo');
+    });
+  });
+
+  describe('Diagnostic Conversion Edge Cases', () => {
+    it('should handle diagnostic with missing fields', () => {
+      const mockDiagnostic = {
+        range: { start: { line: 1, character: 2 }, end: { line: 3, character: 4 } },
+        message: 'msg',
+        severity: 2,
+      };
+      mockVscode.Uri.parse.mockReturnValue({ fsPath: '/file', toString: () => '/file' });
+      mockVscode.languages.getDiagnostics.mockReturnValue([mockDiagnostic]);
+      adapter = new VsCodeApiAdapter(mockVscode);
+      const result = adapter.languages.getDiagnostics(createMockUri('/file'));
+      expect(result[0]?.message).toBe('msg');
+      expect(result[0]?.source).toBeNull();
+      expect(result[0]?.relatedInformation).toBeNull();
+      expect(result[0]?.code).toBeUndefined();
+    });
+    it('should handle diagnostic with relatedInformation', () => {
+      const mockDiagnostic = {
+        range: { start: { line: 1, character: 2 }, end: { line: 3, character: 4 } },
+        message: 'msg',
+        severity: 2,
+        relatedInformation: [{ location: {}, message: 'info' }],
+      };
+      mockVscode.Uri.parse.mockReturnValue({ fsPath: '/file', toString: () => '/file' });
+      mockVscode.languages.getDiagnostics.mockReturnValue([mockDiagnostic]);
+      adapter = new VsCodeApiAdapter(mockVscode);
+      const result = adapter.languages.getDiagnostics(createMockUri('/file'));
+      expect(result[0]?.relatedInformation).toHaveLength(1);
+    });
+    it('should handle diagnostic with null/undefined code', () => {
+      const mockDiagnostic = {
+        range: { start: { line: 0, character: 0 }, end: { line: 0, character: 1 } },
+        message: 'msg',
+        severity: 1,
+        code: null,
+      };
+      mockVscode.Uri.parse.mockReturnValue({ fsPath: '/file', toString: () => '/file' });
+      mockVscode.languages.getDiagnostics.mockReturnValue([mockDiagnostic]);
+      adapter = new VsCodeApiAdapter(mockVscode);
+      const result = adapter.languages.getDiagnostics(createMockUri('/file'));
+      expect(result[0]?.code).toBeUndefined();
+    });
+    it('should handle diagnostic with object code missing value', () => {
+      const mockDiagnostic = {
+        range: { start: { line: 0, character: 0 }, end: { line: 0, character: 1 } },
+        message: 'msg',
+        severity: 1,
+        code: {},
+      };
+      mockVscode.Uri.parse.mockReturnValue({ fsPath: '/file', toString: () => '/file' });
+      mockVscode.languages.getDiagnostics.mockReturnValue([mockDiagnostic]);
+      adapter = new VsCodeApiAdapter(mockVscode);
+      const result = adapter.languages.getDiagnostics(createMockUri('/file'));
+      expect(result[0]?.code).toBeUndefined();
+    });
+    it('should handle malformed diagnostics array', () => {
+      mockVscode.languages.getDiagnostics.mockReturnValue(undefined);
+      adapter = new VsCodeApiAdapter(mockVscode);
+      expect(() => adapter.languages.getDiagnostics(createMockUri('/file'))).toThrow();
+    });
+  });
+
   describe('Diagnostic Conversion', () => {
     it('should convert diagnostic with number code', () => {
       const mockUri = createMockUri('/test/file.ts');
@@ -174,6 +340,7 @@ describe('VsCodeApiAdapter', () => {
       mockVscode.Uri.parse.mockReturnValue({ fsPath: '/test/file.ts' });
       mockVscode.languages.getDiagnostics.mockReturnValue([mockDiagnostic]);
 
+      const adapter = new VsCodeApiAdapter(mockVscode);
       const result = adapter.languages.getDiagnostics(mockUri);
 
       expect(result[0]).toBeDefined();
@@ -193,6 +360,7 @@ describe('VsCodeApiAdapter', () => {
       mockVscode.Uri.parse.mockReturnValue({ fsPath: '/test/file.ts' });
       mockVscode.languages.getDiagnostics.mockReturnValue([mockDiagnostic]);
 
+      const adapter = new VsCodeApiAdapter(mockVscode);
       const result = adapter.languages.getDiagnostics(mockUri);
 
       expect(result[0]).toBeDefined();
@@ -211,6 +379,7 @@ describe('VsCodeApiAdapter', () => {
       mockVscode.Uri.parse.mockReturnValue({ fsPath: '/test/file.ts' });
       mockVscode.languages.getDiagnostics.mockReturnValue([mockDiagnostic]);
 
+      const adapter = new VsCodeApiAdapter(mockVscode);
       const result = adapter.languages.getDiagnostics(mockUri);
 
       expect(result[0]).toBeDefined();
@@ -229,6 +398,7 @@ describe('VsCodeApiAdapter', () => {
       mockVscode.Uri.parse.mockReturnValue({ fsPath: '/test/file.ts' });
       mockVscode.languages.getDiagnostics.mockReturnValue([mockDiagnostic]);
 
+      const adapter = new VsCodeApiAdapter(mockVscode);
       const result = adapter.languages.getDiagnostics(mockUri);
 
       expect(result[0]).toBeDefined();
@@ -247,6 +417,7 @@ describe('VsCodeApiAdapter', () => {
       mockVscode.Uri.parse.mockReturnValue({ fsPath: '/test/file.ts' });
       mockVscode.languages.getDiagnostics.mockReturnValue([mockDiagnostic]);
 
+      const adapter = new VsCodeApiAdapter(mockVscode);
       const result = adapter.languages.getDiagnostics(mockUri);
 
       expect(result[0]).toBeDefined();
@@ -265,6 +436,7 @@ describe('VsCodeApiAdapter', () => {
       mockVscode.Uri.parse.mockReturnValue({ fsPath: '/test/file.ts' });
       mockVscode.languages.getDiagnostics.mockReturnValue([mockDiagnostic]);
 
+      const adapter = new VsCodeApiAdapter(mockVscode);
       const result = adapter.languages.getDiagnostics(mockUri);
 
       expect(result[0]).toBeDefined();

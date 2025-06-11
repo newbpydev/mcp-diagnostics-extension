@@ -541,7 +541,7 @@ export class McpServerRegistration {
 
           <div class="step">
             <h3><span class="info">🔧</span> For VS Code Users</h3>
-            <p>The extension has automatically configured MCP integration. You can now:</p>
+            <p>The extension has automatically configured MCP integration in your <code>.vscode/mcp.json</code> file. You can now:</p>
             <ul>
               <li>Use <span class="highlight">Agent Mode</span> in GitHub Copilot Chat</li>
               <li>Access MCP tools via the <span class="highlight">Tools</span> button</li>
@@ -560,7 +560,7 @@ export class McpServerRegistration {
     "vscode-diagnostics": {
       "command": "node",
       "args": [
-        "<span class="path-highlight">${this.context.extensionPath.replace(/\\/g, '/')}/scripts/mcp-server.js</span>"
+        "<span class="path-highlight">${this.context.extensionPath?.replace(/\\/g, '/') || '/path/to/extension'}/scripts/mcp-server.js</span>"
       ],
       "env": {
         "NODE_ENV": "production",
@@ -571,7 +571,33 @@ export class McpServerRegistration {
 }</pre>
               </div>
             </div>
-            <p><strong>Note:</strong> Replace the highlighted path with your actual extension path if needed.</p>
+            <p><strong>Note:</strong> Replace the highlighted path with your actual extension path if needed. You can also use the provided <code>cursor-mcp-config.json</code> template file.</p>
+          </div>
+
+          <div class="step">
+            <h3><span class="info">🌊</span> For Windsurf Users</h3>
+            <div class="config-title">Add this configuration to your <code>.windsurf/mcp.json</code> file:</div>
+            <div class="json-config">
+              <div class="code-block">
+                <button class="copy-button" onclick="copyToClipboard('windsurf-config')">Copy</button>
+                <pre id="windsurf-config">{
+  "servers": {
+    "vscode-diagnostics": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "<span class="path-highlight">${this.context.extensionPath?.replace(/\\/g, '/') || '/path/to/extension'}/scripts/mcp-server.js</span>"
+      ],
+      "env": {
+        "NODE_ENV": "production",
+        "MCP_DEBUG": "false"
+      }
+    }
+  }
+}</pre>
+              </div>
+            </div>
+            <p><strong>Note:</strong> Create the <code>.windsurf</code> directory in your project root if it doesn't exist.</p>
           </div>
 
           <div class="step">
@@ -647,7 +673,9 @@ export class McpServerRegistration {
     this.disposables = [];
 
     if (this.didChangeEmitter) {
-      this.didChangeEmitter.dispose();
+      if (typeof this.didChangeEmitter.dispose === 'function') {
+        this.didChangeEmitter.dispose();
+      }
       this.didChangeEmitter = null;
     }
   }

@@ -45,7 +45,7 @@ export class DiagnosticConverter {
         severity: this.mapSeverity(diagnostic.severity),
         message: diagnostic.message || 'Unknown error',
         source: diagnostic.source || 'unknown',
-        code: diagnostic.code,
+        code: this.extractCode(diagnostic.code),
         relatedInformation: this.convertRelatedInformation(diagnostic.relatedInformation),
       };
     } catch {
@@ -142,6 +142,11 @@ export class DiagnosticConverter {
 
     try {
       return relatedInfo.map((info: unknown) => {
+        // Validate that the item is a proper object
+        if (typeof info !== 'object' || info === null || typeof info === 'symbol') {
+          throw new Error('Invalid related information item');
+        }
+
         const relatedItem = info as {
           location?: {
             uri?: string;
@@ -174,5 +179,33 @@ export class DiagnosticConverter {
       // Return undefined if conversion fails
       return undefined;
     }
+  }
+
+  /**
+   * Extracts the code value from diagnostic code, handling complex objects
+   *
+   * @param code - The diagnostic code (can be string, number, object, or undefined)
+   * @returns The extracted code value or undefined
+   */
+  private extractCode(code: unknown): string | number | undefined {
+    if (code === null || code === undefined) {
+      return undefined;
+    }
+
+    // Handle primitive values (string, number)
+    if (typeof code === 'string' || typeof code === 'number') {
+      return code;
+    }
+
+    // Handle complex objects that might have a 'value' property
+    if (typeof code === 'object' && code !== null) {
+      const codeObj = code as { value?: string | number };
+      if (codeObj.value !== undefined) {
+        return codeObj.value;
+      }
+    }
+
+    // Return undefined for unsupported types
+    return undefined;
   }
 }

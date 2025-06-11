@@ -1,0 +1,21 @@
+# Build outputs
+out/
+dist/
+coverage/
+
+# Dependencies
+node_modules/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# VS Code files
+.vscode-test/
+
+# Test fixtures that may have intentional errors
+test-workspace/typescript-issues.ts
+test-workspace/utils.js

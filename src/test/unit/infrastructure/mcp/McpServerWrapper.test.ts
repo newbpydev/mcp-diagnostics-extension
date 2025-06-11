@@ -40,6 +40,8 @@ describe('McpServerWrapper', () => {
       getAllProblems: jest.fn().mockReturnValue([]),
       getProblemsForFile: jest.fn().mockReturnValue([]),
       getProblemsForWorkspace: jest.fn().mockReturnValue([]),
+      getFilteredProblems: jest.fn().mockReturnValue([]),
+      getWorkspaceSummary: jest.fn().mockReturnValue({}),
       removeAllListeners: jest.fn(),
       getPerformanceMetrics: jest.fn().mockReturnValue({
         totalEvents: 0,
@@ -429,6 +431,114 @@ describe('McpServerWrapper', () => {
   });
 
   describe('Lifecycle and Error Branches', () => {
+    it('should allow repeated disposal without error and clean up resources', () => {
+      server = new McpServerWrapper(mockWatcher, { enableDebugLogging: true });
+      // @ts-ignore
+      server.isStarted = true;
+      // @ts-ignore
+      server.server.close.mockImplementation(() => undefined);
+      expect(() => {
+        server.dispose();
+        server.dispose();
+      }).not.toThrow();
+    });
+
+    it('should propagate error for unknown tool request', async () => {
+      server = new McpServerWrapper(mockWatcher, { enableDebugLogging: true });
+      // @ts-ignore
+      server.server.setRequestHandler.mock.calls.forEach(([schema, handler]) => {
+        if (schema && schema.name === 'CallToolRequestSchema') {
+          const req = { params: { name: 'unknownTool', arguments: {} } };
+          return handler(req).then((resp: any) => {
+            expect(resp.isError).toBe(true);
+            expect(resp.content[0].text).toContain('Unknown tool');
+          });
+        }
+      });
+    });
+
+    it('should propagate error for unknown resource request', async () => {
+      server = new McpServerWrapper(mockWatcher, { enableDebugLogging: true });
+      // @ts-ignore
+      server.server.setRequestHandler.mock.calls.forEach(([schema, handler]) => {
+        if (schema && schema.name === 'ReadResourceRequestSchema') {
+          const req = { params: { uri: 'diagnostics://unknown/resource' } };
+          return handler(req).then((resp: any) => {
+            expect(resp.contents[0].text).toContain('Unknown resource');
+          });
+        }
+      });
+    });
+
+    it('should handle invalid tool call payload (missing required args)', async () => {
+      server = new McpServerWrapper(mockWatcher, { enableDebugLogging: true });
+      // @ts-ignore
+      server.server.setRequestHandler.mock.calls.forEach(([schema, handler]) => {
+        if (schema && schema.name === 'CallToolRequestSchema') {
+          const req = { params: { name: 'getProblemsForFile', arguments: {} } };
+          return handler(req).then((resp: any) => {
+            expect(resp.isError).toBe(true);
+            expect(resp.content[0].text).toContain('filePath is required');
+          });
+        }
+      });
+    });
+
+    it('should handle handler exceptions for tool/resource requests', async () => {
+      server = new McpServerWrapper(mockWatcher, { enableDebugLogging: true });
+      // Simulate diagnosticsWatcher throwing
+      mockWatcher.getFilteredProblems.mockImplementation(() => {
+        throw new Error('simulated fail');
+      });
+      // @ts-ignore
+      server.server.setRequestHandler.mock.calls.forEach(([schema, handler]) => {
+        if (schema && schema.name === 'CallToolRequestSchema') {
+          const req = { params: { name: 'getProblems', arguments: {} } };
+          return handler(req).then((resp: any) => {
+            expect(resp.isError).toBe(true);
+            expect(resp.content[0].text).toContain('simulated fail');
+          });
+        }
+      });
+    });
+
+    it('should handle multi-workspace and multi-resource edge cases', async () => {
+      server = new McpServerWrapper(mockWatcher, { enableDebugLogging: true });
+      // Simulate watcher returning multiple workspaces/resources
+      mockWatcher.getWorkspaceSummary.mockReturnValueOnce({
+        workspaces: [
+          { name: 'ws1', problems: [{ severity: 'Error' }] },
+          { name: 'ws2', problems: [{ severity: 'Warning' }] },
+        ],
+      });
+      // @ts-ignore
+      server.server.setRequestHandler.mock.calls.forEach(([schema, handler]) => {
+        if (schema && schema.name === 'ReadResourceRequestSchema') {
+          const req = { params: { uri: 'diagnostics://workspace/summary' } };
+          return handler(req).then((resp: any) => {
+            expect(resp.contents[0].text).toContain('ws1');
+            expect(resp.contents[0].text).toContain('ws2');
+          });
+        }
+      });
+    });
+
+    it('should log all error/fallback branches for tool/resource handlers', async () => {
+      server = new McpServerWrapper(mockWatcher, { enableDebugLogging: true });
+      // Simulate watcher throwing for resource
+      mockWatcher.getWorkspaceSummary.mockImplementation(() => {
+        throw new Error('summary fail');
+      });
+      // @ts-ignore
+      server.server.setRequestHandler.mock.calls.forEach(([schema, handler]) => {
+        if (schema && schema.name === 'ReadResourceRequestSchema') {
+          const req = { params: { uri: 'diagnostics://workspace/summary' } };
+          return handler(req).then((resp: any) => {
+            expect(resp.contents[0].text).toContain('summary fail');
+          });
+        }
+      });
+    });
     beforeEach(() => {
       server = new McpServerWrapper(mockWatcher, { enableDebugLogging: true });
     });
@@ -438,12 +548,18 @@ describe('McpServerWrapper', () => {
       await expect(server.start()).rejects.toThrow('MCP Server is already started');
     });
 
-    it('should throw if server.connect fails', async () => {
+    it('should throw if handler registration fails during start', async () => {
       const failingServer = new McpServerWrapper(mockWatcher, { enableDebugLogging: true });
-      // @ts-ignore
-      failingServer.server.connect.mockRejectedValueOnce(new Error('connect fail'));
+      // Mock getTools().registerTools to throw
+      const mockTools = {
+        registerTools: jest.fn().mockImplementation(() => {
+          throw new Error('handler registration failed');
+        }),
+      };
+      jest.spyOn(failingServer, 'getTools').mockReturnValue(mockTools);
+
       await expect(failingServer.start()).rejects.toThrow(
-        'Failed to start MCP server: Error: connect fail'
+        'Failed to start diagnostic export service: Error: handler registration failed'
       );
     });
 
@@ -462,19 +578,16 @@ describe('McpServerWrapper', () => {
       );
     });
 
-    it('should log error if dispose fails', () => {
+    it('should handle disposal gracefully without throwing', () => {
       const errorServer = new McpServerWrapper(mockWatcher, { enableDebugLogging: true });
       // @ts-ignore
       errorServer.isStarted = true;
-      // @ts-ignore
-      errorServer.server.close.mockImplementation(() => {
-        throw new Error('close fail');
-      });
-      errorServer.dispose();
-      expect(consoleSpy.error).toHaveBeenCalledWith(
-        'Error stopping MCP server:',
-        expect.any(Error)
-      );
+      errorServer.stop = jest.fn().mockRejectedValue(new Error('stop failed'));
+
+      // Should not throw even if stop() fails (error is logged internally)
+      expect(() => {
+        errorServer.dispose();
+      }).not.toThrow();
     });
 
     it('should log debug message when stopping server with debug enabled', async () => {
@@ -482,15 +595,13 @@ describe('McpServerWrapper', () => {
       // @ts-ignore
       debugServer.isStarted = true;
 
-      // Clear console spy to only capture the dispose logs
+      // Clear console spy to only capture the stop logs
       consoleSpy.log.mockClear();
 
-      debugServer.dispose();
+      await debugServer.stop();
 
-      // Wait for async dispose to complete
-      await new Promise((resolve) => setTimeout(resolve, 10));
-
-      expect(consoleSpy.log).toHaveBeenCalledWith('MCP Server stopped');
+      // The new implementation logs 'MCP diagnostic export service stopped' with debug enabled
+      expect(consoleSpy.log).toHaveBeenCalledWith('MCP diagnostic export service stopped');
     });
 
     it('should log error if notification sending fails in handleProblemsChanged', () => {

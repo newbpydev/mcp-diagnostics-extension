@@ -117,7 +117,8 @@ export async function activate(
     let mcpRegistration: McpServerRegistration | undefined;
     try {
       mcpRegistration = new McpServerRegistration(context);
-      mcpRegistration.registerMcpServerProvider();
+      // Skip automatic registration to avoid Cursor compatibility issues
+      // mcpRegistration.registerMcpServerProvider();
 
       // Add command for refreshing MCP definitions after restart
       context.subscriptions.push(
@@ -127,9 +128,11 @@ export async function activate(
         }),
         mcpRegistration
       );
-      console.log('🟢 [MCP Diagnostics] MCP auto-registration enabled.');
+      console.log(
+        '🟢 [MCP Diagnostics] MCP registration instance created (auto-registration disabled for Cursor compatibility).'
+      );
     } catch (error) {
-      console.log('🟡 [MCP Diagnostics] MCP auto-registration not available:', error);
+      console.log('🟡 [MCP Diagnostics] MCP registration not available:', error);
       // Continue without auto-registration - extension still works normally
     }
 
@@ -162,20 +165,43 @@ export async function activate(
     // Step 5: Notify user
     try {
       const notificationPromise = vscode.window.showInformationMessage(
-        `✅ MCP Diagnostics Extension activated! Server running and automatically registered for MCP clients. Server running on port ${serverConfig.port}`,
-        'Show Status'
+        `✅ MCP Diagnostics Extension activated! Server ready for MCP clients. Use manual MCP configuration (.vscode/mcp.json or cursor-mcp-config.json) for integration.`,
+        'Show Status',
+        'Setup Guide'
       );
 
       // Handle the notification response if available
       void notificationPromise?.then((selection) => {
         if (selection === 'Show Status') {
           void vscode.commands.executeCommand('mcpDiagnostics.showStatus');
+        } else if (selection === 'Setup Guide') {
+          void vscode.commands.executeCommand('mcpDiagnostics.showSetupGuide');
         }
       });
     } catch {
       // Ignore notification errors in test environments
-      console.log('[MCP Diagnostics] Notification not available (likely test environment)');
     }
+
+    // Step 6: Trigger comprehensive workspace analysis to ensure we detect all issues
+    console.log('🔍 [MCP Diagnostics] Triggering comprehensive workspace analysis...');
+    if (diagnosticsWatcher) {
+      // Schedule workspace analysis after extension initialization
+      Promise.resolve()
+        .then(async () => {
+          // Wait for extension to fully initialize
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+          try {
+            await diagnosticsWatcher!.triggerWorkspaceAnalysis();
+            console.log('✅ [MCP Diagnostics] Initial workspace analysis complete');
+          } catch (error) {
+            console.error('⚠️ [MCP Diagnostics] Error during workspace analysis:', error);
+          }
+        })
+        .catch((error) => {
+          console.error('⚠️ [MCP Diagnostics] Error scheduling workspace analysis:', error);
+        });
+    }
+
     console.log('🟢 [MCP Diagnostics] Activation: Complete.');
   } catch (err) {
     console.error('🔴 [MCP Diagnostics] Activation failed:', err);

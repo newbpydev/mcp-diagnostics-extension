@@ -77,6 +77,21 @@ export interface IVsCodeApi {
   };
   workspace: {
     getWorkspaceFolder(uri: VsCodeUri): VsCodeWorkspaceFolder | undefined;
+    workspaceFolders?: Array<{ uri: VsCodeUri; name: string }> | undefined;
+    findFiles(include: string, exclude?: string): Thenable<VsCodeUri[]>;
+    openTextDocument(uri: VsCodeUri): Thenable<unknown>;
+  };
+  commands: {
+    executeCommand(command: string): Thenable<unknown>;
+  };
+  window: {
+    showTextDocument(
+      uri: VsCodeUri,
+      options?: { preview?: boolean; preserveFocus?: boolean }
+    ): Thenable<unknown>;
+  };
+  Uri: {
+    file(path: string): VsCodeUri;
   };
 }
 
@@ -105,6 +120,7 @@ export class DiagnosticsWatcher extends EventEmitter {
   private readonly performanceMonitor: PerformanceMonitor;
   private readonly debounceMs: number;
   private isDisposed = false;
+  private lastDiagnosticUpdateTime: number = Date.now();
 
   /**
    * Creates a new DiagnosticsWatcher instance
@@ -176,6 +192,15 @@ export class DiagnosticsWatcher extends EventEmitter {
   }
 
   /**
+   * Gets the timestamp of the last diagnostic update
+   *
+   * @returns Timestamp of the last diagnostic update
+   */
+  public getLastUpdateTime(): number {
+    return this.lastDiagnosticUpdateTime;
+  }
+
+  /**
    * Exports current problems to a JSON file for external MCP server access
    *
    * @param filePath - Path to export the problems to
@@ -190,12 +215,28 @@ export class DiagnosticsWatcher extends EventEmitter {
       const path = await import('path');
 
       const problems = this.getAllProblems();
+      const workspaceFolders = this.vsCodeApi.workspace.workspaceFolders;
+
       const exportData = {
         timestamp: new Date().toISOString(),
+        extensionVersion: '1.2.11',
+        exportSource: 'vs-code-extension',
         problemCount: problems.length,
         fileCount: this.problemsByUri.size,
+        workspaceFolders:
+          workspaceFolders?.map((folder) => ({
+            name: folder.name,
+            path: folder.uri.fsPath,
+          })) || [],
         problems: problems,
         summary: this.getWorkspaceSummary(),
+        healthCheck: {
+          extensionActive: true,
+          lastUpdate: Date.now(),
+          lastDiagnosticUpdate: this.getLastUpdateTime(),
+          isDisposed: this.isDisposed,
+          subscriptionsActive: this.disposables.length > 0,
+        },
       };
 
       // Ensure directory exists
@@ -204,11 +245,15 @@ export class DiagnosticsWatcher extends EventEmitter {
         fs.mkdirSync(dir, { recursive: true });
       }
 
-      // Write to file
-      fs.writeFileSync(filePath, JSON.stringify(exportData, null, 2), 'utf8');
-      console.log(`[DiagnosticsWatcher] Exported ${problems.length} problems to ${filePath}`);
+      // Write to file atomically (write to temp file first, then rename)
+      const tempFilePath = `${filePath}.tmp`;
+      await fs.promises.writeFile(tempFilePath, JSON.stringify(exportData, null, 2), 'utf8');
+      await fs.promises.rename(tempFilePath, filePath);
+
+      console.log(`[Export] ✅ Exported ${exportData.problemCount} problems to ${filePath}`);
     } catch (error) {
       console.error('[DiagnosticsWatcher] Failed to export problems:', error);
+      throw error; // Re-throw to allow calling code to handle the error
     }
   }
 
@@ -368,6 +413,13 @@ export class DiagnosticsWatcher extends EventEmitter {
         this.createDebouncedHandler()
       );
       this.disposables.push(subscription);
+
+      // Trigger initial workspace analysis after a short delay
+      setTimeout(() => {
+        this.triggerWorkspaceAnalysis().catch((error) => {
+          console.warn('[DiagnosticsWatcher] Initial workspace analysis failed:', error);
+        });
+      }, 1000);
     } catch (error) {
       // Handle VS Code API errors gracefully
       console.error('Failed to subscribe to diagnostic changes:', error);
@@ -422,6 +474,9 @@ export class DiagnosticsWatcher extends EventEmitter {
       this.problemsByUri.delete(filePath);
     }
 
+    // Update the last diagnostic update timestamp
+    this.lastDiagnosticUpdateTime = Date.now();
+
     this.emit(EVENT_NAMES.PROBLEMS_CHANGED, {
       uri: filePath,
       problems,
@@ -438,5 +493,208 @@ export class DiagnosticsWatcher extends EventEmitter {
     } catch {
       // Silently ignore export errors to not break normal operation
     }
+  }
+
+  /**
+   * Triggers full workspace diagnostics analysis
+   *
+   * This method forces VS Code to analyze all files in the workspace,
+   * not just currently opened ones, ensuring we capture all diagnostic problems.
+   */
+  public async triggerWorkspaceAnalysis(): Promise<void> {
+    if (this.isDisposed) {
+      return;
+    }
+
+    try {
+      console.log('🔄 [DiagnosticsWatcher] Triggering full workspace analysis...');
+
+      // Method 1: Get all existing diagnostics from VS Code (most efficient)
+      await this.loadAllExistingDiagnostics();
+
+      // Method 2: Trigger language server analysis via commands
+      try {
+        await this.vsCodeApi.commands.executeCommand('typescript.reloadProjects');
+        console.log('✅ [DiagnosticsWatcher] TypeScript projects reloaded');
+      } catch (error) {
+        console.warn('⚠️ [DiagnosticsWatcher] TypeScript reload failed:', error);
+      }
+
+      // Method 3: Background file analysis (invisible to user)
+      await this.analyzeWorkspaceFilesInBackground();
+
+      // Wait for analysis to settle
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Final refresh of all diagnostics
+      this.refreshDiagnostics();
+
+      console.log('✅ [DiagnosticsWatcher] Workspace analysis completed');
+    } catch (error) {
+      console.error('❌ [DiagnosticsWatcher] Error during workspace analysis:', error);
+    }
+  }
+
+  /**
+   * Loads all existing diagnostics from VS Code's diagnostic system
+   * This gets diagnostics that VS Code already knows about without forcing file analysis
+   */
+  private async loadAllExistingDiagnostics(): Promise<void> {
+    if (this.isDisposed) {
+      return;
+    }
+
+    try {
+      console.log('📊 [DiagnosticsWatcher] Loading all existing diagnostics...');
+
+      // Get all diagnostics from VS Code's language system
+      // This returns an array of [Uri, Diagnostic[]] tuples
+      const allDiagnostics = this.vsCodeApi.languages.getDiagnostics() as unknown as Array<
+        [VsCodeUri, VsCodeDiagnostic[]]
+      >;
+
+      let totalProblems = 0;
+      let processedFiles = 0;
+
+      // Ensure allDiagnostics is iterable
+      if (Array.isArray(allDiagnostics)) {
+        // Process each URI and its diagnostics
+        for (const diagnosticTuple of allDiagnostics) {
+          const [uri, diagnostics] = diagnosticTuple;
+
+          if (diagnostics && diagnostics.length > 0) {
+            const problems = diagnostics.map((d: VsCodeDiagnostic) =>
+              this.converter.convertToProblemItem(d, uri)
+            );
+            const filePath = uri.fsPath || uri.toString();
+
+            // Merge with existing problems instead of replacing them
+            const existingProblems = this.problemsByUri.get(filePath) || [];
+            const allProblems = [...existingProblems, ...problems];
+
+            // Remove duplicates based on message, line, and character
+            const uniqueProblems = allProblems.filter((problem, index, arr) => {
+              return (
+                index ===
+                arr.findIndex(
+                  (p) =>
+                    p.message === problem.message &&
+                    p.range.start.line === problem.range.start.line &&
+                    p.range.start.character === problem.range.start.character
+                )
+              );
+            });
+
+            this.problemsByUri.set(filePath, uniqueProblems);
+            totalProblems += uniqueProblems.length;
+            processedFiles++;
+          }
+        }
+      }
+
+      console.log(
+        `✅ [DiagnosticsWatcher] Loaded ${totalProblems} existing problems from ${processedFiles} files`
+      );
+    } catch (error) {
+      console.error('❌ [DiagnosticsWatcher] Error loading existing diagnostics:', error);
+    }
+  }
+
+  /**
+   * Analyzes workspace files in the background without showing them to the user
+   * Uses workspace.openTextDocument instead of showTextDocument for invisible analysis
+   */
+  private async analyzeWorkspaceFilesInBackground(): Promise<void> {
+    try {
+      console.log('🔍 [DiagnosticsWatcher] Starting background workspace file analysis...');
+
+      // Find all source files in the workspace
+      const patterns = [
+        '**/*.ts',
+        '**/*.tsx',
+        '**/*.js',
+        '**/*.jsx',
+        '**/*.vue',
+        '**/*.py',
+        '**/*.java',
+        '**/*.c',
+        '**/*.cpp',
+        '**/*.cs',
+        '**/*.go',
+        '**/*.rs',
+      ];
+
+      const excludePattern = '{**/node_modules/**,**/out/**,**/dist/**,**/.git/**}';
+
+      for (const pattern of patterns) {
+        try {
+          const files = await this.vsCodeApi.workspace.findFiles(pattern, excludePattern);
+
+          if (files.length === 0) continue;
+
+          console.log(
+            `📁 [DiagnosticsWatcher] Found ${files.length} ${pattern} files for background analysis`
+          );
+
+          // Process files in small batches to avoid overwhelming VS Code
+          const batchSize = 5; // Smaller batches for background processing
+          for (let i = 0; i < files.length; i += batchSize) {
+            const batch = files.slice(i, i + batchSize);
+            await Promise.all(batch.map((uri) => this.analyzeFileInBackground(uri)));
+
+            // Longer delay between batches for background processing
+            if (i + batchSize < files.length) {
+              await new Promise((resolve) => setTimeout(resolve, 200));
+            }
+          }
+        } catch (error) {
+          console.warn(`⚠️ [DiagnosticsWatcher] Error processing ${pattern}:`, error);
+        }
+      }
+
+      console.log('✅ [DiagnosticsWatcher] Completed background workspace file analysis');
+    } catch (error) {
+      console.error('❌ [DiagnosticsWatcher] Error in background analysis:', error);
+    }
+  }
+
+  /**
+   * Analyzes a specific file in the background without showing it to the user
+   * Uses workspace.openTextDocument for invisible processing
+   */
+  private async analyzeFileInBackground(uri: VsCodeUri): Promise<void> {
+    try {
+      // Open the document in memory without showing it in the UI
+      // This triggers language server analysis without visual disruption
+      await this.vsCodeApi.workspace.openTextDocument(uri);
+
+      // Small delay to allow language servers to process
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    } catch (error) {
+      // Silently ignore errors for individual files
+      console.debug(`Debug: Could not analyze file ${uri.fsPath}:`, error);
+    }
+  }
+
+  /**
+   * Forces a complete refresh of all diagnostics
+   * This will re-emit the problemsChanged event to notify listeners
+   */
+  public refreshDiagnostics(): void {
+    console.log('🔄 [DiagnosticsWatcher] Forcing diagnostics refresh...');
+
+    // Get current problem count for comparison
+    const oldCount = this.getAllProblems().length;
+
+    // Emit refresh event with current problems
+    this.emit('problemsChanged', {
+      type: 'refresh',
+      problems: this.getAllProblems(),
+      timestamp: new Date().toISOString(),
+    });
+
+    console.log(
+      `✅ [DiagnosticsWatcher] Refreshed diagnostics: ${this.getAllProblems().length} total problems (was ${oldCount})`
+    );
   }
 }
