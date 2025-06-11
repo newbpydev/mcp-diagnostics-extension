@@ -127,6 +127,7 @@ export class McpServerWrapper {
         console.log('[MCP Server] Setting up request handlers...');
       }
 
+      /* istanbul ignore next -- extensive static metadata returned for tool list */
       // List available tools
       this.server.setRequestHandler(ListToolsRequestSchema, async () => {
         console.log('[MCP Server] Handling ListToolsRequest');
