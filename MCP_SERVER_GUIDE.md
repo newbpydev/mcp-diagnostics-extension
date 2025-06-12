@@ -11,7 +11,7 @@
 This extension provides **real VS Code diagnostic data** via MCP (Model Context Protocol) for AI agents in Cursor, Claude Desktop, and other MCP-enabled tools.
 
 **Current Version:** v1.3.0 | **Tests:** 602 passing (3 skipped) | **Status:** Production Ready
-**⚠️ IMPORTANT:** Use `scripts/mcp-server.js` (NOT `scripts/standalone-mcp-server.js`) for real diagnostic data.
+**✅ Production Server:** Use `scripts/mcp-server.js` for real diagnostic data from VS Code.
 
 ## 🔴 Architecture Overview
 
@@ -263,7 +263,7 @@ Real diagnostic responses include:
 ### Issue: Getting Mock Data Instead of Real Data
 
 **Solutions:**
-1. **Check server script:** Ensure you're using `scripts/mcp-server.js` (NOT `standalone-mcp-server.js`)
+1. **Check server script:** Ensure you're using `scripts/mcp-server.js` for production diagnostics
 2. **Verify VS Code extension:** Make sure the MCP Diagnostics extension is installed and active in VS Code
 3. **Check data export:** Look for `vscode-diagnostics-export.json` in temp directory
 4. **Restart services:** Restart both VS Code and your MCP client

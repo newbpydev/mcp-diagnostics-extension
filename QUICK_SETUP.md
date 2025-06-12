@@ -28,7 +28,7 @@
 }
 ```
 
-⚠️ **IMPORTANT:** Use `scripts/mcp-server.js` (NOT `standalone-mcp-server.js`) for real diagnostic data.
+✅ **Production Server:** Use `scripts/mcp-server.js` for real diagnostic data from VS Code.
 
 ### 2. Restart Cursor
 Close and reopen Cursor completely.

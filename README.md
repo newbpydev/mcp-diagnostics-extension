@@ -329,12 +329,9 @@ The extension provides **two operational modes**:
 - **Activation**: Automatic when extension is installed
 - **Use Case**: Real development workflows with AI agents
 
-#### 🧪 **Mock Standalone Server** (Testing Mode)
-- **Purpose**: Testing MCP integration without VS Code
-- **Data Source**: Simulated diagnostic data
-- **Location**: `scripts/standalone-mcp-server.js`
-- **Configuration**: `cursor-mcp-config.json`
-- **Use Case**: Testing, development, and CI/CD environments
+#### 🔧 **Development Tools**
+- **Package Validation**: `scripts/validate-package.sh` - Automated package integrity checks
+- **Asset Conversion**: `scripts/convert-assets.js` - Visual asset optimization utilities
 
 ### Test Workspace
 
