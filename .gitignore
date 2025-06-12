@@ -116,7 +116,7 @@ Thumbs.db
 internal-docs/
 
 # Cursor IDE (project-specific)
-.cursor/
+.cursor/rules/
 
 # Package manager lock files (keep one, comment out others as needed)
 # package-lock.json
@@ -142,5 +142,5 @@ debug.log
 local/
 
 # Windsurf
-.windsurf/
+.windsurf/workflows/
 

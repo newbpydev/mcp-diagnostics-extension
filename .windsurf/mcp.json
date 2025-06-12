@@ -1,0 +1,13 @@
+{
+  "servers": {
+    "vscode-diagnostics": {
+      "command": "node",
+      "args": ["scripts/mcp-server.js"],
+      "cwd": "C:/Users/Remym/pythonProject/__personal-projects/mcp-diagnostics-extension",
+      "env": {
+        "NODE_ENV": "production",
+        "MCP_DEBUG": "false"
+      }
+    }
+  }
+}
