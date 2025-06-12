@@ -407,4 +407,70 @@ describe('Task 3.4.1: End-to-End Testing - Final Validation', () => {
       );
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // ✅ 8. Continuous Export Integration (Phase 5 Enhancement)
+  // ---------------------------------------------------------------------------
+
+  describe('✅ 8. Continuous Export Integration', () => {
+    it('should periodically export problems while server is running and stop after disposal', async () => {
+      jest.useFakeTimers();
+
+      // Minimal DiagnosticsWatcher stub focusing on export functionality
+      const mockWatcher = {
+        exportProblemsToFile: jest.fn().mockResolvedValue(undefined),
+        on: jest.fn(),
+        getFilteredProblems: jest.fn(() => []),
+        getWorkspaceSummary: jest.fn(() => ({ total: 0 })),
+        getFilesWithProblems: jest.fn(() => []),
+      } as unknown as DiagnosticsWatcher;
+
+      const server = new McpServerWrapper(mockWatcher, { enableDebugLogging: false });
+
+      // Start server (kick-off continuous export)
+      await server.start();
+
+      // Fast-forward time and ensure exports triggered every 2 s
+      expect(mockWatcher.exportProblemsToFile).toHaveBeenCalledTimes(0);
+      jest.advanceTimersByTime(2000);
+      expect(mockWatcher.exportProblemsToFile).toHaveBeenCalledTimes(1);
+      jest.advanceTimersByTime(4000);
+      expect(mockWatcher.exportProblemsToFile).toHaveBeenCalledTimes(3);
+
+      // Stop server and verify interval cleared
+      await server.stop();
+      const callsAfterStop = (mockWatcher.exportProblemsToFile as jest.Mock).mock.calls.length;
+      jest.advanceTimersByTime(4000);
+      expect(mockWatcher.exportProblemsToFile).toHaveBeenCalledTimes(callsAfterStop);
+
+      jest.useRealTimers();
+    });
+
+    it('should restart the server and resume continuous export', async () => {
+      jest.useFakeTimers();
+
+      const mockWatcher = {
+        exportProblemsToFile: jest.fn().mockResolvedValue(undefined),
+        on: jest.fn(),
+        getFilteredProblems: jest.fn(() => []),
+        getWorkspaceSummary: jest.fn(() => ({})),
+        getFilesWithProblems: jest.fn(() => []),
+      } as unknown as DiagnosticsWatcher;
+
+      const server = new McpServerWrapper(mockWatcher, {});
+
+      await server.start();
+
+      jest.advanceTimersByTime(2000);
+      expect(mockWatcher.exportProblemsToFile).toHaveBeenCalledTimes(1);
+
+      await server.restart();
+
+      jest.advanceTimersByTime(2000);
+      expect(mockWatcher.exportProblemsToFile).toHaveBeenCalledTimes(2);
+
+      await server.stop();
+      jest.useRealTimers();
+    });
+  });
 });
