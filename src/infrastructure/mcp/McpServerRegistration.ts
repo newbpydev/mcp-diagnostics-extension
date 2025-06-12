@@ -306,7 +306,7 @@ export class McpServerRegistration {
 
     const server = new McpStdioServerDefinition({
       label: 'MCP Diagnostics',
-      command: 'node',
+      command: process.execPath,
       args: [serverScriptPath],
       cwd: vscode.Uri.file(this.context.extensionPath),
       env: {
@@ -370,7 +370,7 @@ export class McpServerRegistration {
 
     return {
       type: 'stdio',
-      command: 'node',
+      command: process.execPath,
       args: [serverScriptPath],
       env: {
         NODE_ENV: 'production',

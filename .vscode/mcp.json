@@ -1,10 +1,10 @@
 {
   "servers": {
     "vscode-diagnostics": {
-      "type": "stdio",
       "command": "node",
-      "args": ["scripts/mcp-server.js"],
-      "cwd": "C:/Users/Remym/pythonProject/__personal-projects/mcp-diagnostics-extension",
+      "args": [
+        "c:/Users/Remym/.vscode/extensions/newbpydev.mcp-diagnostics-extension-1.3.0/scripts/mcp-server.js"
+      ],
       "env": {
         "NODE_ENV": "production",
         "MCP_DEBUG": "false"

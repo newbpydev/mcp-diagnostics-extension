@@ -193,4 +193,32 @@ export class CrossPlatformUtils {
   public static isLinux(): boolean {
     return process.platform === 'linux';
   }
+
+  /**
+   * Get path for temporary VS Code diagnostic export file (cross-platform).
+   */
+  public static getDiagnosticExportPath(): string {
+    return path.join(os.tmpdir(), 'vscode-diagnostics-export.json');
+  }
+
+  /**
+   * Check if a given command exists on the current machine (sync shell check).
+   * Uses `where` on Windows and `which` on Unix platforms.
+   */
+  public static async commandExists(command: string): Promise<boolean> {
+    const checker = process.platform === 'win32' ? 'where' : 'which';
+
+    return new Promise<boolean>((resolve) => {
+      const { spawn } = require('child_process');
+      const proc = spawn(checker, [command], {
+        stdio: 'ignore',
+        shell: process.platform === 'win32',
+      });
+
+      proc.on('close', (code: number) => {
+        resolve(code === 0);
+      });
+      proc.on('error', () => resolve(false));
+    });
+  }
 }

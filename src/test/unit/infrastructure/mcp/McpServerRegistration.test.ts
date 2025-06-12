@@ -451,7 +451,7 @@ describe('McpServerRegistration', () => {
       expect(result).toHaveLength(1);
       expect(result[0]).toMatchObject({
         label: expect.stringContaining('MCP Diagnostics'),
-        command: 'node',
+        command: expect.stringContaining('node'),
         args: expect.arrayContaining([expect.stringContaining('mcp-server.js')]),
       });
     });
@@ -479,7 +479,7 @@ describe('McpServerRegistration', () => {
 
       expect(result).toMatchObject({
         label: 'MCP Diagnostics',
-        command: 'node',
+        command: expect.stringContaining('node'),
         args: expect.arrayContaining([expect.stringContaining('mcp-server.js')]),
       });
     });
@@ -509,7 +509,7 @@ describe('McpServerRegistration', () => {
         servers: {
           mcpDiagnostics: {
             type: 'stdio',
-            command: 'node',
+            command: expect.stringContaining('node'),
             args: expect.arrayContaining([expect.stringContaining('mcp-server.js')]),
             env: expect.objectContaining({
               NODE_ENV: 'production',
@@ -527,7 +527,7 @@ describe('McpServerRegistration', () => {
 
       expect(result).toMatchObject({
         type: 'stdio',
-        command: 'node',
+        command: expect.stringContaining('node'),
         args: expect.arrayContaining([expect.stringContaining('mcp-server.js')]),
         env: expect.objectContaining({
           NODE_ENV: 'production',
