@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 /**
- * Standalone Real VS Code Diagnostics MCP Server
+ * Standalone Real VS Code Diagnostics MCP Server - Cross-Platform Enhanced
  * This script provides REAL diagnostic data from workspace analysis
- * without depending on the VS Code extension runtime
+ * with full cross-platform compatibility (Windows, macOS, Linux)
  */
 
 const { Server } = require('@modelcontextprotocol/sdk/server/index.js');
@@ -24,9 +24,100 @@ let refreshPromise = null;
 // Get the extension directory (where this script is located)
 const extensionDir = path.dirname(__dirname);
 
-// Function to run TypeScript diagnostics
+// ✅ PHASE 4.2: Cross-Platform Utilities Integration
+// Import compiled CrossPlatformUtils from the built extension
+let CrossPlatformUtils;
+try {
+  // Try to import from compiled output
+  const compiledUtilsPath = path.join(extensionDir, 'out', 'shared', 'utils', 'CrossPlatformUtils.js');
+  if (fs.existsSync(compiledUtilsPath)) {
+    CrossPlatformUtils = require(compiledUtilsPath).CrossPlatformUtils;
+    console.error('[Cross-Platform] Using compiled CrossPlatformUtils');
+  } else {
+    console.error('[Cross-Platform] Compiled utils not found, using fallback implementation');
+    CrossPlatformUtils = null;
+  }
+} catch (error) {
+  console.error('[Cross-Platform] Error importing CrossPlatformUtils:', error);
+  CrossPlatformUtils = null;
+}
+
+// ✅ PHASE 4.2: Fallback Cross-Platform Implementation
+// If CrossPlatformUtils is not available, provide fallback implementation
+const CrossPlatform = CrossPlatformUtils || {
+  /**
+   * Get platform-specific spawn options with cross-platform compatibility
+   */
+  getSpawnOptions(cwd) {
+    const baseOptions = {
+      cwd,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: {
+        ...process.env,
+        NODE_ENV: 'production',
+      }
+    };
+
+    // 🚨 CRITICAL: Windows requires shell: true for npm/npx commands
+    if (process.platform === 'win32') {
+      return {
+        ...baseOptions,
+        shell: true
+      };
+    }
+
+    return baseOptions;
+  },
+
+  /**
+   * Get platform-specific command for npm/npx
+   */
+  getCommandForPlatform(command) {
+    if (process.platform === 'win32') {
+      return `${command}.cmd`;
+    }
+    return command;
+  },
+
+  /**
+   * Get diagnostic export path (cross-platform temp directory)
+   */
+  getDiagnosticExportPath() {
+    return path.join(require('os').tmpdir(), 'vscode-diagnostics-export.json');
+  },
+
+  /**
+   * Check if a command exists on the system
+   */
+  async commandExists(command) {
+    return new Promise((resolve) => {
+      const checkCommand = process.platform === 'win32' ? 'where' : 'which';
+      const proc = spawn(checkCommand, [command], {
+        stdio: 'ignore',
+        shell: process.platform === 'win32'
+      });
+
+      proc.on('close', (code) => {
+        resolve(code === 0);
+      });
+
+      proc.on('error', () => {
+        resolve(false);
+      });
+    });
+  },
+
+  /**
+   * Platform detection utilities
+   */
+  isWindows() { return process.platform === 'win32'; },
+  isMac() { return process.platform === 'darwin'; },
+  isLinux() { return process.platform !== 'win32' && process.platform !== 'darwin'; }
+};
+
+// ✅ PHASE 4.2: Enhanced TypeScript diagnostics with cross-platform support
 async function runTypeScriptDiagnostics() {
-  return new Promise((resolve) => {
+  return new Promise(async (resolve) => {
     const results = [];
     const tsconfigPath = path.join(extensionDir, 'tsconfig.json');
 
@@ -36,13 +127,22 @@ async function runTypeScriptDiagnostics() {
       return;
     }
 
-    console.error('[Real Diagnostics] Running TypeScript diagnostics...');
+    // ✅ Check if TypeScript is available using cross-platform command detection
+    const tscCommand = CrossPlatform.getCommandForPlatform('npx');
+    const hasTypeScript = await CrossPlatform.commandExists('tsc');
+    if (!hasTypeScript) {
+      console.error('[Real Diagnostics] TypeScript not found, skipping diagnostics');
+      resolve([]);
+      return;
+    }
 
-    const tsc = spawn('npx', ['tsc', '--noEmit', '--pretty', 'false', '--skipLibCheck'], {
-      cwd: extensionDir,
-      stdio: ['ignore', 'pipe', 'pipe'],
-      shell: true
-    });
+    console.error('[Real Diagnostics] Running TypeScript diagnostics with cross-platform support...');
+
+    // ✅ Use cross-platform spawn options
+    const spawnOptions = CrossPlatform.getSpawnOptions(extensionDir);
+    const tscArgs = ['tsc', '--noEmit', '--pretty', 'false', '--skipLibCheck'];
+
+    const tsc = spawn(tscCommand, tscArgs, spawnOptions);
 
     let output = '';
     tsc.stdout.on('data', (data) => { output += data.toString(); });
@@ -53,6 +153,7 @@ async function runTypeScriptDiagnostics() {
         const problems = parseTypeScriptOutput(output);
         results.push(...problems);
       }
+      console.error(`[Real Diagnostics] TypeScript analysis complete: ${results.length} problems found`);
       resolve(results);
     });
 
@@ -63,9 +164,9 @@ async function runTypeScriptDiagnostics() {
   });
 }
 
-// Function to run ESLint diagnostics
+// ✅ PHASE 4.2: Enhanced ESLint diagnostics with cross-platform support
 async function runESLintDiagnostics() {
-  return new Promise((resolve) => {
+  return new Promise(async (resolve) => {
     const results = [];
     const eslintConfigs = ['.eslintrc.js', '.eslintrc.json', 'eslint.config.js', 'eslint.config.mjs'];
     const hasEslintConfig = eslintConfigs.some(config =>
@@ -78,13 +179,31 @@ async function runESLintDiagnostics() {
       return;
     }
 
-    console.error('[Real Diagnostics] Running ESLint diagnostics...');
+    // ✅ Check if ESLint is available using cross-platform command detection
+    const eslintCommand = CrossPlatform.getCommandForPlatform('npx');
+    const hasESLint = await CrossPlatform.commandExists('eslint');
+    if (!hasESLint) {
+      console.error('[Real Diagnostics] ESLint not found, skipping diagnostics');
+      resolve([]);
+      return;
+    }
 
-    const eslint = spawn('npx', ['eslint', '.', '--format', 'json', '--ignore-pattern', 'out/**', '--ignore-pattern', 'dist/**', '--ignore-pattern', 'coverage/**', '--ignore-pattern', 'node_modules/**', '--ignore-pattern', '*.js.map'], {
-      cwd: extensionDir,
-      stdio: ['ignore', 'pipe', 'pipe'],
-      shell: true
-    });
+    console.error('[Real Diagnostics] Running ESLint diagnostics with cross-platform support...');
+
+    // ✅ Use cross-platform spawn options
+    const spawnOptions = CrossPlatform.getSpawnOptions(extensionDir);
+    const eslintArgs = [
+      'eslint',
+      '.',
+      '--format', 'json',
+      '--ignore-pattern', 'out/**',
+      '--ignore-pattern', 'dist/**',
+      '--ignore-pattern', 'coverage/**',
+      '--ignore-pattern', 'node_modules/**',
+      '--ignore-pattern', '*.js.map'
+    ];
+
+    const eslint = spawn(eslintCommand, eslintArgs, spawnOptions);
 
     let output = '';
     eslint.stdout.on('data', (data) => { output += data.toString(); });
@@ -98,6 +217,7 @@ async function runESLintDiagnostics() {
           console.error('[Real Diagnostics] Error parsing ESLint output:', error);
         }
       }
+      console.error(`[Real Diagnostics] ESLint analysis complete: ${results.length} problems found`);
       resolve(results);
     });
 
@@ -167,10 +287,10 @@ function parseESLintOutput(output) {
   return problems;
 }
 
-// Try to load diagnostics from VS Code extension export
+// ✅ PHASE 4.2: Enhanced VS Code export loading with cross-platform paths
 async function loadVSCodeExportedDiagnostics() {
   try {
-    const exportPath = path.join(require('os').tmpdir(), 'vscode-diagnostics-export.json');
+    const exportPath = CrossPlatform.getDiagnosticExportPath();
 
     if (fs.existsSync(exportPath)) {
       const stat = fs.statSync(exportPath);
@@ -179,7 +299,7 @@ async function loadVSCodeExportedDiagnostics() {
       // Use exported data if it's less than 5 minutes old
       if (age < 5 * 60 * 1000) {
         const data = JSON.parse(fs.readFileSync(exportPath, 'utf8'));
-        console.error(`[Real Diagnostics] Loaded ${data.problemCount} VS Code problems from export (${Math.round(age/1000)}s old)`);
+        console.error(`[Real Diagnostics] Loaded ${data.problemCount || 0} VS Code problems from export (${Math.round(age/1000)}s old)`);
         return data.problems || [];
       } else {
         console.error(`[Real Diagnostics] VS Code export is too old (${Math.round(age/1000)}s), using fallback analysis`);
@@ -201,61 +321,47 @@ async function refreshDiagnostics() {
     return refreshPromise;
   }
 
-  // Check if we have recent diagnostics (less than 30 seconds old)
-  if (lastRefresh && Date.now() - lastRefresh < 30000) {
-    return;
-  }
-
   refreshPromise = (async () => {
-    console.error('[Real Diagnostics] Refreshing diagnostics...');
-
     try {
-      // First, try to load from VS Code extension export
-      const vscodeProblems = await loadVSCodeExportedDiagnostics();
-
-      if (vscodeProblems && vscodeProblems.length > 0) {
-        // Use VS Code export data
-        diagnosticsCache.clear();
-
-        for (const problem of vscodeProblems) {
-          const filePath = problem.filePath;
-          if (!diagnosticsCache.has(filePath)) {
-            diagnosticsCache.set(filePath, []);
-          }
-          diagnosticsCache.get(filePath).push(problem);
-        }
-
-        lastRefresh = Date.now();
-        console.error(`[Real Diagnostics] Using ${vscodeProblems.length} problems from VS Code export in ${diagnosticsCache.size} files`);
-        return;
-      }
-
-      // Fallback to standalone analysis
-      console.error('[Real Diagnostics] Using fallback standalone analysis...');
-
-      // Run TypeScript diagnostics
-      const tsResults = await runTypeScriptDiagnostics();
-
-      // Run ESLint diagnostics
-      const eslintResults = await runESLintDiagnostics();
-
-      // Combine and update cache
-      const allResults = [...tsResults, ...eslintResults];
+      console.error('[Real Diagnostics] Refreshing diagnostic cache...');
+      const startTime = Date.now();
 
       // Clear existing cache
       diagnosticsCache.clear();
 
-      // Group problems by file
-      for (const problem of allResults) {
-        const filePath = problem.filePath;
-        if (!diagnosticsCache.has(filePath)) {
-          diagnosticsCache.set(filePath, []);
+      // Try to load from VS Code export first
+      let vsCodeProblems = await loadVSCodeExportedDiagnostics();
+
+      if (vsCodeProblems && vsCodeProblems.length > 0) {
+        // Use VS Code export data
+        for (const problem of vsCodeProblems) {
+          const key = `${problem.filePath}:${problem.range.start.line}:${problem.range.start.character}`;
+          diagnosticsCache.set(key, problem);
         }
-        diagnosticsCache.get(filePath).push(problem);
+        console.error(`[Real Diagnostics] Using ${vsCodeProblems.length} problems from VS Code export`);
+      } else {
+        // Fall back to static analysis
+        console.error('[Real Diagnostics] Running static analysis fallback...');
+
+        const [typeScriptProblems, eslintProblems] = await Promise.all([
+          runTypeScriptDiagnostics(),
+          runESLintDiagnostics()
+        ]);
+
+        const allProblems = [...typeScriptProblems, ...eslintProblems];
+
+        for (const problem of allProblems) {
+          const key = `${problem.filePath}:${problem.range.start.line}:${problem.range.start.character}`;
+          diagnosticsCache.set(key, problem);
+        }
+
+        console.error(`[Real Diagnostics] Static analysis complete: ${typeScriptProblems.length} TypeScript + ${eslintProblems.length} ESLint = ${allProblems.length} total problems`);
       }
 
       lastRefresh = Date.now();
-      console.error(`[Real Diagnostics] Found ${allResults.length} diagnostic issues in ${diagnosticsCache.size} files`);
+      const duration = lastRefresh - startTime;
+      console.error(`[Real Diagnostics] Cache refresh completed in ${duration}ms`);
+
     } catch (error) {
       console.error('[Real Diagnostics] Error refreshing diagnostics:', error);
     } finally {
@@ -266,60 +372,68 @@ async function refreshDiagnostics() {
   return refreshPromise;
 }
 
-// Get all problems with optional filtering
+// Function to get all cached problems with optional filtering
 function getAllProblems(filter = {}) {
-  const allProblems = [];
+  const problems = Array.from(diagnosticsCache.values());
 
-  for (const [filePath, problems] of diagnosticsCache.entries()) {
-    for (const problem of problems) {
-      // Apply filters
-      if (filter.severity && problem.severity !== filter.severity) continue;
-      if (filter.workspaceFolder && problem.workspaceFolder !== filter.workspaceFolder) continue;
-      if (filter.filePath && problem.filePath !== filter.filePath) continue;
+  let filteredProblems = problems;
 
-      allProblems.push(problem);
-    }
+  if (filter.severity) {
+    filteredProblems = filteredProblems.filter(p => p.severity === filter.severity);
   }
 
-  return allProblems;
+  if (filter.filePath) {
+    filteredProblems = filteredProblems.filter(p => p.filePath === filter.filePath);
+  }
+
+  if (filter.workspaceFolder) {
+    filteredProblems = filteredProblems.filter(p => p.workspaceFolder === filter.workspaceFolder);
+  }
+
+  return filteredProblems;
 }
 
-// Get workspace summary
+// Function to get workspace summary
 function getWorkspaceSummary() {
+  const problems = Array.from(diagnosticsCache.values());
+
   const summary = {
-    totalProblems: 0,
-    problemsBySeverity: {
-      Error: 0,
-      Warning: 0,
-      Information: 0,
-      Hint: 0
-    },
-    problemsBySource: {},
-    affectedFiles: diagnosticsCache.size,
-    workspaceFolder: path.basename(process.cwd()),
-    lastUpdated: new Date(lastRefresh).toISOString()
+    totalProblems: problems.length,
+    errorCount: problems.filter(p => p.severity === 'Error').length,
+    warningCount: problems.filter(p => p.severity === 'Warning').length,
+    infoCount: problems.filter(p => p.severity === 'Information').length,
+    fileCount: new Set(problems.map(p => p.filePath)).size,
+    sourceBreakdown: {},
+    workspaceFolders: Array.from(new Set(problems.map(p => p.workspaceFolder)))
   };
 
-  for (const problems of diagnosticsCache.values()) {
-    for (const problem of problems) {
-      summary.totalProblems++;
-      summary.problemsBySeverity[problem.severity]++;
-
-      if (!summary.problemsBySource[problem.source]) {
-        summary.problemsBySource[problem.source] = 0;
-      }
-      summary.problemsBySource[problem.source]++;
-    }
+  // Source breakdown
+  for (const problem of problems) {
+    const source = problem.source || 'unknown';
+    summary.sourceBreakdown[source] = (summary.sourceBreakdown[source] || 0) + 1;
   }
 
   return summary;
 }
 
-// Create and configure the MCP server
+// ✅ PHASE 4.2: Platform detection and logging with cross-platform info
+console.error(`[System Info] Running on ${process.platform} (${process.arch})`);
+console.error(`[System Info] Node.js ${process.version}`);
+console.error(`[System Info] Extension directory: ${extensionDir}`);
+console.error(`[Cross-Platform] Windows: ${CrossPlatform.isWindows()}`);
+console.error(`[Cross-Platform] macOS: ${CrossPlatform.isMac()}`);
+console.error(`[Cross-Platform] Linux: ${CrossPlatform.isLinux()}`);
+if (CrossPlatformUtils) {
+  console.error(`[Cross-Platform] Using compiled CrossPlatformUtils`);
+} else {
+  console.error(`[Cross-Platform] Using fallback cross-platform implementation`);
+}
+
+// Create the MCP server
 const server = new Server(
   {
     name: 'vscode-diagnostics-server',
-    version: '1.0.0',
+    version: '1.2.11',
   },
   {
     capabilities: {
@@ -334,7 +448,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     tools: [
       {
         name: 'getProblems',
-        description: 'Get all current problems/diagnostics from workspace analysis',
+        description: 'Get all current problems/diagnostics from VS Code workspace analysis',
         inputSchema: {
           type: 'object',
           properties: {
@@ -385,70 +499,59 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
   try {
-    // Refresh diagnostics before serving any tool
-    await refreshDiagnostics();
+    // Ensure diagnostics are fresh (refresh if older than 30 seconds)
+    const cacheAge = Date.now() - lastRefresh;
+    if (cacheAge > 30000) {
+      await refreshDiagnostics();
+    }
 
     switch (name) {
       case 'getProblems': {
-        const problems = getAllProblems(args || {});
+        const problems = getAllProblems(args);
+        const result = {
+          problems,
+          count: problems.length,
+          cacheAge: Math.round(cacheAge / 1000),
+          timestamp: new Date().toISOString(),
+          crossPlatform: {
+            platform: process.platform,
+            architecture: process.arch,
+            nodeVersion: process.version,
+            isWindows: CrossPlatform.isWindows(),
+            isMac: CrossPlatform.isMac(),
+            isLinux: CrossPlatform.isLinux()
+          }
+        };
+
         return {
           content: [
             {
               type: 'text',
-              text: JSON.stringify({
-                problems,
-                count: problems.length,
-                timestamp: new Date().toISOString(),
-                note: 'Real diagnostic data from workspace analysis'
-              }, null, 2)
+              text: JSON.stringify(result, null, 2)
             }
           ]
         };
       }
 
       case 'getProblemsForFile': {
-        const { filePath } = args || {};
-        if (!filePath) {
-          throw new Error('filePath is required');
+        if (!args?.filePath) {
+          throw new Error('filePath parameter is required');
         }
 
-        // Normalize the file path for comparison
-        const normalizedRequestPath = path.resolve(filePath);
-
-        // Try direct lookup first
-        let problems = diagnosticsCache.get(filePath) || [];
-
-        // If no direct match, try normalized path
-        if (problems.length === 0) {
-          problems = diagnosticsCache.get(normalizedRequestPath) || [];
-        }
-
-        // If still no match, search through all keys for partial matches
-        if (problems.length === 0) {
-          for (const [cachedPath, cachedProblems] of diagnosticsCache.entries()) {
-            const normalizedCachedPath = path.resolve(cachedPath);
-            if (normalizedCachedPath === normalizedRequestPath) {
-              problems = cachedProblems;
-              break;
-            }
-          }
-        }
+        const problems = getAllProblems({ filePath: args.filePath });
+        const result = {
+          filePath: args.filePath,
+          problems,
+          count: problems.length,
+          cacheAge: Math.round(cacheAge / 1000),
+          timestamp: new Date().toISOString()
+        };
 
         return {
           content: [
             {
               type: 'text',
-              text: JSON.stringify({
-                filePath,
-                problems,
-                count: problems.length,
-                timestamp: new Date().toISOString(),
-                debug: {
-                  requestedPath: filePath,
-                  normalizedPath: normalizedRequestPath,
-                  cacheKeys: Array.from(diagnosticsCache.keys()).slice(0, 5) // Show first 5 for debugging
-                }
-              }, null, 2)
+              text: JSON.stringify(result, null, 2)
             }
           ]
         };
@@ -456,11 +559,27 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'getWorkspaceSummary': {
         const summary = getWorkspaceSummary();
+        const result = {
+          ...summary,
+          cacheAge: Math.round(cacheAge / 1000),
+          timestamp: new Date().toISOString(),
+          crossPlatform: {
+            platform: process.platform,
+            architecture: process.arch,
+            nodeVersion: process.version,
+            commandsAvailable: {
+              npx: CrossPlatform.getCommandForPlatform('npx'),
+              tsc: await CrossPlatform.commandExists('tsc'),
+              eslint: await CrossPlatform.commandExists('eslint')
+            }
+          }
+        };
+
         return {
           content: [
             {
               type: 'text',
-              text: JSON.stringify(summary, null, 2)
+              text: JSON.stringify(result, null, 2)
             }
           ]
         };
@@ -470,7 +589,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         throw new Error(`Unknown tool: ${name}`);
     }
   } catch (error) {
-    console.error(`Error handling tool ${name}:`, error);
+    console.error(`[MCP Server] Error handling tool call ${name}:`, error);
     return {
       content: [
         {
@@ -483,73 +602,34 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 });
 
-// Initialize and start the server
+// Start the server
 async function main() {
-  console.error('[Real MCP Server] Starting REAL MCP Diagnostics server...');
-  console.error(`[Real MCP Server] Extension Directory: ${extensionDir}`);
-  console.error(`[Real MCP Server] Initial CWD: ${process.cwd()}`);
-  console.error(`[Real MCP Server] Script Location: ${__filename}`);
-  console.error(`[Real MCP Server] Script Dir: ${__dirname}`);
+  try {
+    console.error('[MCP Server] Starting cross-platform VS Code Diagnostics MCP server...');
 
-  // Verify extension directory exists
-  if (!fs.existsSync(extensionDir)) {
-    console.error(`[Real MCP Server] ERROR: Extension directory does not exist: ${extensionDir}`);
+    // Initial diagnostics refresh
+    await refreshDiagnostics();
+
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+
+    console.error('[MCP Server] ✅ Cross-platform VS Code Diagnostics MCP server started successfully');
+    console.error(`[MCP Server] Cache contains ${diagnosticsCache.size} diagnostic problems`);
+  } catch (error) {
+    console.error('[MCP Server] ❌ Failed to start server:', error);
     process.exit(1);
   }
-
-  // Verify critical files exist
-  const tsConfigPath = path.join(extensionDir, 'tsconfig.json');
-  const eslintConfigPath = path.join(extensionDir, 'eslint.config.mjs');
-  console.error(`[Real MCP Server] Checking tsconfig.json: ${fs.existsSync(tsConfigPath) ? 'EXISTS' : 'MISSING'} at ${tsConfigPath}`);
-  console.error(`[Real MCP Server] Checking eslint.config.mjs: ${fs.existsSync(eslintConfigPath) ? 'EXISTS' : 'MISSING'} at ${eslintConfigPath}`);
-
-  // Change to extension directory for consistent operations
-  try {
-    process.chdir(extensionDir);
-    console.error(`[Real MCP Server] Changed to extension directory: ${process.cwd()}`);
-    } catch (error) {
-    console.error(`[Real MCP Server] Failed to change directory: ${error.message}`);
-      process.exit(1);
-    }
-
-  // Initial diagnostics refresh
-  await refreshDiagnostics();
-
-  // Create transport and connect
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-
-  console.error('[Real MCP Server] ✅ REAL MCP Diagnostics server started successfully!');
-  console.error('[Real MCP Server] 📊 Providing REAL diagnostic data from workspace analysis');
-  console.error('[Real MCP Server] Available tools:');
-  console.error('[Real MCP Server] - getProblems: Get real current problems/diagnostics');
-  console.error('[Real MCP Server] - getProblemsForFile: Get real problems for a specific file');
-  console.error('[Real MCP Server] - getWorkspaceSummary: Get real summary statistics of problems');
-  console.error('[Real MCP Server] Server is ready to accept MCP connections via stdio');
-
-  // Set up periodic refresh
-  setInterval(async () => {
-    try {
-      await refreshDiagnostics();
-    } catch (error) {
-      console.error('[Real MCP Server] Error during periodic refresh:', error);
-    }
-  }, 30000); // Refresh every 30 seconds
 }
 
 // Handle graceful shutdown
 process.on('SIGINT', () => {
-  console.error('[Real MCP Server] Shutting down gracefully...');
+  console.error('[MCP Server] Received SIGINT, shutting down gracefully...');
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
-  console.error('[Real MCP Server] Received SIGTERM, shutting down...');
+  console.error('[MCP Server] Received SIGTERM, shutting down gracefully...');
   process.exit(0);
-  });
+});
 
-  // Start the server
-main().catch((error) => {
-  console.error('[Real MCP Server] ❌ Failed to start MCP server:', error);
-    process.exit(1);
-  });
+main();
