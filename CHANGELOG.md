@@ -2,28 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## 🏆 EXCEPTIONAL ACHIEVEMENTS - v1.2.12 (2025-06-11)
+## [1.3.0](https://github.com/newbpydev/mcp-diagnostics-extension/compare/v1.2.12...v1.3.0) (2025-06-12)
 
-### 🎯 **MISSION ACCOMPLISHED: World-Class Test Coverage**
-- **552 Tests Passing** (0 failures) - Exceptional reliability
-- **98.8% Statement Coverage** - Industry-leading quality standards
-- **94.13% Branch Coverage** - Comprehensive edge case testing
-- **Zero External Dependencies** - Maximum security and reliability
-- **1.14MB Package** - Optimized for performance
+### Features
 
-### ✨ **Technical Excellence Highlights**
-- **Complete MCP Integration** - Universal client support (Cursor, VS Code, Windsurf, Claude Desktop)
-- **Real-time Diagnostics** - Live TypeScript/ESLint analysis with <100ms response times
-- **Cross-Platform Compatibility** - Windows, macOS, Linux support with platform-specific optimizations
-- **Production-Ready Architecture** - Clean Architecture with dependency injection and event-driven design
-- **Comprehensive Documentation** - World-class README files and setup guides
+- **core:** add exceptional achievements and performance improvements in core business logic ([3d078e5](https://github.com/newbpydev/mcp-diagnostics-extension/commit/3d078e5b930010f725ab913618f31206abbe3b6e))
+- implement cross-platform utilities and configuration validation for enhanced compatibility ([43c9221](https://github.com/newbpydev/mcp-diagnostics-extension/commit/43c9221d4303197eb864138bc36494d20888d422))
 
-### 🚀 **Performance Achievements**
-- **Extension Activation**: <2 seconds (target met)
-- **Diagnostic Processing**: <500ms (target exceeded)
-- **MCP Tool Response**: <100ms (target exceeded)
-- **Memory Efficiency**: <50MB baseline (target exceeded)
-- **Package Optimization**: 790 files, 1.14MB (efficient bundling)
+### Documentation
+
+- update README and version configuration ([4550f04](https://github.com/newbpydev/mcp-diagnostics-extension/commit/4550f04018fed79cb21f5d94ca7e718a1d25cab9))
+
+### Code Refactoring
+
+- **mcp-server.js:** reorganize server initialization to support test-mode ([39699bd](https://github.com/newbpydev/mcp-diagnostics-extension/commit/39699bdbaa6c771f45c53ae41956d558bb260bb9))
 
 ### [1.2.12](https://github.com/newbpydev/mcp-diagnostics-extension/compare/v1.2.10...v1.2.12) (2025-06-11)
 
