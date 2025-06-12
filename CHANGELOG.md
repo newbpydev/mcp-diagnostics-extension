@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.3.1](https://github.com/newbpydev/mcp-diagnostics-extension/compare/v1.3.0...v1.3.1) (2025-06-12)
+
+### Features
+
+- **mcp.json:** add mcp.json configuration file for MCP servers to define server settings ([fe1cdd4](https://github.com/newbpydev/mcp-diagnostics-extension/commit/fe1cdd423a43ad16166e34a24730980305fd7039))
+
+### Bug Fixes
+
+- **mcp:** improve VS Code configuration reliability and cross-platform compatibility ([4a018eb](https://github.com/newbpydev/mcp-diagnostics-extension/commit/4a018eb4b2743b545b71eb5a495c4960d6f4beb7))
+
+### Documentation
+
+- **contributing:** update Node.js and VS Code version requirements in CONTRIBUTING.md ([6aca7e3](https://github.com/newbpydev/mcp-diagnostics-extension/commit/6aca7e322cb862b4a10228cef9341b85e08b9a56))
+
 ## [1.3.0](https://github.com/newbpydev/mcp-diagnostics-extension/compare/v1.2.12...v1.3.0) (2025-06-12)
 
 ### Features
