@@ -1,15 +1,16 @@
 # 🚀 MCP Diagnostics Extension - Complete Setup Guide
 
-## 🏆 **v1.2.12 - EXCEPTIONAL ACHIEVEMENTS**
-- **552 Tests Passing** | **98.8% Coverage** | **Production Ready**
+## 🏆 **v1.3.0 - EXCEPTIONAL ACHIEVEMENTS**
+- **602 Tests Passing** | **95.45% Coverage** | **Production Ready**
 - **Real-time VS Code Diagnostics** via MCP for AI agents
+- **Cross-Platform Support** - Windows, macOS, Linux compatibility
 - **Universal Client Support** - Cursor, VS Code, Windsurf, Claude Desktop
 
 ## 🎯 Overview
 
 This extension provides **real VS Code diagnostic data** via MCP (Model Context Protocol) for AI agents in Cursor, Claude Desktop, and other MCP-enabled tools.
 
-**Current Version:** v1.2.12 | **Tests:** 552 passing | **Status:** Production Ready
+**Current Version:** v1.3.0 | **Tests:** 602 passing (3 skipped) | **Status:** Production Ready
 **⚠️ IMPORTANT:** Use `scripts/mcp-server.js` (NOT `scripts/standalone-mcp-server.js`) for real diagnostic data.
 
 ## 🔴 Architecture Overview
@@ -24,14 +25,14 @@ This extension provides **real VS Code diagnostic data** via MCP (Model Context 
 - **MCP Server:** `scripts/mcp-server.js` - Serves diagnostic data via MCP
 - **Data Bridge:** Temp file `vscode-diagnostics-export.json` - Real-time data transfer
 
-## ✨ Latest Features (v1.2.12)
+## ✨ Latest Features (v1.3.0)
 
 ### 🎯 **MISSION ACCOMPLISHED: World-Class Test Coverage**
-- **552 Tests Passing** (0 failures) - Exceptional reliability
-- **98.8% Statement Coverage** - Industry-leading quality standards
-- **94.13% Branch Coverage** - Comprehensive edge case testing
+- **602 Tests Passing** (3 skipped, 0 failures) - Exceptional reliability
+- **95.45% Statement Coverage** - Industry-leading quality standards
+- **34 Test Suites** - Comprehensive component coverage
 - **Zero External Dependencies** - Maximum security and reliability
-- **1.14MB Package** - Optimized for performance
+- **1.3MB Package** - Optimized for performance
 
 ### 🎨 Enhanced Status Bar Integration
 - **🔴 Red Background**: When errors are present (`$(error) MCP: 3E 2W`)
@@ -51,8 +52,12 @@ Access via Command Palette (Ctrl+Shift+P):
 - **`MCP Diagnostics: Restart Server`** - Restarts MCP server with progress indication
 - **`MCP Diagnostics: Show Setup Guide`** - Interactive setup wizard for all IDEs
 
-### 🌐 Cross-Platform Support
+### 🌐 Cross-Platform Support (NEW in v1.3.0)
 - **Windows, macOS, Linux** - Full compatibility with platform-specific optimizations
+- **Intelligent Platform Detection** - Automatic handling of OS-specific requirements
+- **Smart Spawn Options** - Platform-specific command execution (shell: true for Windows)
+- **Dynamic Path Resolution** - Automatic IDE config path detection per OS
+- **Configuration Validation** - Auto-detection and fixing of common config issues
 - **Universal MCP Configuration** - Works with Cursor, VS Code, Windsurf, Claude Desktop
 - **Robust Error Handling** - Graceful degradation and comprehensive error recovery
 

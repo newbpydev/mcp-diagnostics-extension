@@ -9,8 +9,8 @@
 <!-- Build & Quality Badges -->
 [![CI/CD Pipeline](https://img.shields.io/github/actions/workflow/status/newbpydev/mcp-diagnostics-extension/ci-cd.yml?style=flat-square&logo=github&label=CI%2FCD)](https://github.com/newbpydev/mcp-diagnostics-extension/actions/workflows/ci-cd.yml)
 [![Release Pipeline](https://img.shields.io/github/actions/workflow/status/newbpydev/mcp-diagnostics-extension/release.yml?style=flat-square&logo=github&label=Release)](https://github.com/newbpydev/mcp-diagnostics-extension/actions/workflows/release.yml)
-[![Tests](https://img.shields.io/badge/tests-552%20passing-brightgreen?style=flat-square&logo=jest)](https://github.com/newbpydev/mcp-diagnostics-extension/actions)
-[![Test Coverage](https://img.shields.io/badge/coverage-98.8%25-brightgreen?style=flat-square&logo=jest)](https://github.com/newbpydev/mcp-diagnostics-extension/actions)
+[![Tests](https://img.shields.io/badge/tests-602%20passing-brightgreen?style=flat-square&logo=jest)](https://github.com/newbpydev/mcp-diagnostics-extension/actions)
+[![Test Coverage](https://img.shields.io/badge/coverage-95.45%25-brightgreen?style=flat-square&logo=jest)](https://github.com/newbpydev/mcp-diagnostics-extension/actions)
 
 <!-- Technology & Standards Badges -->
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-blue.svg?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
@@ -36,8 +36,8 @@
 ## 🎯 **EXCEPTIONAL ACHIEVEMENTS**
 
 ### **🏆 World-Class Quality Standards**
-- **✅ 552 Tests Passing** - Comprehensive test coverage with 0 failures
-- **✅ 98.8% Statement Coverage** - Exceeding industry standards (95%+ target)
+- **✅ 602 Tests Passing** - Comprehensive test coverage with 0 failures (3 skipped)
+- **✅ 95.45% Statement Coverage** - Exceeding industry standards (95%+ target)
 - **✅ Production-Ready Architecture** - Clean Architecture with dependency injection
 - **✅ Professional CI/CD Pipeline** - Multi-platform testing and automated releases
 - **✅ Zero External Dependencies** - Native implementations for maximum reliability
@@ -54,7 +54,14 @@
 - **🛡️ Robust Error Handling** - Comprehensive error recovery mechanisms
 - **📈 Performance Monitoring** - Built-in metrics and optimization
 - **🔄 Real-time Synchronization** - Live diagnostic updates via MCP notifications
-- **🌐 Cross-Platform Compatibility** - Windows, macOS, Linux support
+- **🌐 Cross-Platform Compatibility** - Windows, macOS, Linux support with intelligent spawn handling
+
+### **✨ Latest Features (v1.3.0)**
+- **🔧 Cross-Platform Utilities** - Smart platform detection and spawn option handling
+- **⚙️ Configuration Validation** - Automatic validation and enhancement of MCP client configurations
+- **📊 Enhanced Export System** - Continuous diagnostic data export for standalone MCP server integration
+- **🎨 Improved Status Display** - Better visual indicators and error reporting
+- **🛠️ Automated Setup** - One-click MCP server registration across different environments
 
 ## 🚀 What is this?
 
@@ -79,15 +86,16 @@ Before this extension, AI agents couldn't see your VS Code problems panel, makin
 
 - **🔍 Real-time Diagnostics Monitoring**: Automatically captures all diagnostic problems from VS Code's Problems panel using advanced event debouncing (300ms configurable)
 - **🤖 MCP Server Integration**: Exposes diagnostics through standardized MCP tools and resources with comprehensive filtering capabilities
-- **⚡ Performance Optimized**: Handles large workspaces efficiently with smart caching and memory management (98.8% test coverage)
+- **⚡ Performance Optimized**: Handles large workspaces efficiently with smart caching and memory management (95.45% test coverage)
 - **🏢 Multi-workspace Support**: Seamlessly works with complex project structures and multiple workspace folders
 - **📡 Real-time Notifications**: Pushes diagnostic changes instantly to connected MCP clients with structured payloads
 - **🎨 Enhanced Status Bar**: Color-coded status bar with red (errors), orange (warnings), green (clean) backgrounds and real-time updates
 - **🎛️ Command Palette**: Full integration with VS Code commands for server management and detailed status viewing with webview
 - **🔧 Highly Configurable**: Customizable port, debounce timing, logging options, and performance settings
 - **🚀 Automatic Registration**: One-click setup with intelligent MCP server registration across different environments
-- **🧪 Test Workspace**: Comprehensive testing environment with intentional errors for validation (552 tests passing)
+- **🧪 Test Workspace**: Comprehensive testing environment with intentional errors for validation (602 tests passing)
 - **🛡️ Robust Error Handling**: Graceful degradation and comprehensive error recovery mechanisms
+- **🌐 Cross-Platform Support**: Native Windows, macOS, and Linux compatibility with platform-specific optimizations
 
 ## 📦 Installation
 
@@ -305,11 +313,11 @@ Customize the extension via VS Code settings (`Ctrl+,` / `Cmd+,`):
 
 The extension has achieved **world-class testing standards**:
 
-- **✅ 552 Tests Passing** - Comprehensive test suite with 0 failures
-- **✅ 98.8% Statement Coverage** - Exceeding industry standards
-- **✅ 94.13% Branch Coverage** - Thorough edge case testing
-- **✅ 97.33% Function Coverage** - Complete API validation
-- **✅ 31 Test Suites** - Organized, maintainable test structure
+- **✅ 602 Tests Passing** - Comprehensive test suite with 0 failures (3 skipped)
+- **✅ 95.45% Statement Coverage** - Exceeding industry standards
+- **✅ 34 Test Suites** - Organized, maintainable test structure across all components
+- **✅ Cross-Platform Testing** - Validated on Windows, macOS, and Linux environments
+- **✅ Comprehensive E2E Testing** - Full extension workflow validation
 
 ### Real vs Mock Server
 
@@ -349,7 +357,7 @@ The extension includes `test-workspace/` with intentional errors:
 # Install dependencies
 npm install
 
-# Run tests (552 tests)
+# Run tests (602 tests)
 npm test
 
 # Run tests with coverage
@@ -564,7 +572,7 @@ We welcome contributions! Please see our [Contributing Guide](./.github/CONTRIBU
 1. **Fork the repository**
 2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
 3. **Make changes** following our coding standards
-4. **Run tests**: `npm test` (all 552 tests must pass)
+4. **Run tests**: `npm test` (all 602 tests must pass)
 5. **Lint code**: `npm run lint`
 6. **Commit changes**: `npm run commit` (uses conventional commits)
 7. **Push to branch**: `git push origin feature/amazing-feature`

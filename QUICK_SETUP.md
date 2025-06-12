@@ -1,8 +1,9 @@
 # Quick Setup: MCP Diagnostics + Cursor
 
-## 🏆 **v1.2.12 - EXCEPTIONAL ACHIEVEMENTS**
-- **552 Tests Passing** | **98.8% Coverage** | **Production Ready**
+## 🏆 **v1.3.0 - EXCEPTIONAL ACHIEVEMENTS**
+- **602 Tests Passing** | **95.45% Coverage** | **Production Ready**
 - **Real-time VS Code Diagnostics** via MCP for AI agents
+- **Cross-Platform Support** - Windows, macOS, Linux compatibility
 - **Universal Client Support** - Cursor, VS Code, Windsurf, Claude Desktop
 
 ## 🚀 1-Minute Setup
@@ -50,7 +51,7 @@ In Cursor chat, try:
 | `getProblemsForFile` | File-specific problems | "Problems in src/app.ts?" |
 | `getWorkspaceSummary` | Statistics overview | "Problem summary by severity" |
 
-## ✨ Latest Features (v1.2.12)
+## ✨ Latest Features (v1.3.0)
 
 ### 🎨 Enhanced Status Bar
 - **🔴 Red Background**: When errors are present (`$(error) MCP: 3E 2W`)
@@ -67,6 +68,12 @@ Access via Command Palette (Ctrl+Shift+P):
 - **`MCP Diagnostics: Show Status`** - Detailed webview with statistics
 - **`MCP Diagnostics: Restart Server`** - Restart with progress indication
 - **`MCP Diagnostics: Show Setup Guide`** - Interactive setup wizard
+
+### 🌐 Cross-Platform Enhancements (NEW in v1.3.0)
+- **🔧 Intelligent Platform Detection** - Automatic Windows/macOS/Linux handling
+- **⚙️ Smart Spawn Options** - Platform-specific command execution (shell: true for Windows)
+- **📁 Dynamic Path Resolution** - Automatic IDE config path detection
+- **✅ Configuration Validation** - Auto-detection and fixing of common config issues
 
 ## 🌐 Universal MCP Configuration
 

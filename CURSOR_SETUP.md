@@ -1,8 +1,9 @@
 # Setting Up MCP Diagnostics Extension with Cursor
 
-## 🏆 **v1.2.12 - EXCEPTIONAL ACHIEVEMENTS**
-- **552 Tests Passing** | **98.8% Coverage** | **Production Ready**
+## 🏆 **v1.3.0 - EXCEPTIONAL ACHIEVEMENTS**
+- **602 Tests Passing** | **95.45% Coverage** | **Production Ready**
 - **Real-time VS Code Diagnostics** via MCP for AI agents
+- **Cross-Platform Support** - Windows, macOS, Linux compatibility
 - **Universal Client Support** - Cursor, VS Code, Windsurf, Claude Desktop
 
 This guide shows you how to configure Cursor to use the MCP Diagnostics server, enabling AI agents to access real-time diagnostic information from your workspace.
@@ -113,7 +114,7 @@ You should see the server listed with these tools:
 - ✅ `getProblemsForFile`
 - ✅ `getWorkspaceSummary`
 
-## ✨ Latest Features (v1.2.12)
+## ✨ Latest Features (v1.3.0)
 
 ### 🎨 Enhanced Status Bar Integration
 - **🔴 Red Background**: When errors are present (`$(error) MCP: 3E 2W`)
@@ -132,6 +133,12 @@ Access via Command Palette (Ctrl+Shift+P):
 - **`MCP Diagnostics: Show Status`** - Detailed webview with server status and statistics
 - **`MCP Diagnostics: Restart Server`** - Restart MCP server with progress indication
 - **`MCP Diagnostics: Show Setup Guide`** - Interactive setup wizard for all IDEs
+
+### 🌐 Cross-Platform Enhancements (NEW in v1.3.0)
+- **🔧 Intelligent Platform Detection** - Automatic Windows/macOS/Linux handling
+- **⚙️ Smart Spawn Options** - Platform-specific command execution (shell: true for Windows)
+- **📁 Dynamic Path Resolution** - Automatic IDE config path detection
+- **✅ Configuration Validation** - Auto-detection and fixing of common config issues
 
 ## 🧪 Testing the Integration
 
