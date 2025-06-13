@@ -107,8 +107,16 @@ export async function activate(
     // Step 2: MCP Server
     console.log('🟡 [MCP Diagnostics] Initializing MCP Server...');
     mcpServer = new McpServerWrapperCtor(diagnosticsWatcher, serverConfig);
-    await mcpServer.start();
-    console.log('🟢 [MCP Diagnostics] MCP Server started.');
+    try {
+      await mcpServer.start();
+      console.log('🟢 [MCP Diagnostics] MCP Server started.');
+    } catch (error) {
+      console.error('🔴 [MCP Diagnostics] MCP Server start failed:', error);
+      vscode.window.showErrorMessage(
+        `MCP Diagnostics Extension failed: ${error instanceof Error ? error.message : String(error)}`
+      );
+      throw error;
+    }
 
     // Step 3: Optional MCP Registration and ExtensionCommands
     console.log('🟡 [MCP Diagnostics] Setting up MCP registration and extension commands...');
