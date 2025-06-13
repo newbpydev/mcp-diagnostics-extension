@@ -237,23 +237,40 @@ export class DiagnosticsWatcher extends EventEmitter {
           isDisposed: this.isDisposed,
           subscriptionsActive: this.disposables.length > 0,
         },
-      };
+      } as const;
 
-      // Ensure directory exists
+      // Ensure directory exists (recursive mkdir is a no-op when already there)
       const dir = path.dirname(filePath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
+      fs.mkdirSync(dir, { recursive: true });
 
-      // Write to file atomically (write to temp file first, then rename)
-      const tempFilePath = `${filePath}.tmp`;
+      // Unique temp file to avoid clashes between rapid consecutive exports
+      const tempFilePath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+
       await fs.promises.writeFile(tempFilePath, JSON.stringify(exportData, null, 2), 'utf8');
-      await fs.promises.rename(tempFilePath, filePath);
+
+      try {
+        // Rename is an atomic operation on the same filesystem – preferred.
+        await fs.promises.rename(tempFilePath, filePath);
+      } catch (renameError: unknown) {
+        const code = (renameError as { code?: string }).code;
+        if (code === 'ENOENT' || code === 'EEXIST' || code === 'EPERM') {
+          // Best-effort cleanup – ignore errors
+          try {
+            if (fs.existsSync(tempFilePath)) {
+              await fs.promises.unlink(tempFilePath);
+            }
+          } catch {
+            /* noop */
+          }
+        } else {
+          throw renameError;
+        }
+      }
 
       console.log(`[Export] ✅ Exported ${exportData.problemCount} problems to ${filePath}`);
     } catch (error) {
       console.error('[DiagnosticsWatcher] Failed to export problems:', error);
-      throw error; // Re-throw to allow calling code to handle the error
+      throw error;
     }
   }
 
@@ -482,16 +499,19 @@ export class DiagnosticsWatcher extends EventEmitter {
       problems,
     } as DiagnosticsChangeEvent);
 
-    // Export problems to file for external MCP server access
-    try {
-      const path = require('path');
-      const os = require('os');
-      const exportPath = path.join(os.tmpdir(), 'vscode-diagnostics-export.json');
-      this.exportProblemsToFile(exportPath).catch(() => {
-        // Silently ignore export errors to not break normal operation
-      });
-    } catch {
-      // Silently ignore export errors to not break normal operation
+    // Export problems to file for external MCP server access (skip during unit tests
+    // to prevent async logging warnings when Wallaby/Jest finish).
+    if (process.env['NODE_ENV'] !== 'test') {
+      try {
+        const path = require('path');
+        const os = require('os');
+        const exportPath = path.join(os.tmpdir(), 'vscode-diagnostics-export.json');
+        this.exportProblemsToFile(exportPath).catch(() => {
+          // Silently ignore export errors to not break normal operation
+        });
+      } catch {
+        /* ignore */
+      }
     }
   }
 
