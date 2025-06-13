@@ -98,6 +98,7 @@ describe('🎯 MCP Registration Fallback & Disposal Coverage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
+    process.env['MCP_DIAGNOSTICS_FORCE_ANALYSIS'] = 'true';
     constructionCount = 0;
     mockContext = { subscriptions: [] } as any;
   });
@@ -105,6 +106,7 @@ describe('🎯 MCP Registration Fallback & Disposal Coverage', () => {
   afterEach(() => {
     jest.runAllTimers();
     jest.useRealTimers();
+    delete process.env['MCP_DIAGNOSTICS_FORCE_ANALYSIS'];
   });
 
   it('should recover from initial MCP registration failure and register fallback', async () => {

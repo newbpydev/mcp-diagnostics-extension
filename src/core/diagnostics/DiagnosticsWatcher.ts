@@ -121,6 +121,7 @@ export class DiagnosticsWatcher extends EventEmitter {
   private readonly debounceMs: number;
   private isDisposed = false;
   private lastDiagnosticUpdateTime: number = Date.now();
+  private _initialAnalysisTimeout: NodeJS.Timeout | undefined;
 
   /**
    * Creates a new DiagnosticsWatcher instance
@@ -267,7 +268,9 @@ export class DiagnosticsWatcher extends EventEmitter {
         }
       }
 
-      console.log(`[Export] ✅ Exported ${exportData.problemCount} problems to ${filePath}`);
+      if (process.env['NODE_ENV'] !== 'test') {
+        console.log(`[Export] ✅ Exported ${exportData.problemCount} problems to ${filePath}`);
+      }
     } catch (error) {
       console.error('[DiagnosticsWatcher] Failed to export problems:', error);
       throw error;
@@ -419,6 +422,12 @@ export class DiagnosticsWatcher extends EventEmitter {
 
     // Remove all event listeners
     this.removeAllListeners();
+
+    // Clear any scheduled initial analysis timeout
+    if (this._initialAnalysisTimeout) {
+      clearTimeout(this._initialAnalysisTimeout);
+      this._initialAnalysisTimeout = undefined;
+    }
   }
 
   /**
@@ -431,12 +440,14 @@ export class DiagnosticsWatcher extends EventEmitter {
       );
       this.disposables.push(subscription);
 
-      // Trigger initial workspace analysis after a short delay
-      setTimeout(() => {
-        this.triggerWorkspaceAnalysis().catch((error) => {
-          console.warn('[DiagnosticsWatcher] Initial workspace analysis failed:', error);
-        });
-      }, 1000);
+      // Trigger initial workspace analysis after a short delay (skip in unit tests)
+      if (process.env['NODE_ENV'] !== 'test') {
+        this._initialAnalysisTimeout = setTimeout(() => {
+          this.triggerWorkspaceAnalysis().catch((error) => {
+            console.warn('[DiagnosticsWatcher] Initial workspace analysis failed:', error);
+          });
+        }, 1000);
+      }
     } catch (error) {
       // Handle VS Code API errors gracefully
       console.error('Failed to subscribe to diagnostic changes:', error);
@@ -501,12 +512,15 @@ export class DiagnosticsWatcher extends EventEmitter {
 
     // Export problems to file for external MCP server access (skip during unit tests
     // to prevent async logging warnings when Wallaby/Jest finish).
-    if (process.env['NODE_ENV'] !== 'test') {
+    if (process.env['NODE_ENV'] !== 'test' && !this.isDisposed) {
       try {
         const path = require('path');
         const os = require('os');
         const exportPath = path.join(os.tmpdir(), 'vscode-diagnostics-export.json');
-        this.exportProblemsToFile(exportPath).catch(() => {
+
+        // Use void operator to explicitly ignore the promise and prevent
+        // "Did you forget to wait for something async" warnings in Jest/Wallaby
+        void this.exportProblemsToFile(exportPath).catch(() => {
           // Silently ignore export errors to not break normal operation
         });
       } catch {
@@ -524,6 +538,12 @@ export class DiagnosticsWatcher extends EventEmitter {
   public async triggerWorkspaceAnalysis(): Promise<void> {
     if (this.isDisposed) {
       return;
+    }
+
+    const isTest = process.env['NODE_ENV'] === 'test';
+
+    if (!isTest) {
+      console.log('🔄 [DiagnosticsWatcher] Triggering full workspace analysis...');
     }
 
     try {
@@ -564,9 +584,13 @@ export class DiagnosticsWatcher extends EventEmitter {
       return;
     }
 
-    try {
-      console.log('📊 [DiagnosticsWatcher] Loading all existing diagnostics...');
+    const isTest = process.env['NODE_ENV'] === 'test';
 
+    if (!isTest) {
+      console.log('📊 [DiagnosticsWatcher] Loading all existing diagnostics...');
+    }
+
+    try {
       // Get all diagnostics from VS Code's language system
       // This returns an array of [Uri, Diagnostic[]] tuples
       const allDiagnostics = this.vsCodeApi.languages.getDiagnostics() as unknown as Array<
@@ -625,8 +649,12 @@ export class DiagnosticsWatcher extends EventEmitter {
    * Uses workspace.openTextDocument instead of showTextDocument for invisible analysis
    */
   private async analyzeWorkspaceFilesInBackground(): Promise<void> {
+    const isTest = process.env['NODE_ENV'] === 'test';
+
     try {
-      console.log('🔍 [DiagnosticsWatcher] Starting background workspace file analysis...');
+      if (!isTest) {
+        console.log('🔍 [DiagnosticsWatcher] Starting background workspace file analysis...');
+      }
 
       // Find all source files in the workspace
       const patterns = [
@@ -672,7 +700,9 @@ export class DiagnosticsWatcher extends EventEmitter {
         }
       }
 
-      console.log('✅ [DiagnosticsWatcher] Completed background workspace file analysis');
+      if (!isTest) {
+        console.log('✅ [DiagnosticsWatcher] Completed background workspace file analysis');
+      }
     } catch (error) {
       console.error('❌ [DiagnosticsWatcher] Error in background analysis:', error);
     }
@@ -701,7 +731,10 @@ export class DiagnosticsWatcher extends EventEmitter {
    * This will re-emit the problemsChanged event to notify listeners
    */
   public refreshDiagnostics(): void {
-    console.log('🔄 [DiagnosticsWatcher] Forcing diagnostics refresh...');
+    const isTest = process.env['NODE_ENV'] === 'test';
+    if (!isTest) {
+      console.log('🔄 [DiagnosticsWatcher] Forcing diagnostics refresh...');
+    }
 
     // Get current problem count for comparison
     const oldCount = this.getAllProblems().length;
@@ -713,8 +746,10 @@ export class DiagnosticsWatcher extends EventEmitter {
       timestamp: new Date().toISOString(),
     });
 
-    console.log(
-      `✅ [DiagnosticsWatcher] Refreshed diagnostics: ${this.getAllProblems().length} total problems (was ${oldCount})`
-    );
+    if (!isTest) {
+      console.log(
+        `✅ [DiagnosticsWatcher] Refreshed diagnostics: ${this.getAllProblems().length} total problems (was ${oldCount})`
+      );
+    }
   }
 }

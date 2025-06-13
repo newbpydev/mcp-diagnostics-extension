@@ -216,22 +216,27 @@ export async function activate(
     }
 
     // Step 6: Trigger comprehensive workspace analysis to ensure we detect all issues
-    // Skip heavy workspace analysis during unit tests to avoid asynchronous logs
-    if (diagnosticsWatcher) {
+    // Skip heavy workspace analysis entirely during unit tests to avoid
+    // asynchronous console logs that Jest/Wallaby treat as "log after tests done".
+    const isTestEnv = process.env['NODE_ENV'] === 'test';
+    const forceAnalysisInTests = process.env['MCP_DIAGNOSTICS_FORCE_ANALYSIS'] === 'true';
+
+    if (diagnosticsWatcher && (!isTestEnv || forceAnalysisInTests)) {
       console.log('🔍 [MCP Diagnostics] Triggering comprehensive workspace analysis...');
 
-      // Schedule workspace analysis after extension initialization
+      // Schedule workspace analysis after extension initialization (non-blocking)
       Promise.resolve()
         .then(async () => {
-          // Wait for extension to fully initialize
-          await new Promise((resolve) => setTimeout(resolve, 3000));
+          // Give VS Code a few seconds to settle when running in the real editor
+          const delay = 3000;
+          await new Promise((resolve) => setTimeout(resolve, delay));
+
           try {
-            // Attempt workspace analysis; if method missing it will throw and be caught
-            // which satisfies error-path tests.
             const dw = diagnosticsWatcher as unknown as Record<string, unknown>;
             const fn = dw['triggerWorkspaceAnalysis'] as undefined | (() => Promise<void>);
             if (typeof fn === 'function') {
-              await fn();
+              // Bind the watcher instance as "this" to preserve context
+              await fn.call(diagnosticsWatcher);
             } else {
               throw new TypeError('triggerWorkspaceAnalysis is not a function');
             }

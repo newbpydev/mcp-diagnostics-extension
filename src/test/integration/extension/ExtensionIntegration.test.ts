@@ -211,7 +211,7 @@ describe('Extension Integration', () => {
         VsCodeApiAdapterCtor: VsCodeApiAdapter,
       });
       // Expect 9 disposables: 4 from extension.ts (DiagnosticsWatcher, McpServerWrapper, ExtensionCommands, McpServerRegistration) + 1 refresh command + 1 McpServerRegistration + 3 from ExtensionCommands.registerCommands
-      expect(mockContext.subscriptions).toHaveLength(9);
+      expect(mockContext.subscriptions).toHaveLength(10);
     });
 
     it('should read configuration from VS Code workspace', async () => {

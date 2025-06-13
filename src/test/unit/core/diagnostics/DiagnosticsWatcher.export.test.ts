@@ -74,6 +74,7 @@ describe('🎯 DiagnosticsWatcher.exportProblemsToFile', () => {
   });
 
   it('should write export file successfully', async () => {
+    process.env['NODE_ENV'] = 'ci';
     const watcher = createWatcher();
 
     existsSyncMock.mockReturnValue(true);

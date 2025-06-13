@@ -96,6 +96,24 @@ export class McpServerRegistration {
   }
 
   /**
+   * Deploys the bundled MCP server binary to the user's system
+   * Returns the path where it was installed and whether it was upgraded
+   */
+  public async deployBundledServer(): Promise<{ installedPath: string; upgraded: boolean }> {
+    // TODO: Implementation coming in Task 4.4
+    throw new Error('Not implemented yet');
+  }
+
+  /**
+   * Injects MCP configuration into the user's IDE configuration files
+   * Handles Cursor, VS Code, and other MCP-compatible editors
+   */
+  public async injectConfiguration(): Promise<void> {
+    // TODO: Implementation coming in Task 4.4
+    throw new Error('Not implemented yet');
+  }
+
+  /**
    * Registers the MCP server definition provider for automatic discovery
    * Uses multiple strategies for maximum compatibility
    */

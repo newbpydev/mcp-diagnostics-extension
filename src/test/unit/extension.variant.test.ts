@@ -200,6 +200,7 @@ describe('Extension Activation – Additional Paths', () => {
   });
 
   it('schedules and executes workspace analysis after activation', async () => {
+    process.env['MCP_DIAGNOSTICS_FORCE_ANALYSIS'] = 'true';
     jest.useFakeTimers();
 
     // Capture watcher instance
@@ -235,6 +236,8 @@ describe('Extension Activation – Additional Paths', () => {
     await Promise.resolve();
 
     expect(watcherInstance.triggerWorkspaceAnalysis).toHaveBeenCalled();
+
+    delete process.env['MCP_DIAGNOSTICS_FORCE_ANALYSIS'];
 
     jest.useRealTimers();
   });

@@ -64,4 +64,27 @@ describe('DiagnosticsWatcher – Background paths & export', () => {
     expect(vsCodeApi.workspace.findFiles).toHaveBeenCalled();
     expect(vsCodeApi.workspace.openTextDocument).toHaveBeenCalled();
   });
+
+  it('dispose() should cancel scheduled initial analysis timeout', async () => {
+    jest.useFakeTimers();
+    process.env['NODE_ENV'] = 'ci';
+
+    const vsCodeApi = createMockVsCodeApi();
+    const watcher = new DiagnosticsWatcher(vsCodeApi, 0);
+
+    const analysisSpy = jest
+      .spyOn(watcher as any, 'triggerWorkspaceAnalysis')
+      .mockResolvedValue(void 0);
+
+    // Dispose immediately before the 1s timer fires
+    watcher.dispose();
+
+    // Advance timers to ensure any pending timeouts would run
+    jest.advanceTimersByTime(2000);
+
+    // The spy should not have been called because the timeout was cleared
+    expect(analysisSpy).not.toHaveBeenCalled();
+
+    jest.useRealTimers();
+  });
 });

@@ -112,6 +112,10 @@
       {
         "command": "mcpDiagnostics.showSetupGuide",
         "title": "MCP Diagnostics: Show Setup Guide"
+      },
+      {
+        "command": "mcpDiagnostics.configureServer",
+        "title": "MCP Diagnostics: Configure Server Automatically"
       }
     ]
   },

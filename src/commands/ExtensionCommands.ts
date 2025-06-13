@@ -45,6 +45,10 @@ export class ExtensionCommands {
         'mcpDiagnostics.showSetupGuide',
         this.showSetupGuide.bind(this)
       ),
+      vscode.commands.registerCommand(
+        'mcpDiagnostics.configureServer',
+        this.configureServer.bind(this)
+      ),
     ];
 
     context.subscriptions.push(...commands, this.statusBarItem);
@@ -95,6 +99,41 @@ export class ExtensionCommands {
    */
   private async showSetupGuide(): Promise<void> {
     this.mcpRegistration.showMcpSetupGuide();
+  }
+
+  /**
+   * Command handler to configure the MCP server automatically.
+   * Deploys the server and injects configuration for seamless setup.
+   */
+  private async configureServer(): Promise<void> {
+    return vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: 'Configuring MCP Server...',
+        cancellable: false,
+      },
+      async (progress) => {
+        try {
+          progress.report({ message: 'Deploying server...' });
+          await this.mcpRegistration.deployBundledServer();
+
+          progress.report({ message: 'Injecting configuration...' });
+          await this.mcpRegistration.injectConfiguration();
+
+          vscode.window.showInformationMessage('MCP Diagnostics server configured successfully!');
+        } catch (error) {
+          console.error('[ExtensionCommands] Configure server error:', error);
+          const action = await vscode.window.showErrorMessage(
+            'Failed to configure server automatically.',
+            'View Manual Setup'
+          );
+
+          if (action === 'View Manual Setup') {
+            this.mcpRegistration.showMcpSetupGuide();
+          }
+        }
+      }
+    );
   }
 
   /**

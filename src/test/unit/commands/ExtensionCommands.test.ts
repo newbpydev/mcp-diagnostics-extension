@@ -12,6 +12,7 @@ jest.mock('vscode', () => ({
     showInformationMessage: jest.fn(),
     showErrorMessage: jest.fn(),
     createWebviewPanel: jest.fn(),
+    withProgress: jest.fn(),
   },
   commands: {
     registerCommand: jest.fn(),
@@ -21,6 +22,9 @@ jest.mock('vscode', () => ({
   },
   ViewColumn: {
     One: 1,
+  },
+  ProgressLocation: {
+    Notification: 15,
   },
   ThemeColor: jest.fn().mockImplementation((id) => ({ id })),
 }));
@@ -71,6 +75,8 @@ describe('ExtensionCommands', () => {
     // Create mock MCP registration
     mockMcpRegistration = {
       showMcpSetupGuide: jest.fn(),
+      deployBundledServer: jest.fn(),
+      injectConfiguration: jest.fn(),
       dispose: jest.fn(),
     } as any;
 
@@ -413,6 +419,333 @@ describe('ExtensionCommands', () => {
       expect(result).toEqual({
         error: 2,
         warning: 1,
+      });
+    });
+  });
+
+  describe('🔴 Task 4.4: Configure Server Command (FAILING TESTS)', () => {
+    describe('Command Registration', () => {
+      it('should register mcpDiagnostics.configureServer command', async () => {
+        const registerCommandSpy = jest.spyOn(vscode.commands, 'registerCommand');
+
+        extensionCommands.registerCommands(mockContext);
+
+        expect(registerCommandSpy).toHaveBeenCalledWith(
+          'mcpDiagnostics.configureServer',
+          expect.any(Function)
+        );
+      });
+
+      it('should add configureServer command to context subscriptions', () => {
+        const mockDisposable = { dispose: jest.fn() };
+        jest.spyOn(vscode.commands, 'registerCommand').mockReturnValue(mockDisposable);
+
+        extensionCommands.registerCommands(mockContext);
+
+        expect(mockContext.subscriptions).toContain(mockDisposable);
+      });
+    });
+
+    describe('Progress Integration', () => {
+      it('should show progress with VS Code withProgress API during configuration', async () => {
+        const progressSpy = jest.spyOn(vscode.window, 'withProgress');
+        const mockProgress = {
+          report: jest.fn(),
+        };
+        progressSpy.mockImplementation(
+          <T>(
+            options: vscode.ProgressOptions,
+            task: (
+              progress: vscode.Progress<{ message?: string; increment?: number }>,
+              token: vscode.CancellationToken
+            ) => Thenable<T>
+          ): Thenable<T> => {
+            const mockToken = {} as vscode.CancellationToken;
+            return task(mockProgress as any, mockToken);
+          }
+        );
+
+        // Extract the configureServer handler
+        const registerSpy = jest.spyOn(vscode.commands, 'registerCommand');
+        extensionCommands.registerCommands(mockContext);
+
+        const configureServerHandler = registerSpy.mock.calls.find(
+          (call) => call[0] === 'mcpDiagnostics.configureServer'
+        )?.[1];
+
+        expect(configureServerHandler).toBeDefined();
+        if (configureServerHandler) {
+          await configureServerHandler();
+        }
+
+        expect(progressSpy).toHaveBeenCalledWith(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: 'Configuring MCP Server...',
+            cancellable: false,
+          },
+          expect.any(Function)
+        );
+      });
+
+      it('should report progress steps during configuration', async () => {
+        const mockProgress = {
+          report: jest.fn(),
+        };
+        jest
+          .spyOn(vscode.window, 'withProgress')
+          .mockImplementation(
+            <T>(
+              options: vscode.ProgressOptions,
+              task: (
+                progress: vscode.Progress<{ message?: string; increment?: number }>,
+                token: vscode.CancellationToken
+              ) => Thenable<T>
+            ): Thenable<T> => {
+              const mockToken = {} as vscode.CancellationToken;
+              return task(mockProgress as any, mockToken);
+            }
+          );
+
+        // Mock successful deployment
+        jest
+          .spyOn(mockMcpRegistration, 'deployBundledServer')
+          .mockResolvedValue({ installedPath: '/test/path', upgraded: true });
+        jest.spyOn(mockMcpRegistration, 'injectConfiguration').mockResolvedValue();
+
+        const registerSpy = jest.spyOn(vscode.commands, 'registerCommand');
+        extensionCommands.registerCommands(mockContext);
+
+        const configureServerHandler = registerSpy.mock.calls.find(
+          (call) => call[0] === 'mcpDiagnostics.configureServer'
+        )?.[1];
+
+        if (configureServerHandler) {
+          await configureServerHandler();
+        }
+
+        expect(mockProgress.report).toHaveBeenCalledWith({
+          message: 'Deploying server...',
+        });
+        expect(mockProgress.report).toHaveBeenCalledWith({
+          message: 'Injecting configuration...',
+        });
+      });
+
+      it('should not call injectConfiguration if deployment fails', async () => {
+        const injectConfigSpy = jest.spyOn(mockMcpRegistration, 'injectConfiguration');
+
+        // Mock deployment failure
+        jest
+          .spyOn(mockMcpRegistration, 'deployBundledServer')
+          .mockRejectedValue(new Error('Deployment failed'));
+
+        const registerSpy = jest.spyOn(vscode.commands, 'registerCommand');
+        extensionCommands.registerCommands(mockContext);
+
+        const configureServerHandler = registerSpy.mock.calls.find(
+          (call) => call[0] === 'mcpDiagnostics.configureServer'
+        )?.[1];
+
+        if (configureServerHandler) {
+          await configureServerHandler();
+        }
+
+        expect(injectConfigSpy).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('Success Handling', () => {
+      it('should show success notification when configuration completes', async () => {
+        const showInfoSpy = jest.spyOn(vscode.window, 'showInformationMessage');
+
+        // Mock successful operations
+        jest
+          .spyOn(mockMcpRegistration, 'deployBundledServer')
+          .mockResolvedValue({ installedPath: '/test/path', upgraded: true });
+        jest.spyOn(mockMcpRegistration, 'injectConfiguration').mockResolvedValue();
+
+        const registerSpy = jest.spyOn(vscode.commands, 'registerCommand');
+        extensionCommands.registerCommands(mockContext);
+
+        const configureServerHandler = registerSpy.mock.calls.find(
+          (call) => call[0] === 'mcpDiagnostics.configureServer'
+        )?.[1];
+
+        if (configureServerHandler) {
+          await configureServerHandler();
+        }
+
+        expect(showInfoSpy).toHaveBeenCalledWith('MCP Diagnostics server configured successfully!');
+      });
+    });
+
+    describe('Error Handling', () => {
+      it('should show error notification with fallback when deployment fails', async () => {
+        const showErrorSpy = jest.spyOn(vscode.window, 'showErrorMessage');
+
+        // Mock deployment failure
+        jest
+          .spyOn(mockMcpRegistration, 'deployBundledServer')
+          .mockRejectedValue(new Error('Deployment failed'));
+
+        const registerSpy = jest.spyOn(vscode.commands, 'registerCommand');
+        extensionCommands.registerCommands(mockContext);
+
+        const configureServerHandler = registerSpy.mock.calls.find(
+          (call) => call[0] === 'mcpDiagnostics.configureServer'
+        )?.[1];
+
+        if (configureServerHandler) {
+          await configureServerHandler();
+        }
+
+        expect(showErrorSpy).toHaveBeenCalledWith(
+          'Failed to configure server automatically.',
+          'View Manual Setup'
+        );
+      });
+
+      it('should show error notification when configuration injection fails', async () => {
+        const showErrorSpy = jest.spyOn(vscode.window, 'showErrorMessage');
+
+        // Mock successful deployment but failed injection
+        jest
+          .spyOn(mockMcpRegistration, 'deployBundledServer')
+          .mockResolvedValue({ installedPath: '/test/path', upgraded: true });
+        jest
+          .spyOn(mockMcpRegistration, 'injectConfiguration')
+          .mockRejectedValue(new Error('Configuration injection failed'));
+
+        const registerSpy = jest.spyOn(vscode.commands, 'registerCommand');
+        extensionCommands.registerCommands(mockContext);
+
+        const configureServerHandler = registerSpy.mock.calls.find(
+          (call) => call[0] === 'mcpDiagnostics.configureServer'
+        )?.[1];
+
+        if (configureServerHandler) {
+          await configureServerHandler();
+        }
+
+        expect(showErrorSpy).toHaveBeenCalledWith(
+          'Failed to configure server automatically.',
+          'View Manual Setup'
+        );
+      });
+
+      it('should handle user clicking View Manual Setup button', async () => {
+        const mockProgress = {
+          report: jest.fn(),
+        };
+        jest
+          .spyOn(vscode.window, 'withProgress')
+          .mockImplementation(
+            <T>(
+              options: vscode.ProgressOptions,
+              task: (
+                progress: vscode.Progress<{ message?: string; increment?: number }>,
+                token: vscode.CancellationToken
+              ) => Thenable<T>
+            ): Thenable<T> => {
+              const mockToken = {} as vscode.CancellationToken;
+              return task(mockProgress as any, mockToken);
+            }
+          );
+
+        const showErrorSpy = jest
+          .spyOn(vscode.window, 'showErrorMessage')
+          .mockResolvedValue('View Manual Setup' as any);
+        const showSetupGuideSpy = jest.spyOn(mockMcpRegistration, 'showMcpSetupGuide');
+
+        // Mock deployment failure
+        jest
+          .spyOn(mockMcpRegistration, 'deployBundledServer')
+          .mockRejectedValue(new Error('Deployment failed'));
+
+        const registerSpy = jest.spyOn(vscode.commands, 'registerCommand');
+        extensionCommands.registerCommands(mockContext);
+
+        const configureServerHandler = registerSpy.mock.calls.find(
+          (call) => call[0] === 'mcpDiagnostics.configureServer'
+        )?.[1];
+
+        if (configureServerHandler) {
+          await configureServerHandler();
+        }
+
+        expect(showErrorSpy).toHaveBeenCalledWith(
+          'Failed to configure server automatically.',
+          'View Manual Setup'
+        );
+        expect(showSetupGuideSpy).toHaveBeenCalled();
+      });
+    });
+
+    describe('Integration with Deployment Services', () => {
+      it('should call deployBundledServer during configuration', async () => {
+        const deployServerSpy = jest
+          .spyOn(mockMcpRegistration, 'deployBundledServer')
+          .mockResolvedValue({ installedPath: '/test/path', upgraded: true });
+
+        const registerSpy = jest.spyOn(vscode.commands, 'registerCommand');
+        extensionCommands.registerCommands(mockContext);
+
+        const configureServerHandler = registerSpy.mock.calls.find(
+          (call) => call[0] === 'mcpDiagnostics.configureServer'
+        )?.[1];
+
+        if (configureServerHandler) {
+          await configureServerHandler();
+        }
+
+        expect(deployServerSpy).toHaveBeenCalled();
+      });
+
+      it('should call injectConfiguration after successful deployment', async () => {
+        const injectConfigSpy = jest
+          .spyOn(mockMcpRegistration, 'injectConfiguration')
+          .mockResolvedValue();
+
+        // Mock successful deployment
+        jest
+          .spyOn(mockMcpRegistration, 'deployBundledServer')
+          .mockResolvedValue({ installedPath: '/test/path', upgraded: true });
+
+        const registerSpy = jest.spyOn(vscode.commands, 'registerCommand');
+        extensionCommands.registerCommands(mockContext);
+
+        const configureServerHandler = registerSpy.mock.calls.find(
+          (call) => call[0] === 'mcpDiagnostics.configureServer'
+        )?.[1];
+
+        if (configureServerHandler) {
+          await configureServerHandler();
+        }
+
+        expect(injectConfigSpy).toHaveBeenCalled();
+      });
+
+      it('should not call injectConfiguration if deployment fails', async () => {
+        const injectConfigSpy = jest.spyOn(mockMcpRegistration, 'injectConfiguration');
+
+        // Mock deployment failure
+        jest
+          .spyOn(mockMcpRegistration, 'deployBundledServer')
+          .mockRejectedValue(new Error('Deployment failed'));
+
+        const registerSpy = jest.spyOn(vscode.commands, 'registerCommand');
+        extensionCommands.registerCommands(mockContext);
+
+        const configureServerHandler = registerSpy.mock.calls.find(
+          (call) => call[0] === 'mcpDiagnostics.configureServer'
+        )?.[1];
+
+        if (configureServerHandler) {
+          await configureServerHandler();
+        }
+
+        expect(injectConfigSpy).not.toHaveBeenCalled();
       });
     });
   });
