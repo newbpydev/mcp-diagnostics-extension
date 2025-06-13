@@ -1,4 +1,8 @@
 import { jest } from '@jest/globals';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import * as vscode from 'vscode';
 
 // Mock all external modules first using module-level mocking pattern
 jest.mock('vscode', () => ({
@@ -50,11 +54,6 @@ jest.mock('fs');
 jest.mock('path');
 
 // Import after mocking
-const vscode = require('vscode');
-const fs = require('fs');
-const path = require('path');
-
-// Type the mocks
 const mockedFs = fs as jest.Mocked<typeof fs>;
 const mockedPath = path as jest.Mocked<typeof path>;
 
@@ -86,6 +85,7 @@ describe('McpServerRegistration', () => {
   let mockExtensionUri: any;
 
   beforeEach(() => {
+    // Reset all mocks
     jest.clearAllMocks();
 
     // Setup mock extension context
@@ -110,19 +110,18 @@ describe('McpServerRegistration', () => {
     });
 
     // Handle lm property safely - it might be undefined in some test scenarios
-    if (vscode.lm && vscode.lm.registerMcpServerDefinitionProvider) {
-      (vscode.lm.registerMcpServerDefinitionProvider as jest.Mock).mockClear();
+    if (vscode.lm && (vscode.lm as any).registerMcpServerDefinitionProvider) {
+      ((vscode.lm as any).registerMcpServerDefinitionProvider as jest.Mock).mockClear();
     }
 
-    // Setup fs mocks
-    mockedFs.existsSync = jest.fn();
-    mockedFs.mkdirSync = jest.fn();
-    mockedFs.writeFileSync = jest.fn();
-    mockedFs.readFileSync = jest.fn();
+    // Setup fs mocks using jest.spyOn (proper way for getter-only properties)
+    jest.spyOn(fs, 'existsSync').mockReturnValue(false);
+    jest.spyOn(fs, 'mkdirSync').mockImplementation((_file, _opts) => '');
+    jest.spyOn(fs, 'writeFileSync').mockImplementation((_file, _data, _encoding) => {});
+    jest.spyOn(fs, 'readFileSync').mockReturnValue('{}');
 
-    // Setup path mocks with realistic implementations
-    mockedPath.join = jest.fn((...args: string[]) => args.join('/'));
-    mockedPath.dirname = jest.fn((p: string) => p.split('/').slice(0, -1).join('/'));
+    // Use real path operations instead of mocking (simpler and more reliable)
+    // mockedPath.join and mockedPath.dirname will use real implementations
 
     mcpRegistration = new McpServerRegistration(mockContext);
   });
@@ -144,7 +143,7 @@ describe('McpServerRegistration', () => {
       const mockRegisterMethod = jest.fn().mockReturnValue(mockDisposable);
 
       // Configure the already-mocked vscode.lm
-      vscode.lm.registerMcpServerDefinitionProvider = mockRegisterMethod;
+      (vscode.lm as any).registerMcpServerDefinitionProvider = mockRegisterMethod;
 
       const showSuccessSpy = jest
         .spyOn(mcpRegistration as any, 'showSuccessNotification')
@@ -159,7 +158,7 @@ describe('McpServerRegistration', () => {
 
     it('should handle registration errors gracefully', () => {
       // Configure mock to throw error
-      vscode.lm.registerMcpServerDefinitionProvider = jest.fn(() => {
+      (vscode.lm as any).registerMcpServerDefinitionProvider = jest.fn(() => {
         throw new Error('Registration failed');
       });
 
@@ -169,29 +168,33 @@ describe('McpServerRegistration', () => {
     });
 
     it('should handle missing proposed API', () => {
-      // Set lm to undefined to simulate missing API
-      vscode.lm = undefined;
+      // Simulate missing proposed API by removing the provider method
+      (vscode.lm as any).registerMcpServerDefinitionProvider = undefined;
 
       const result = (mcpRegistration as any).tryProposedApiRegistration();
 
       expect(result).toBe(false);
+
+      // Restore provider method for other tests
+      (vscode.lm as any).registerMcpServerDefinitionProvider = jest.fn();
     });
   });
 
   describe('tryWorkspaceMcpConfiguration', () => {
     it('should create .vscode directory if it does not exist', () => {
-      mockedFs.existsSync.mockImplementation((filepath: string) => {
-        if (filepath === '/test/workspace/.vscode') return false;
-        if (filepath === '/test/workspace/.vscode/mcp.json') return false;
+      jest.spyOn(fs, 'existsSync').mockImplementation((filepath: fs.PathLike) => {
+        const path = filepath.toString();
+        if (path === '/test/workspace/.vscode') return false;
+        if (path === '/test/workspace/.vscode/mcp.json') return false;
         return false;
       });
-      mockedFs.mkdirSync.mockImplementation(() => {});
-      mockedFs.writeFileSync.mockImplementation(() => {});
+      jest.spyOn(fs, 'mkdirSync').mockImplementation(() => '');
+      jest.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
 
-      // Mock workspace folder
-      vscode.workspace.getWorkspaceFolder = jest.fn().mockReturnValue({
+      // Mock workspace folder with proper typing
+      (vscode.workspace.getWorkspaceFolder as jest.Mock).mockReturnValue({
         uri: { fsPath: '/test/workspace' },
-      });
+      } as vscode.WorkspaceFolder);
 
       // Mock path operations
       mockedPath.join.mockImplementation((...args: string[]) => args.join('/'));
@@ -200,22 +203,23 @@ describe('McpServerRegistration', () => {
       const result = (mcpRegistration as any).tryWorkspaceMcpConfiguration();
 
       expect(result).toBe(true);
-      expect(mockedFs.mkdirSync).toHaveBeenCalledWith('/test/workspace/.vscode', {
+      expect(fs.mkdirSync).toHaveBeenCalledWith('/test/workspace/.vscode', {
         recursive: true,
       });
-      expect(mockedFs.writeFileSync).toHaveBeenCalled();
+      expect(fs.writeFileSync).toHaveBeenCalled();
     });
 
     it('should return true if mcp.json already exists', () => {
-      mockedFs.existsSync.mockImplementation((filepath: string) => {
-        if (filepath === '/test/workspace/.vscode/mcp.json') return true;
+      jest.spyOn(fs, 'existsSync').mockImplementation((filepath: fs.PathLike) => {
+        const path = filepath.toString();
+        if (path === '/test/workspace/.vscode/mcp.json') return true;
         return false;
       });
 
-      // Mock workspace folder
-      vscode.workspace.getWorkspaceFolder = jest.fn().mockReturnValue({
+      // Mock workspace folder with proper typing
+      (vscode.workspace.getWorkspaceFolder as jest.Mock).mockReturnValue({
         uri: { fsPath: '/test/workspace' },
-      });
+      } as vscode.WorkspaceFolder);
 
       const result = (mcpRegistration as any).tryWorkspaceMcpConfiguration();
 
@@ -223,14 +227,14 @@ describe('McpServerRegistration', () => {
     });
 
     it('should handle file system errors gracefully', () => {
-      mockedFs.existsSync.mockImplementation(() => {
+      jest.spyOn(fs, 'existsSync').mockImplementation(() => {
         throw new Error('File system error');
       });
 
-      // Mock workspace folder
-      vscode.workspace.getWorkspaceFolder = jest.fn().mockReturnValue({
+      // Mock workspace folder with proper typing
+      (vscode.workspace.getWorkspaceFolder as jest.Mock).mockReturnValue({
         uri: { fsPath: '/test/workspace' },
-      });
+      } as vscode.WorkspaceFolder);
 
       const result = (mcpRegistration as any).tryWorkspaceMcpConfiguration();
 
@@ -462,9 +466,10 @@ describe('McpServerRegistration', () => {
       // Mock vscode.workspace.fs.stat to succeed for the server script
       const mockStat = jest.fn() as any;
       mockStat.mockResolvedValue({});
-      vscode.workspace.fs = {
-        stat: mockStat,
-      } as any;
+      Object.defineProperty(vscode.workspace, 'fs', {
+        value: { stat: mockStat },
+        configurable: true,
+      });
 
       // Mock path.join to return proper path
       mockedPath.join.mockImplementation((...args: string[]) => args.join('/'));
@@ -711,7 +716,7 @@ describe('McpServerRegistration', () => {
     });
 
     it('should handle network and file system errors during configuration creation', () => {
-      mockedFs.writeFileSync.mockImplementation(() => {
+      mockedFs.writeFileSync.mockImplementation((_file, _data) => {
         throw new Error('Permission denied');
       });
 
@@ -728,19 +733,16 @@ describe('McpServerRegistration', () => {
     });
 
     it('should handle VS Code API availability gracefully', () => {
-      // Test when vscode.window is undefined
-      const originalWindow = vscode.window;
-      delete (vscode as any).window;
-      Object.defineProperty(vscode, 'window', {
-        value: undefined,
-        writable: true,
-        configurable: true,
+      // Make showInformationMessage throw to simulate unavailable window API
+      const originalShowInfo = (vscode.window as any).showInformationMessage;
+      (vscode.window as any).showInformationMessage = jest.fn(() => {
+        throw new Error('not available');
       });
 
       expect(() => (mcpRegistration as any).showManualSetupInstructions()).not.toThrow();
 
-      // Restore
-      (vscode as any).window = originalWindow;
+      // Restore original implementation
+      (vscode.window as any).showInformationMessage = originalShowInfo;
     });
 
     it('should handle large workspace configurations', () => {
@@ -803,6 +805,299 @@ describe('McpServerRegistration', () => {
         }),
         vscode.ConfigurationTarget.Global
       );
+    });
+  });
+
+  describe('🔴 Task 4.5: Configuration Injection (FAILING TESTS)', () => {
+    describe('Configuration File Location', () => {
+      it('should locate mcp.json in priority order (workspace .cursor)', async () => {
+        // FAILING TEST: Priority-based configuration location not implemented
+        const workspacePath = '/workspace/test';
+        const cursorPath = path.join(workspacePath, '.cursor', 'mcp.json');
+
+        // Mock workspace folders
+        const mockWorkspaceFolders = [
+          { uri: { fsPath: workspacePath } },
+        ] as vscode.WorkspaceFolder[];
+
+        Object.defineProperty(vscode.workspace, 'workspaceFolders', {
+          get: jest.fn().mockReturnValue(mockWorkspaceFolders),
+          configurable: true,
+        });
+
+        // Mock file existence checks
+        jest.spyOn(fs, 'existsSync').mockImplementation((filePath: fs.PathLike) => {
+          return filePath === cursorPath;
+        });
+
+        // This should return the highest priority path
+        await expect(mcpRegistration.injectConfiguration()).resolves.not.toThrow();
+        expect(fs.existsSync).toHaveBeenCalledWith(cursorPath);
+      });
+
+      it('should fallback to workspace root mcp.json if .cursor not found', async () => {
+        // FAILING TEST: Fallback priority logic not implemented
+        const workspacePath = '/workspace/test';
+        const rootPath = path.join(workspacePath, 'mcp.json');
+
+        const mockWorkspaceFolders = [
+          { uri: { fsPath: workspacePath } },
+        ] as vscode.WorkspaceFolder[];
+
+        Object.defineProperty(vscode.workspace, 'workspaceFolders', {
+          get: jest.fn().mockReturnValue(mockWorkspaceFolders),
+          configurable: true,
+        });
+
+        jest.spyOn(fs, 'existsSync').mockImplementation((filePath: fs.PathLike) => {
+          return filePath === rootPath; // Only root exists
+        });
+
+        await expect(mcpRegistration.injectConfiguration()).resolves.not.toThrow();
+        expect(fs.existsSync).toHaveBeenCalledWith(rootPath);
+      });
+
+      it('should fallback to global user .cursor directory', async () => {
+        // FAILING TEST: Global fallback not implemented
+        const globalPath = path.join(os.homedir(), '.cursor', 'mcp.json');
+
+        Object.defineProperty(vscode.workspace, 'workspaceFolders', {
+          get: jest.fn().mockReturnValue(undefined),
+          configurable: true,
+        });
+
+        jest.spyOn(fs, 'existsSync').mockImplementation((filePath: fs.PathLike) => {
+          return filePath === globalPath;
+        });
+
+        await expect(mcpRegistration.injectConfiguration()).resolves.not.toThrow();
+        expect(fs.existsSync).toHaveBeenCalledWith(globalPath);
+      });
+    });
+
+    describe('Schema Validation', () => {
+      it('should validate existing JSON with Zod schema', async () => {
+        // FAILING TEST: Zod validation not implemented
+        const validConfig = {
+          mcpServers: {
+            'existing-server': {
+              command: 'node',
+              args: ['server.js'],
+            },
+          },
+        };
+
+        jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+        jest.spyOn(fs, 'readFileSync').mockReturnValue(JSON.stringify(validConfig));
+        jest.spyOn(fs, 'writeFileSync').mockImplementation((_file, _data, _encoding) => {});
+        jest.spyOn(fs, 'mkdirSync').mockImplementation((_file, _opts) => '');
+
+        // Should not throw for valid configuration
+        await expect(mcpRegistration.injectConfiguration()).resolves.not.toThrow();
+      });
+
+      it('should handle malformed JSON gracefully', async () => {
+        // FAILING TEST: Malformed JSON handling not implemented
+        jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+        jest.spyOn(fs, 'readFileSync').mockReturnValue('{ invalid json }');
+        jest.spyOn(fs, 'writeFileSync').mockImplementation((_file, _data, _encoding) => {});
+        jest.spyOn(fs, 'mkdirSync').mockImplementation((_file, _opts) => '');
+
+        // Should create backup and use default config
+        await expect(mcpRegistration.injectConfiguration()).resolves.not.toThrow();
+      });
+
+      it('should validate against MCP configuration schema', async () => {
+        // FAILING TEST: Schema enforcement not implemented
+        const invalidConfig = {
+          notMcpServers: {}, // Wrong property name
+        };
+
+        jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+        jest.spyOn(fs, 'readFileSync').mockReturnValue(JSON.stringify(invalidConfig));
+        jest.spyOn(fs, 'writeFileSync').mockImplementation((_file, _data, _encoding) => {});
+        jest.spyOn(fs, 'mkdirSync').mockImplementation((_file, _opts) => '');
+
+        // Should handle invalid schema and use default
+        await expect(mcpRegistration.injectConfiguration()).resolves.not.toThrow();
+      });
+    });
+
+    describe('Deep Merge Preservation', () => {
+      it('should preserve user customizations during injection', async () => {
+        // FAILING TEST: Deep merge logic not implemented
+        const existingConfig = {
+          mcpServers: {
+            'user-server': {
+              command: 'python',
+              args: ['custom.py', '--flag'],
+              env: { CUSTOM_VAR: 'value' },
+            },
+            'another-server': {
+              command: 'go',
+              args: ['run', 'main.go'],
+            },
+          },
+        };
+
+        jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+        jest.spyOn(fs, 'readFileSync').mockReturnValue(JSON.stringify(existingConfig));
+
+        let writtenConfig: any;
+        jest.spyOn(fs, 'writeFileSync').mockImplementation((filePath, data) => {
+          writtenConfig = JSON.parse(data as string);
+        });
+        jest.spyOn(fs, 'mkdirSync').mockImplementation((_file, _opts) => '');
+
+        await mcpRegistration.injectConfiguration();
+
+        // Should preserve all existing servers
+        expect(writtenConfig.mcpServers['user-server']).toEqual(
+          existingConfig.mcpServers['user-server']
+        );
+        expect(writtenConfig.mcpServers['another-server']).toEqual(
+          existingConfig.mcpServers['another-server']
+        );
+        // Should add our diagnostics server
+        expect(writtenConfig.mcpServers['vscode-diagnostics']).toBeDefined();
+      });
+
+      it('should update existing vscode-diagnostics entry with new server path', async () => {
+        // FAILING TEST: Server path update logic not implemented
+        const existingConfig = {
+          mcpServers: {
+            'vscode-diagnostics': {
+              command: 'node',
+              args: ['/old/path/mcp-server.js'],
+            },
+          },
+        };
+
+        jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+        jest.spyOn(fs, 'readFileSync').mockReturnValue(JSON.stringify(existingConfig));
+
+        let writtenConfig: any;
+        jest.spyOn(fs, 'writeFileSync').mockImplementation((filePath, data) => {
+          writtenConfig = JSON.parse(data as string);
+        });
+        jest.spyOn(fs, 'mkdirSync').mockImplementation((_file, _opts) => '');
+
+        await mcpRegistration.injectConfiguration();
+
+        // Should update to new server path
+        expect(writtenConfig.mcpServers['vscode-diagnostics'].args[0]).toContain('mcp-server.js');
+        expect(writtenConfig.mcpServers['vscode-diagnostics'].args[0]).not.toBe(
+          '/old/path/mcp-server.js'
+        );
+      });
+    });
+
+    describe('Atomic Operations', () => {
+      it('should create backup before modifying configuration', async () => {
+        // FAILING TEST: Backup creation not implemented
+
+        jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+        jest.spyOn(fs, 'readFileSync').mockReturnValue('{"mcpServers":{}}');
+        jest.spyOn(fs, 'writeFileSync').mockImplementation((_file, _data, _encoding) => {});
+        jest.spyOn(fs, 'copyFileSync').mockImplementation((_src, _dest) => {});
+        jest.spyOn(fs, 'mkdirSync').mockImplementation((_file, _opts) => '');
+
+        await mcpRegistration.injectConfiguration();
+
+        // Should create backup
+        expect(fs.copyFileSync).toHaveBeenCalledWith(
+          expect.stringContaining('mcp.json'),
+          expect.stringContaining('.backup')
+        );
+      });
+
+      it('should write to temporary file first then rename atomically', async () => {
+        // FAILING TEST: Atomic write operations not implemented
+        jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+        // Provide valid initial configuration that passes Zod validation
+        jest.spyOn(fs, 'readFileSync').mockReturnValue('{"mcpServers":{}}');
+        jest.spyOn(fs, 'writeFileSync').mockImplementation((_file, _data, _encoding) => {});
+        jest.spyOn(fs, 'renameSync').mockImplementation((_src, _dest) => {});
+        jest.spyOn(fs, 'mkdirSync').mockImplementation((_file, _opts) => '');
+
+        await mcpRegistration.injectConfiguration();
+
+        // Should write to .tmp file first
+        expect(fs.writeFileSync).toHaveBeenCalledWith(
+          expect.stringContaining('.tmp'),
+          expect.stringMatching(/mcpServers/),
+          'utf8'
+        );
+        // Then rename atomically
+        expect(fs.renameSync).toHaveBeenCalledWith(
+          expect.stringContaining('.tmp'),
+          expect.stringContaining('mcp.json')
+        );
+      });
+
+      it('should verify injection success after write', async () => {
+        // FAILING TEST: Post-write verification not implemented
+        jest.spyOn(fs, 'existsSync').mockReturnValue(false);
+        jest.spyOn(fs, 'writeFileSync').mockImplementation((_file, _data, _encoding) => {});
+        jest.spyOn(fs, 'mkdirSync').mockImplementation((_file, _opts) => '');
+
+        // Mock post-write verification read
+        jest
+          .spyOn(fs, 'readFileSync')
+          .mockReturnValueOnce('{"mcpServers":{}}') // Initial read (empty)
+          .mockReturnValueOnce('{"mcpServers":{"vscode-diagnostics":{}}}'); // Verification read
+
+        await mcpRegistration.injectConfiguration();
+
+        // Should read file after write to verify
+        expect(fs.readFileSync).toHaveBeenCalledTimes(2);
+      });
+    });
+
+    describe('Error Handling', () => {
+      it('should handle write permission errors gracefully', async () => {
+        // FAILING TEST: Permission error handling not implemented
+        jest.spyOn(fs, 'existsSync').mockReturnValue(false);
+        jest.spyOn(fs, 'mkdirSync').mockImplementation((_file, _opts) => '');
+        jest.spyOn(fs, 'writeFileSync').mockImplementation((_file, _data, _encoding) => {
+          throw new Error('EACCES: permission denied');
+        });
+
+        // Should not throw but show appropriate error
+        await expect(mcpRegistration.injectConfiguration()).resolves.not.toThrow();
+      });
+
+      it('should handle directory creation failures', async () => {
+        // FAILING TEST: Directory creation error handling not implemented
+        jest.spyOn(fs, 'existsSync').mockReturnValue(false);
+        jest.spyOn(fs, 'mkdirSync').mockImplementation(() => {
+          throw new Error('EACCES: permission denied');
+        });
+
+        // Should handle directory creation failure
+        await expect(mcpRegistration.injectConfiguration()).resolves.not.toThrow();
+      });
+
+      it('should rollback on write failure', async () => {
+        // FAILING TEST: Rollback mechanism not implemented
+
+        jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+        jest.spyOn(fs, 'readFileSync').mockReturnValue('{"mcpServers":{}}');
+        jest.spyOn(fs, 'copyFileSync').mockImplementation((_src, _dest) => {});
+        jest.spyOn(fs, 'writeFileSync').mockImplementation((_file, _data, _encoding) => {
+          throw new Error('Write failed');
+        });
+        jest.spyOn(fs, 'unlinkSync').mockImplementation((_file) => {});
+        jest.spyOn(fs, 'mkdirSync').mockImplementation((_file, _opts) => '');
+
+        await mcpRegistration.injectConfiguration();
+
+        // Should attempt to restore from backup
+        expect(fs.copyFileSync).toHaveBeenCalledWith(
+          expect.stringContaining('.backup'),
+          expect.stringContaining('mcp.json')
+        );
+      });
     });
   });
 });

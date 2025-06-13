@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
+import { z } from 'zod';
 
 // Type definitions for MCP configuration
 interface McpServerConfig {
@@ -77,6 +79,19 @@ class McpStdioServerDefinition implements McpServerDefinition {
   }
 }
 
+// Zod schema for MCP configuration validation
+const McpServerConfigSchema = z.object({
+  command: z.string(),
+  args: z.array(z.string()).optional(),
+  env: z.record(z.string()).optional(),
+});
+
+const McpConfigurationSchema = z.object({
+  mcpServers: z.record(McpServerConfigSchema),
+});
+
+type ValidatedMcpConfiguration = z.infer<typeof McpConfigurationSchema>;
+
 /**
  * Handles automatic MCP server registration for VS Code and Cursor
  * This provides the seamless "one-click" integration experience
@@ -109,8 +124,272 @@ export class McpServerRegistration {
    * Handles Cursor, VS Code, and other MCP-compatible editors
    */
   public async injectConfiguration(): Promise<void> {
-    // TODO: Implementation coming in Task 4.4
-    throw new Error('Not implemented yet');
+    try {
+      console.log('[MCP Configuration] Starting configuration injection...');
+
+      // Phase 1: Locate configuration file with priority fallback
+      const configPath = await this.locateConfigurationFile();
+      console.log('[MCP Configuration] Target config path:', configPath);
+
+      // Phase 2: Load and validate existing configuration
+      const existingConfig = await this.loadAndValidateConfiguration(configPath);
+      console.log('[MCP Configuration] Loaded existing configuration');
+
+      // Phase 3: Merge with diagnostics server configuration
+      const updatedConfig = this.mergeWithDiagnosticsServer(existingConfig);
+      console.log('[MCP Configuration] Merged configurations');
+
+      // Phase 4: Atomic write with backup and verification
+      await this.atomicWriteConfiguration(configPath, updatedConfig);
+      console.log('[MCP Configuration] ✅ Configuration injection completed successfully');
+
+      // Show success notification
+      vscode.window.showInformationMessage(
+        'MCP Diagnostics server configuration injected successfully!'
+      );
+    } catch (error) {
+      console.error('[MCP Configuration] ❌ Failed to inject configuration:', error);
+
+      // Show user-friendly error message
+      const action = await vscode.window.showErrorMessage(
+        'Failed to inject MCP configuration automatically.',
+        'View Manual Setup',
+        'Retry'
+      );
+
+      if (action === 'View Manual Setup') {
+        this.showMcpSetupGuide();
+      } else if (action === 'Retry') {
+        // Retry once
+        try {
+          await this.injectConfiguration();
+        } catch (retryError) {
+          console.error('[MCP Configuration] Retry failed:', retryError);
+          this.showMcpSetupGuide();
+        }
+      }
+    }
+  }
+
+  /**
+   * Locates the configuration file using priority-based discovery
+   * Priority: workspace/.cursor/mcp.json > workspace/mcp.json > global/.cursor/mcp.json
+   */
+  private async locateConfigurationFile(): Promise<string> {
+    const configPaths = this.getConfigurationPaths();
+
+    // Check existing files in priority order
+    for (const configPath of configPaths) {
+      if (fs.existsSync(configPath)) {
+        console.log('[MCP Configuration] Found existing configuration at:', configPath);
+        return configPath;
+      }
+    }
+
+    // If no existing file found, create in highest priority location
+    const targetPath = configPaths[0];
+    if (!targetPath) {
+      throw new Error('No configuration paths available');
+    }
+    const targetDir = path.dirname(targetPath);
+
+    // Ensure directory exists
+    if (!fs.existsSync(targetDir)) {
+      console.log('[MCP Configuration] Creating directory:', targetDir);
+      fs.mkdirSync(targetDir, { recursive: true });
+    }
+
+    console.log('[MCP Configuration] Will create new configuration at:', targetPath);
+    return targetPath;
+  }
+
+  /**
+   * Gets configuration file paths in priority order
+   */
+  private getConfigurationPaths(): string[] {
+    const paths: string[] = [];
+
+    // Priority 1: Workspace .cursor directory
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (workspaceFolders && workspaceFolders.length > 0) {
+      // Use non-null assertion since we've verified length > 0
+      const workspacePath = workspaceFolders[0]!.uri.fsPath;
+      paths.push(path.join(workspacePath, '.cursor', 'mcp.json'));
+      paths.push(path.join(workspacePath, 'mcp.json'));
+    }
+
+    // Priority 3: Global user .cursor directory
+    const homeDir = os.homedir();
+    if (homeDir) {
+      paths.push(path.join(homeDir, '.cursor', 'mcp.json'));
+    }
+
+    return paths;
+  }
+
+  /**
+   * Loads and validates existing configuration using Zod schema
+   */
+  private async loadAndValidateConfiguration(
+    configPath: string
+  ): Promise<ValidatedMcpConfiguration> {
+    if (!fs.existsSync(configPath)) {
+      console.log('[MCP Configuration] No existing configuration, using default');
+      return { mcpServers: {} };
+    }
+
+    try {
+      const configContent = fs.readFileSync(configPath, 'utf8');
+      const parsedConfig = JSON.parse(configContent);
+
+      // Validate with Zod schema
+      const validatedConfig = McpConfigurationSchema.parse(parsedConfig);
+      console.log('[MCP Configuration] Configuration validation successful');
+
+      return validatedConfig;
+    } catch (parseError) {
+      console.warn('[MCP Configuration] Failed to parse existing configuration:', parseError);
+
+      // Create backup of malformed file
+      const backupPath = `${configPath}.malformed.backup`;
+      try {
+        fs.copyFileSync(configPath, backupPath);
+        console.log('[MCP Configuration] Created backup of malformed file:', backupPath);
+      } catch (backupError) {
+        console.warn('[MCP Configuration] Failed to create backup:', backupError);
+      }
+
+      // Return default configuration
+      return { mcpServers: {} };
+    }
+  }
+
+  /**
+   * Merges existing configuration with diagnostics server configuration
+   * Preserves user customizations and updates diagnostics server entry
+   */
+  private mergeWithDiagnosticsServer(
+    existingConfig: ValidatedMcpConfiguration
+  ): ValidatedMcpConfiguration {
+    // Get the current server installation path
+    const serverPath = this.getInstalledServerPath();
+
+    // Create diagnostics server configuration
+    const diagnosticsServerConfig = {
+      command: 'node',
+      args: [serverPath],
+      env: {
+        NODE_ENV: 'production',
+        MCP_DEBUG: 'false',
+      },
+    };
+
+    // Deep merge: preserve all existing servers, update/add diagnostics server
+    const mergedConfig: ValidatedMcpConfiguration = {
+      mcpServers: {
+        ...existingConfig.mcpServers,
+        'vscode-diagnostics': diagnosticsServerConfig,
+      },
+    };
+
+    console.log('[MCP Configuration] Merged configuration with diagnostics server');
+    return mergedConfig;
+  }
+
+  /**
+   * Performs atomic write with backup, temp file, and verification
+   */
+  private async atomicWriteConfiguration(
+    configPath: string,
+    config: ValidatedMcpConfiguration
+  ): Promise<void> {
+    const backupPath = `${configPath}.backup`;
+    const tempPath = `${configPath}.tmp`;
+
+    try {
+      // Step 1: Create backup if file exists
+      if (fs.existsSync(configPath)) {
+        fs.copyFileSync(configPath, backupPath);
+        console.log('[MCP Configuration] Created backup:', backupPath);
+      }
+
+      // Step 2: Write to temporary file
+      const configJson = JSON.stringify(config, null, 2);
+      fs.writeFileSync(tempPath, configJson, 'utf8');
+      console.log('[MCP Configuration] Wrote to temporary file:', tempPath);
+
+      // Step 3: Validate the written content
+      const writtenContent = fs.readFileSync(tempPath, 'utf8');
+      const parsedWritten = JSON.parse(writtenContent);
+      McpConfigurationSchema.parse(parsedWritten);
+      console.log('[MCP Configuration] Validated written content');
+
+      // Step 4: Atomic rename
+      fs.renameSync(tempPath, configPath);
+      console.log('[MCP Configuration] Atomic rename completed');
+
+      // Step 5: Final verification
+      const finalContent = fs.readFileSync(configPath, 'utf8');
+      const finalParsed = JSON.parse(finalContent);
+      const finalValidated = McpConfigurationSchema.parse(finalParsed);
+
+      if (!finalValidated.mcpServers['vscode-diagnostics']) {
+        throw new Error(
+          'Verification failed: vscode-diagnostics server not found in final configuration'
+        );
+      }
+
+      console.log('[MCP Configuration] Final verification successful');
+
+      // Clean up backup on success
+      if (fs.existsSync(backupPath)) {
+        fs.unlinkSync(backupPath);
+        console.log('[MCP Configuration] Cleaned up backup file');
+      }
+    } catch (error) {
+      console.error('[MCP Configuration] Atomic write failed:', error);
+
+      // Clean up temp file
+      if (fs.existsSync(tempPath)) {
+        try {
+          fs.unlinkSync(tempPath);
+        } catch (cleanupError) {
+          console.warn('[MCP Configuration] Failed to cleanup temp file:', cleanupError);
+        }
+      }
+
+      // Attempt rollback from backup
+      if (fs.existsSync(backupPath)) {
+        try {
+          fs.copyFileSync(backupPath, configPath);
+          console.log('[MCP Configuration] Rolled back from backup');
+        } catch (rollbackError) {
+          console.error('[MCP Configuration] Rollback failed:', rollbackError);
+        }
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * Gets the installed server path from the deployment service
+   */
+  private getInstalledServerPath(): string {
+    // Use the same logic as ServerInstallUtils to get consistent path
+    const installDir = this.getServerInstallDirectory();
+    return path.join(installDir, 'mcp-server.js');
+  }
+
+  /**
+   * Gets the server installation directory (cross-platform)
+   */
+  private getServerInstallDirectory(): string {
+    const homeDir = os.homedir();
+    if (!homeDir) {
+      throw new Error('Unable to determine home directory');
+    }
+    return path.join(homeDir, '.mcp-diagnostics');
   }
 
   /**
@@ -687,7 +966,11 @@ export class McpServerRegistration {
    * Dispose of all resources
    */
   public dispose(): void {
-    this.disposables.forEach((d) => d.dispose());
+    this.disposables.forEach((d) => {
+      if (d && typeof d.dispose === 'function') {
+        d.dispose();
+      }
+    });
     this.disposables = [];
 
     if (this.didChangeEmitter) {
