@@ -974,12 +974,37 @@ describe('McpServerRegistration', () => {
         };
 
         jest.spyOn(fs, 'existsSync').mockReturnValue(true);
-        jest.spyOn(fs, 'readFileSync').mockReturnValue(JSON.stringify(existingConfig));
 
         let writtenConfig: any;
-        jest.spyOn(fs, 'writeFileSync').mockImplementation((_filePath, data) => {
+        let tempFileContent: string = '';
+
+        // Mock the sequence of file operations
+        jest.spyOn(fs, 'readFileSync').mockImplementation((filePath: any) => {
+          const pathStr = filePath.toString();
+          if (pathStr.includes('.tmp')) {
+            // Return the content that was written to temp file
+            return tempFileContent;
+          } else if (pathStr.includes('mcp.json') && !pathStr.includes('.backup')) {
+            // For verification read, return the written config if available
+            return writtenConfig ? JSON.stringify(writtenConfig) : JSON.stringify(existingConfig);
+          }
+          // Default to existing config for initial read
+          return JSON.stringify(existingConfig);
+        });
+
+        jest.spyOn(fs, 'writeFileSync').mockImplementation((filePath: any, data: any) => {
+          const pathStr = filePath.toString();
+          if (pathStr.includes('.tmp')) {
+            // Capture temp file content
+            tempFileContent = data as string;
+          }
+          // Always capture the written config for verification
           writtenConfig = JSON.parse(data as string);
         });
+
+        jest.spyOn(fs, 'copyFileSync').mockImplementation((_src, _dest) => {});
+        jest.spyOn(fs, 'renameSync').mockImplementation((_src, _dest) => {});
+        jest.spyOn(fs, 'unlinkSync').mockImplementation((_file) => {});
         jest.spyOn(fs, 'mkdirSync').mockImplementation((_file, _opts) => '');
 
         await mcpRegistration.injectConfiguration();
