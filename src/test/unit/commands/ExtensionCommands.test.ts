@@ -454,7 +454,7 @@ describe('ExtensionCommands', () => {
         };
         progressSpy.mockImplementation(
           <T>(
-            options: vscode.ProgressOptions,
+            _options: vscode.ProgressOptions,
             task: (
               progress: vscode.Progress<{ message?: string; increment?: number }>,
               token: vscode.CancellationToken
@@ -496,7 +496,7 @@ describe('ExtensionCommands', () => {
           .spyOn(vscode.window, 'withProgress')
           .mockImplementation(
             <T>(
-              options: vscode.ProgressOptions,
+              _options: vscode.ProgressOptions,
               task: (
                 progress: vscode.Progress<{ message?: string; increment?: number }>,
                 token: vscode.CancellationToken
@@ -642,7 +642,7 @@ describe('ExtensionCommands', () => {
           .spyOn(vscode.window, 'withProgress')
           .mockImplementation(
             <T>(
-              options: vscode.ProgressOptions,
+              _options: vscode.ProgressOptions,
               task: (
                 progress: vscode.Progress<{ message?: string; increment?: number }>,
                 token: vscode.CancellationToken

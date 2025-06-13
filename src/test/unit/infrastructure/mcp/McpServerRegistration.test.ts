@@ -944,7 +944,7 @@ describe('McpServerRegistration', () => {
         jest.spyOn(fs, 'readFileSync').mockReturnValue(JSON.stringify(existingConfig));
 
         let writtenConfig: any;
-        jest.spyOn(fs, 'writeFileSync').mockImplementation((filePath, data) => {
+        jest.spyOn(fs, 'writeFileSync').mockImplementation((_filePath, data) => {
           writtenConfig = JSON.parse(data as string);
         });
         jest.spyOn(fs, 'mkdirSync').mockImplementation((_file, _opts) => '');
@@ -977,7 +977,7 @@ describe('McpServerRegistration', () => {
         jest.spyOn(fs, 'readFileSync').mockReturnValue(JSON.stringify(existingConfig));
 
         let writtenConfig: any;
-        jest.spyOn(fs, 'writeFileSync').mockImplementation((filePath, data) => {
+        jest.spyOn(fs, 'writeFileSync').mockImplementation((_filePath, data) => {
           writtenConfig = JSON.parse(data as string);
         });
         jest.spyOn(fs, 'mkdirSync').mockImplementation((_file, _opts) => '');
