@@ -19,6 +19,8 @@ import { VsCodeApiAdapter } from './infrastructure/vscode/VsCodeApiAdapter';
 import { ExtensionCommands } from './commands/ExtensionCommands';
 import { DEFAULT_CONFIG } from './shared/constants';
 import { McpServerRegistration } from './infrastructure/mcp/McpServerRegistration';
+import { deployBundledServer } from './shared/deployment/ServerDeployment';
+import { promises as fsp } from 'fs';
 
 /**
  * Global DiagnosticsWatcher instance for the extension lifecycle
@@ -103,6 +105,29 @@ export async function activate(
     };
 
     console.log('🚀 Server config:', serverConfig);
+
+    // 🔄 Task 4.3: Deploy bundled MCP server to user directory (async step)
+    try {
+      const bundledPath = context.asAbsolutePath('dist/assets/mcp-server.js');
+      const versionManifestPath = context.asAbsolutePath('dist/assets/mcp-server-version.json');
+      let bundledVersion = '0.0.0';
+      try {
+        const manifestRaw = await fsp.readFile(versionManifestPath, 'utf8');
+        bundledVersion = JSON.parse(manifestRaw).version ?? bundledVersion;
+      } catch {
+        console.log('🟡 [MCP Diagnostics] Version manifest not found, defaulting to 0.0.0');
+      }
+
+      const deployResult = await deployBundledServer({
+        bundledPath,
+        version: bundledVersion,
+        logger: console.log,
+      });
+      console.log('🟢 [MCP Diagnostics] server-deployed', deployResult);
+    } catch (deployErr) {
+      console.error('🔴 [MCP Diagnostics] Bundled server deployment failed:', deployErr);
+      // Continue activation; users may configure server manually.
+    }
 
     // Step 2: MCP Server
     console.log('🟡 [MCP Diagnostics] Initializing MCP Server...');
