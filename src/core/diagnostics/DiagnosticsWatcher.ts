@@ -122,6 +122,8 @@ export class DiagnosticsWatcher extends EventEmitter {
   private isDisposed = false;
   private lastDiagnosticUpdateTime: number = Date.now();
   private _initialAnalysisTimeout: NodeJS.Timeout | undefined;
+  /** Active timers scheduled by this watcher */
+  private readonly activeTimers: Set<NodeJS.Timeout> = new Set();
 
   /**
    * Internal helper to write logs only when we are **not** running inside the
@@ -135,13 +137,13 @@ export class DiagnosticsWatcher extends EventEmitter {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private log(...args: any[]): void {
-    // Skip when the watcher is disposed to prevent async logging warnings after tests finish
-    if (this.isDisposed) {
+    // Skip when disposed **or** running inside CI to prevent late async logs
+    if (this.isDisposed || process.env['NODE_ENV'] === 'ci') {
       return;
     }
 
-    // Always log for deterministic test expectations and normal extension usage
-
+    // Forward to real console so output is still available during local dev
+    // Avoid in tests because Jest/Wallaby capture console automatically.
     console.log(...args);
   }
 
@@ -425,6 +427,10 @@ export class DiagnosticsWatcher extends EventEmitter {
 
     this.isDisposed = true;
 
+    // Clear and cancel any active timers
+    this.activeTimers.forEach((t) => clearTimeout(t));
+    this.activeTimers.clear();
+
     // Dispose of all VS Code subscriptions
     this.disposables.forEach((disposable) => {
       try {
@@ -434,22 +440,19 @@ export class DiagnosticsWatcher extends EventEmitter {
         console.warn('Error disposing subscription:', error);
       }
     });
-
-    // Clear collections
-    this.problemsByUri.clear();
-    this.disposables.length = 0;
-
-    // Dispose performance monitor
-    this.performanceMonitor.dispose();
-
-    // Remove all event listeners
-    this.removeAllListeners();
-
     // Clear any scheduled initial analysis timeout
     if (this._initialAnalysisTimeout) {
       clearTimeout(this._initialAnalysisTimeout);
       this._initialAnalysisTimeout = undefined;
     }
+
+    // Clear collections & dispose supporting resources
+    this.problemsByUri.clear();
+    this.disposables.length = 0;
+    this.performanceMonitor.dispose();
+
+    // Remove event listeners to avoid memory leaks
+    this.removeAllListeners();
   }
 
   /**
@@ -464,7 +467,7 @@ export class DiagnosticsWatcher extends EventEmitter {
 
       // Trigger initial workspace analysis after a short delay (skip in unit tests)
       if (process.env['NODE_ENV'] !== 'test') {
-        this._initialAnalysisTimeout = setTimeout(() => {
+        this._initialAnalysisTimeout = this.scheduleTimeout(() => {
           this.triggerWorkspaceAnalysis().catch((error) => {
             console.warn('[DiagnosticsWatcher] Initial workspace analysis failed:', error);
           });
@@ -583,7 +586,7 @@ export class DiagnosticsWatcher extends EventEmitter {
       await this.analyzeWorkspaceFilesInBackground();
 
       // Wait for analysis to settle
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => this.scheduleTimeout(resolve, 1000));
 
       // Final refresh of all diagnostics
       this.refreshDiagnostics();
@@ -705,7 +708,7 @@ export class DiagnosticsWatcher extends EventEmitter {
 
             // Longer delay between batches for background processing
             if (i + batchSize < files.length) {
-              await new Promise((resolve) => setTimeout(resolve, 200));
+              await new Promise((resolve) => this.scheduleTimeout(resolve, 200));
             }
           }
         } catch (error) {
@@ -732,11 +735,26 @@ export class DiagnosticsWatcher extends EventEmitter {
       await this.vsCodeApi.workspace.openTextDocument(uri);
 
       // Small delay to allow language servers to process
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await new Promise((resolve) => this.scheduleTimeout(resolve, 10));
     } catch (error) {
       // Silently ignore errors for individual files
       console.debug(`Debug: Could not analyze file ${uri.fsPath}:`, error);
     }
+  }
+
+  /**
+   * Helper to schedule a timeout and track it so we can cancel it during dispose/afterEach.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private scheduleTimeout(callback: (...cbArgs: any[]) => void, delay: number): NodeJS.Timeout {
+    const timer = setTimeout(() => {
+      // Remove once executed to avoid memory leaks
+      this.activeTimers.delete(timer);
+      callback();
+    }, delay);
+
+    this.activeTimers.add(timer);
+    return timer;
   }
 
   /**
