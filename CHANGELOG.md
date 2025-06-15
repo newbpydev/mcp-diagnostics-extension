@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.4.1](https://github.com/newbpydev/mcp-diagnostics-extension/compare/v1.4.0...v1.4.1) (2025-06-15)
+
+### Bug Fixes
+
+- ensure MCP configuration uses global user directory for deployed server ([fdac3d7](https://github.com/newbpydev/mcp-diagnostics-extension/commit/fdac3d7ef34a057927e3cafc5dc244289afe6330))
+- resolve critical MCP server dependency and import path issues ([8a18d42](https://github.com/newbpydev/mcp-diagnostics-extension/commit/8a18d42a44aed27c2732500ba7fa87622332d884))
+- resolve MCP server module resolution and Windows file locking issues ([c01b260](https://github.com/newbpydev/mcp-diagnostics-extension/commit/c01b26097d9e874062efdc98d8c4f27ecccde61b))
+
+### Documentation
+
+- comprehensive update of all documentation for v1.4.0 release ([fedb5e4](https://github.com/newbpydev/mcp-diagnostics-extension/commit/fedb5e4bbd346064e841b9121c0616ff2f76157c))
+- update latest features section to v1.4.0 in README.md ([51f065a](https://github.com/newbpydev/mcp-diagnostics-extension/commit/51f065ad84b79dc2fd88258f51ab086c027e3e77))
+- update remaining test count references in README.md to 810 tests ([ee00813](https://github.com/newbpydev/mcp-diagnostics-extension/commit/ee008139aac7bd439e26fb668fe3f633ec2dda86))
+
 ## [1.4.0](https://github.com/newbpydev/mcp-diagnostics-extension/compare/v1.3.1...v1.4.0) (2025-06-15)
 
 ### Features
