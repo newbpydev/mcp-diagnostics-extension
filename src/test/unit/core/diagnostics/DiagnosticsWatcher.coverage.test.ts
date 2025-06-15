@@ -115,10 +115,15 @@ describe('DiagnosticsWatcher Coverage Improvement', () => {
       const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
       mockVsCodeApi.languages.getDiagnostics.mockReturnValue([]);
 
-      await method();
-
-      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Loaded 0 existing problems'));
-      logSpy.mockRestore();
+      const originalEnv = process.env['NODE_ENV'];
+      process.env['NODE_ENV'] = 'development';
+      try {
+        await method();
+        expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Loaded 0 existing problems'));
+      } finally {
+        process.env['NODE_ENV'] = originalEnv;
+        logSpy.mockRestore();
+      }
     });
 
     it('should handle non-array diagnostics response', async () => {
@@ -151,10 +156,15 @@ describe('DiagnosticsWatcher Coverage Improvement', () => {
         [mockUri, [mockDiagnostic, mockDiagnostic]], // Duplicate diagnostics
       ]);
 
-      await method();
-
-      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Loaded 1 existing problems'));
-      logSpy.mockRestore();
+      const originalEnv = process.env['NODE_ENV'];
+      process.env['NODE_ENV'] = 'development';
+      try {
+        await method();
+        expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Loaded 1 existing problems'));
+      } finally {
+        process.env['NODE_ENV'] = originalEnv;
+        logSpy.mockRestore();
+      }
     });
 
     it('should handle getDiagnostics errors', async () => {
@@ -215,13 +225,19 @@ describe('DiagnosticsWatcher Coverage Improvement', () => {
       // Mock only first call to avoid multiple pattern processing
       mockVsCodeApi.workspace.findFiles.mockResolvedValueOnce(mockFiles).mockResolvedValue([]); // Empty for other patterns
 
-      await method();
+      const originalEnv = process.env['NODE_ENV'];
+      process.env['NODE_ENV'] = 'development';
+      try {
+        await method();
+        expect(logSpy).toHaveBeenCalledWith(
+          expect.stringContaining('📁 [DiagnosticsWatcher] Found 1')
+        );
+      } finally {
+        process.env['NODE_ENV'] = originalEnv;
+        logSpy.mockRestore();
+      }
 
-      expect(logSpy).toHaveBeenCalledWith(
-        expect.stringContaining('📁 [DiagnosticsWatcher] Found 1')
-      );
       expect(mockVsCodeApi.workspace.openTextDocument).toHaveBeenCalledWith(mockFiles[0]);
-      logSpy.mockRestore();
     });
 
     it('should handle main background analysis errors', async () => {

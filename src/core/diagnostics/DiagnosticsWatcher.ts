@@ -138,7 +138,9 @@ export class DiagnosticsWatcher extends EventEmitter {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private log(...args: any[]): void {
     // Skip when disposed **or** running inside CI to prevent late async logs
-    if (this.isDisposed || process.env['NODE_ENV'] === 'ci') {
+    // Skip when disposed **or** running inside CI or test environments to prevent
+    // late async logs (Jest/Wallaby set NODE_ENV to 'test').
+    if (this.isDisposed || process.env['NODE_ENV'] === 'ci' || process.env['NODE_ENV'] === 'test') {
       return;
     }
 
