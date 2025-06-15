@@ -112,12 +112,54 @@ export class McpServerRegistration {
   }
 
   /**
-   * Deploys the bundled MCP server binary to the user's system
-   * Returns the path where it was installed and whether it was upgraded
+   * Copies the bundled `mcp-server.js` file that ships with the extension
+   * into the per-user installation directory (`~/.mcp-diagnostics`).
+   * The copy is skipped if the destination already exists with identical
+   * file size and modified time (very cheap heuristic – enough for MVP).
+   *
+   * Returns the destination path and whether the file was (re)deployed.
    */
   public async deployBundledServer(): Promise<{ installedPath: string; upgraded: boolean }> {
-    // TODO: Implementation coming in Task 4.4
-    throw new Error('Not implemented yet');
+    const bundledPathVariants = [
+      // When running from VS Code extension build output (webpack/rollup)
+      path.join(this.context.extensionPath, 'dist', 'assets', 'mcp-server.js'),
+      // Fallback – raw script in repo (development)
+      path.join(this.context.extensionPath, 'scripts', 'mcp-server.js'),
+    ];
+
+    const bundledPath = bundledPathVariants.find((p) => fs.existsSync(p));
+    if (!bundledPath) {
+      throw new Error('Bundled MCP server binary not found.');
+    }
+
+    const installDir = this.getServerInstallDirectory();
+    const destPath = path.join(installDir, 'mcp-server.js');
+
+    // Ensure install directory exists
+    fs.mkdirSync(installDir, { recursive: true });
+
+    let upgraded = false;
+    try {
+      const needCopy = (() => {
+        if (!fs.existsSync(destPath)) return true;
+        const srcStat = fs.statSync(bundledPath);
+        const dstStat = fs.statSync(destPath);
+        return srcStat.size !== dstStat.size || srcStat.mtimeMs > dstStat.mtimeMs;
+      })();
+
+      if (needCopy) {
+        fs.copyFileSync(bundledPath, destPath);
+        upgraded = true;
+        console.log('[MCP Registration] Deployed bundled server to:', destPath);
+      } else {
+        console.log('[MCP Registration] Existing server up-to-date at:', destPath);
+      }
+    } catch (error) {
+      console.error('[MCP Registration] Failed to deploy server:', error);
+      throw error;
+    }
+
+    return { installedPath: destPath, upgraded };
   }
 
   /**
