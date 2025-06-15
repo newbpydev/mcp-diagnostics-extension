@@ -1,29 +1,34 @@
 # MCP Diagnostics Extension
 
 <!-- Marketplace & Distribution Badges -->
+
 [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/newbpydev.mcp-diagnostics-extension.svg?style=flat-square&logo=visual-studio-code&color=007ACC)](https://marketplace.visualstudio.com/items?itemName=newbpydev.mcp-diagnostics-extension)
 [![Downloads](https://img.shields.io/visual-studio-marketplace/d/newbpydev.mcp-diagnostics-extension.svg?style=flat-square&color=brightgreen)](https://marketplace.visualstudio.com/items?itemName=newbpydev.mcp-diagnostics-extension)
 [![Rating](https://img.shields.io/visual-studio-marketplace/r/newbpydev.mcp-diagnostics-extension.svg?style=flat-square&color=yellow)](https://marketplace.visualstudio.com/items?itemName=newbpydev.mcp-diagnostics-extension)
 [![Installs](https://img.shields.io/visual-studio-marketplace/i/newbpydev.mcp-diagnostics-extension.svg?style=flat-square&color=blue)](https://marketplace.visualstudio.com/items?itemName=newbpydev.mcp-diagnostics-extension)
 
 <!-- Build & Quality Badges -->
+
 [![CI/CD Pipeline](https://img.shields.io/github/actions/workflow/status/newbpydev/mcp-diagnostics-extension/ci-cd.yml?style=flat-square&logo=github&label=CI%2FCD)](https://github.com/newbpydev/mcp-diagnostics-extension/actions/workflows/ci-cd.yml)
 [![Release Pipeline](https://img.shields.io/github/actions/workflow/status/newbpydev/mcp-diagnostics-extension/release.yml?style=flat-square&logo=github&label=Release)](https://github.com/newbpydev/mcp-diagnostics-extension/actions/workflows/release.yml)
-[![Tests](https://img.shields.io/badge/tests-602%20passing-brightgreen?style=flat-square&logo=jest)](https://github.com/newbpydev/mcp-diagnostics-extension/actions)
-[![Test Coverage](https://img.shields.io/badge/coverage-95.45%25-brightgreen?style=flat-square&logo=jest)](https://github.com/newbpydev/mcp-diagnostics-extension/actions)
+[![Tests](https://img.shields.io/badge/tests-810%20passing-brightgreen?style=flat-square&logo=jest)](https://github.com/newbpydev/mcp-diagnostics-extension/actions)
+[![Test Coverage](https://img.shields.io/badge/coverage-97.99%25-brightgreen?style=flat-square&logo=jest)](https://github.com/newbpydev/mcp-diagnostics-extension/actions)
 
 <!-- Technology & Standards Badges -->
+
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-blue.svg?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 [![VS Code Engine](https://img.shields.io/badge/VS%20Code-1.96.0+-007ACC?style=flat-square&logo=visual-studio-code)](https://code.visualstudio.com/)
 [![MCP SDK](https://img.shields.io/badge/MCP%20SDK-1.12.1-purple?style=flat-square)](https://github.com/modelcontextprotocol/typescript-sdk)
 [![Node.js](https://img.shields.io/badge/Node.js-22.x-green?style=flat-square&logo=node.js)](https://nodejs.org/)
 
 <!-- License & Security Badges -->
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![Security Policy](https://img.shields.io/badge/Security-Policy-red?style=flat-square&logo=shield)](https://github.com/newbpydev/mcp-diagnostics-extension/security/policy)
 [![Dependabot](https://img.shields.io/badge/Dependabot-enabled-brightgreen?style=flat-square&logo=dependabot)](https://github.com/newbpydev/mcp-diagnostics-extension/network/dependencies)
 
 <!-- Project Status & Community Badges -->
+
 [![GitHub Release](https://img.shields.io/github/v/release/newbpydev/mcp-diagnostics-extension?style=flat-square&logo=github)](https://github.com/newbpydev/mcp-diagnostics-extension/releases)
 [![GitHub Issues](https://img.shields.io/github/issues/newbpydev/mcp-diagnostics-extension?style=flat-square&logo=github)](https://github.com/newbpydev/mcp-diagnostics-extension/issues)
 [![GitHub Stars](https://img.shields.io/github/stars/newbpydev/mcp-diagnostics-extension?style=flat-square&logo=github)](https://github.com/newbpydev/mcp-diagnostics-extension/stargazers)
@@ -36,13 +41,15 @@
 ## 🎯 **EXCEPTIONAL ACHIEVEMENTS**
 
 ### **🏆 World-Class Quality Standards**
-- **✅ 602 Tests Passing** - Comprehensive test coverage with 0 failures (3 skipped)
-- **✅ 95.45% Statement Coverage** - Exceeding industry standards (95%+ target)
+
+- **✅ 810 Tests Passing** - Comprehensive test coverage with 0 failures (1 skipped)
+- **✅ 97.99% Statement Coverage** - Exceeding industry standards (95%+ target)
 - **✅ Production-Ready Architecture** - Clean Architecture with dependency injection
 - **✅ Professional CI/CD Pipeline** - Multi-platform testing and automated releases
 - **✅ Zero External Dependencies** - Native implementations for maximum reliability
 
 ### **🚀 Performance Excellence**
+
 - **⚡ <2s Extension Activation** - Lightning-fast startup performance
 - **⚡ <500ms Diagnostic Processing** - Real-time problem monitoring
 - **⚡ <100ms MCP Tool Response** - Instant AI agent integration
@@ -50,6 +57,7 @@
 - **📊 10,000+ File Workspace Support** - Enterprise-scale capability
 
 ### **🔧 Advanced Technical Implementation**
+
 - **🎯 Event-Driven Architecture** - Loose coupling via EventEmitter patterns
 - **🛡️ Robust Error Handling** - Comprehensive error recovery mechanisms
 - **📈 Performance Monitoring** - Built-in metrics and optimization
@@ -57,11 +65,23 @@
 - **🌐 Cross-Platform Compatibility** - Windows, macOS, Linux support with intelligent spawn handling
 
 ### **✨ Latest Features (v1.3.0)**
+
 - **🔧 Cross-Platform Utilities** - Smart platform detection and spawn option handling
 - **⚙️ Configuration Validation** - Automatic validation and enhancement of MCP client configurations
 - **📊 Enhanced Export System** - Continuous diagnostic data export for standalone MCP server integration
 - **🎨 Improved Status Display** - Better visual indicators and error reporting
 - **🛠️ Automated Setup** - One-click MCP server registration across different environments
+
+### **🚀 NEW: v1.4.0 - Auto-Server Injection & Advanced Diagnostics**
+
+- **🤖 Automatic MCP Server Registration** - One-click deployment and configuration across VS Code, Cursor, and other MCP clients
+- **📊 Cross-Platform Diagnostic Analysis** - Enhanced TypeScript and ESLint analysis with background workspace scanning
+- **⚙️ Configuration Manager** - Atomic configuration injection with backup and rollback capabilities
+- **🔧 Server Installation Utilities** - Automated bundled server deployment with version management
+- **🛠️ Enhanced Command System** - New `configureServer` command for automated MCP setup
+- **📈 Improved Performance Monitoring** - Advanced timer management and memory leak prevention
+- **🌐 Enhanced Cross-Platform Support** - Native spawn option handling for Windows, macOS, and Linux
+- **🧪 Comprehensive Test Coverage** - 810 tests with 97.99% coverage including E2E and integration tests
 
 ## 🚀 What is this?
 
@@ -77,6 +97,7 @@ The MCP Diagnostics Extension bridges VS Code's powerful diagnostic system with 
 ### What problem does it solve?
 
 Before this extension, AI agents couldn't see your VS Code problems panel, making it difficult for them to:
+
 - Understand compilation errors when suggesting fixes
 - Provide relevant solutions for linting issues
 - Help with project-wide diagnostic patterns
@@ -137,16 +158,20 @@ code --extensionDevelopmentPath=.
 ## 🚀 Quick Start
 
 ### 1. **Installation & Activation**
+
 After installing from the marketplace, the extension automatically:
+
 - ✅ Activates when VS Code starts
 - ✅ Registers as an MCP server
 - ✅ Starts monitoring diagnostics
 - ✅ Shows status in the status bar
 
 ### 2. **Verify It's Working**
+
 Look for the status bar item: `$(bug) MCP: XE YW` (X errors, Y warnings)
 
 ### 3. **Connect Your MCP Client**
+
 Add to your MCP client configuration:
 
 ```json
@@ -166,7 +191,9 @@ Add to your MCP client configuration:
 ```
 
 ### 4. **Start Using MCP Tools**
+
 Your AI agent can now access three powerful tools:
+
 - `getProblems` - Get all diagnostics with filtering
 - `getProblemsForFile` - Get problems for specific files
 - `getWorkspaceSummary` - Get workspace-wide statistics
@@ -355,6 +382,7 @@ graph TD
 ### **🎛️ One-Click Setup Commands**
 
 #### **`MCP Diagnostics: Configure Server`** ⚡
+
 **The magic command that does everything automatically!**
 
 Access via Command Palette (Ctrl+Shift+P / Cmd+Shift+P):
@@ -365,6 +393,7 @@ Access via Command Palette (Ctrl+Shift+P / Cmd+Shift+P):
 4. **Result**: Either success notification OR manual setup guide
 
 **What it does:**
+
 - ✅ Deploys server to `~/.mcp-diagnostics/mcp-server.js`
 - ✅ Sets proper executable permissions (Unix/Linux)
 - ✅ Creates version manifest for future upgrades
@@ -376,15 +405,16 @@ Access via Command Palette (Ctrl+Shift+P / Cmd+Shift+P):
 
 ### **📊 Cross-Platform Deployment Support**
 
-| Platform | Install Path | Executable | Spawn Options |
-|----------|-------------|------------|---------------|
+| Platform    | Install Path                      | Executable      | Spawn Options            |
+| ----------- | --------------------------------- | --------------- | ------------------------ |
 | **Windows** | `%USERPROFILE%\.mcp-diagnostics\` | ❌ Not required | `shell: true` (required) |
-| **macOS** | `~/.mcp-diagnostics/` | ✅ `chmod +x` | `shell: false` |
-| **Linux** | `~/.mcp-diagnostics/` | ✅ `chmod +x` | `shell: false` |
+| **macOS**   | `~/.mcp-diagnostics/`             | ✅ `chmod +x`   | `shell: false`           |
+| **Linux**   | `~/.mcp-diagnostics/`             | ✅ `chmod +x`   | `shell: false`           |
 
 ### **🛡️ Security & Reliability Features**
 
 #### **Atomic Operations**
+
 ```typescript
 // All file operations are atomic to prevent corruption
 1. Write to temporary file (.tmp)
@@ -394,6 +424,7 @@ Access via Command Palette (Ctrl+Shift+P / Cmd+Shift+P):
 ```
 
 #### **Backup Strategy**
+
 ```typescript
 // Automatic backup creation before any changes
 - Original config → config.backup
@@ -402,6 +433,7 @@ Access via Command Palette (Ctrl+Shift+P / Cmd+Shift+P):
 ```
 
 #### **Version Management**
+
 ```typescript
 // Smart version detection and upgrade handling
 - Compare semantic versions (1.2.3 format)
@@ -413,13 +445,13 @@ Access via Command Palette (Ctrl+Shift+P / Cmd+Shift+P):
 
 The auto-deployment system includes comprehensive error handling:
 
-| Error Type | Recovery Strategy |
-|------------|------------------|
+| Error Type            | Recovery Strategy                                |
+| --------------------- | ------------------------------------------------ |
 | **Permission Denied** | Show manual setup with elevated privileges guide |
-| **Disk Space** | Alert user and provide cleanup recommendations |
-| **Network Issues** | Use bundled assets with offline deployment |
+| **Disk Space**        | Alert user and provide cleanup recommendations   |
+| **Network Issues**    | Use bundled assets with offline deployment       |
 | **Config Corruption** | Create backup and initialize fresh configuration |
-| **Version Conflicts** | Smart merge with user preference preservation |
+| **Version Conflicts** | Smart merge with user preference preservation    |
 
 ### **📈 Performance Metrics**
 
@@ -440,6 +472,7 @@ Sprint 4 auto-deployment meets strict performance requirements:
 Access via Command Palette (Ctrl+Shift+P / Cmd+Shift+P):
 
 - **`MCP Diagnostics: Show Status`** - Opens detailed status webview with:
+
   - Server connection status
   - Problem statistics by severity and source
   - File-by-file breakdown
@@ -453,33 +486,38 @@ Access via Command Palette (Ctrl+Shift+P / Cmd+Shift+P):
 ### MCP Tools Reference
 
 #### 🔍 `getProblems` - Universal Problem Query
+
 Get all diagnostic problems with powerful filtering options:
 
 ```json
 {
   "name": "getProblems",
   "arguments": {
-    "filePath": "/path/to/file.ts",        // Optional: filter by specific file
-    "severity": "Error",                   // Optional: Error, Warning, Information, Hint
-    "workspaceFolder": "my-project",       // Optional: filter by workspace
-    "source": "typescript",               // Optional: filter by diagnostic source
-    "limit": 100,                         // Optional: limit results (default: 1000)
-    "offset": 0                           // Optional: pagination offset
+    "filePath": "/path/to/file.ts", // Optional: filter by specific file
+    "severity": "Error", // Optional: Error, Warning, Information, Hint
+    "workspaceFolder": "my-project", // Optional: filter by workspace
+    "source": "typescript", // Optional: filter by diagnostic source
+    "limit": 100, // Optional: limit results (default: 1000)
+    "offset": 0 // Optional: pagination offset
   }
 }
 ```
 
 **Example Response:**
+
 ```json
 {
-  "content": [{
-    "type": "text",
-    "text": "[{\"filePath\":\"/workspace/src/app.ts\",\"severity\":\"Error\",\"message\":\"Cannot find name 'foo'\",\"range\":{\"start\":{\"line\":10,\"character\":5},\"end\":{\"line\":10,\"character\":8}},\"source\":\"typescript\",\"workspaceFolder\":\"/workspace\",\"code\":\"2304\"}]"
-  }]
+  "content": [
+    {
+      "type": "text",
+      "text": "[{\"filePath\":\"/workspace/src/app.ts\",\"severity\":\"Error\",\"message\":\"Cannot find name 'foo'\",\"range\":{\"start\":{\"line\":10,\"character\":5},\"end\":{\"line\":10,\"character\":8}},\"source\":\"typescript\",\"workspaceFolder\":\"/workspace\",\"code\":\"2304\"}]"
+    }
+  ]
 }
 ```
 
 #### 📄 `getProblemsForFile` - File-Specific Diagnostics
+
 Get all problems for a specific file:
 
 ```json
@@ -492,24 +530,28 @@ Get all problems for a specific file:
 ```
 
 #### 📊 `getWorkspaceSummary` - Workspace Statistics
+
 Get comprehensive workspace diagnostic statistics:
 
 ```json
 {
   "name": "getWorkspaceSummary",
   "arguments": {
-    "groupBy": "severity"  // Optional: severity, source, workspaceFolder
+    "groupBy": "severity" // Optional: severity, source, workspaceFolder
   }
 }
 ```
 
 **Example Response:**
+
 ```json
 {
-  "content": [{
-    "type": "text",
-    "text": "{\"totalProblems\":15,\"byFile\":{\"app.ts\":3,\"utils.ts\":2},\"bySeverity\":{\"Error\":5,\"Warning\":10},\"bySource\":{\"typescript\":8,\"eslint\":7},\"byWorkspace\":{\"main\":15},\"timestamp\":\"2024-01-15T10:30:00.000Z\"}"
-  }]
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"totalProblems\":15,\"byFile\":{\"app.ts\":3,\"utils.ts\":2},\"bySeverity\":{\"Error\":5,\"Warning\":10},\"bySource\":{\"typescript\":8,\"eslint\":7},\"byWorkspace\":{\"main\":15},\"timestamp\":\"2024-01-15T10:30:00.000Z\"}"
+    }
+  ]
 }
 ```
 
@@ -559,15 +601,15 @@ Customize the extension via VS Code settings (`Ctrl+,` / `Cmd+,`):
 
 ### Configuration Options
 
-| Setting | Type | Default | Description |
-|---------|------|---------|-------------|
-| `server.port` | number | 6070 | MCP server port (1024-65535) |
-| `debounceMs` | number | 300 | Debounce interval for diagnostic events (50-5000ms) |
-| `enableDebugLogging` | boolean | false | Enable detailed debug logging |
-| `enablePerformanceLogging` | boolean | false | Enable performance metrics logging |
-| `maxProblemsPerFile` | number | 1000 | Maximum problems to track per file (1-10000) |
-| `debug.logLevel` | string | "info" | Logging level (error, warn, info, debug) |
-| `showAutoRegistrationNotification` | boolean | true | Show MCP server registration notifications |
+| Setting                            | Type    | Default | Description                                         |
+| ---------------------------------- | ------- | ------- | --------------------------------------------------- |
+| `server.port`                      | number  | 6070    | MCP server port (1024-65535)                        |
+| `debounceMs`                       | number  | 300     | Debounce interval for diagnostic events (50-5000ms) |
+| `enableDebugLogging`               | boolean | false   | Enable detailed debug logging                       |
+| `enablePerformanceLogging`         | boolean | false   | Enable performance metrics logging                  |
+| `maxProblemsPerFile`               | number  | 1000    | Maximum problems to track per file (1-10000)        |
+| `debug.logLevel`                   | string  | "info"  | Logging level (error, warn, info, debug)            |
+| `showAutoRegistrationNotification` | boolean | true    | Show MCP server registration notifications          |
 
 ## 🧪 Testing & Development
 
@@ -575,8 +617,8 @@ Customize the extension via VS Code settings (`Ctrl+,` / `Cmd+,`):
 
 The extension has achieved **world-class testing standards**:
 
-- **✅ 602 Tests Passing** - Comprehensive test suite with 0 failures (3 skipped)
-- **✅ 95.45% Statement Coverage** - Exceeding industry standards
+- **✅ 810 Tests Passing** - Comprehensive test suite with 0 failures (1 skipped)
+- **✅ 97.99% Statement Coverage** - Exceeding industry standards
 - **✅ 34 Test Suites** - Organized, maintainable test structure across all components
 - **✅ Cross-Platform Testing** - Validated on Windows, macOS, and Linux environments
 - **✅ Comprehensive E2E Testing** - Full extension workflow validation
@@ -586,12 +628,14 @@ The extension has achieved **world-class testing standards**:
 The extension provides **two operational modes**:
 
 #### 🔴 **Real VS Code Extension** (Production Mode)
+
 - **Purpose**: Production use with actual VS Code diagnostics
 - **Data Source**: Live VS Code Problems panel
 - **Activation**: Automatic when extension is installed
 - **Use Case**: Real development workflows with AI agents
 
 #### 🔧 **Development Tools**
+
 - **Package Validation**: `scripts/validate-package.sh` - Automated package integrity checks
 - **Asset Conversion**: `scripts/convert-assets.js` - Visual asset optimization utilities
 
@@ -648,7 +692,8 @@ All MCP clients use the same basic configuration pattern with environment-specif
 
 ```json
 {
-  "mcpServers": {  // or "servers" for some clients
+  "mcpServers": {
+    // or "servers" for some clients
     "vscode-diagnostics": {
       "command": "node",
       "args": ["scripts/mcp-server.js"],
@@ -664,16 +709,17 @@ All MCP clients use the same basic configuration pattern with environment-specif
 
 ### 📁 **Configuration File Locations**
 
-| Environment | Configuration File | Format |
-|-------------|-------------------|---------|
-| **Cursor IDE** | `.cursor/mcp.json` | `mcpServers` |
-| **VS Code** | `.vscode/mcp.json` | `servers` (with `type: "stdio"`) |
-| **Windsurf** | `.windsurf/mcp.json` | `servers` |
-| **Claude Desktop** | `claude_desktop_config.json` | `mcpServers` |
+| Environment        | Configuration File           | Format                           |
+| ------------------ | ---------------------------- | -------------------------------- |
+| **Cursor IDE**     | `.cursor/mcp.json`           | `mcpServers`                     |
+| **VS Code**        | `.vscode/mcp.json`           | `servers` (with `type: "stdio"`) |
+| **Windsurf**       | `.windsurf/mcp.json`         | `servers`                        |
+| **Claude Desktop** | `claude_desktop_config.json` | `mcpServers`                     |
 
 ### MCP Client Configuration Examples
 
 #### Cursor IDE
+
 ```json
 // .cursor/mcp.json or cursor-mcp-config.json
 {
@@ -692,6 +738,7 @@ All MCP clients use the same basic configuration pattern with environment-specif
 ```
 
 #### VS Code with MCP Extension
+
 ```json
 // .vscode/mcp.json
 {
@@ -711,6 +758,7 @@ All MCP clients use the same basic configuration pattern with environment-specif
 ```
 
 #### Windsurf IDE
+
 ```json
 // .windsurf/mcp.json
 {
@@ -729,6 +777,7 @@ All MCP clients use the same basic configuration pattern with environment-specif
 ```
 
 #### Claude Desktop
+
 ```json
 // claude_desktop_config.json
 {
@@ -747,29 +796,30 @@ All MCP clients use the same basic configuration pattern with environment-specif
 ```
 
 #### Custom MCP Client
+
 ```typescript
 import { Client } from '@modelcontextprotocol/client';
 
 const client = new Client({
-  name: "my-client",
-  version: "1.0.0"
+  name: 'my-client',
+  version: '1.0.0',
 });
 
 // Connect to extension
 await client.connect({
-  command: "node",
-  args: ["scripts/mcp-server.js"],
-  cwd: "/path/to/mcp-diagnostics-extension",
+  command: 'node',
+  args: ['scripts/mcp-server.js'],
+  cwd: '/path/to/mcp-diagnostics-extension',
   env: {
-    NODE_ENV: "production",
-    MCP_DEBUG: "false"
-  }
+    NODE_ENV: 'production',
+    MCP_DEBUG: 'false',
+  },
 });
 
 // Use tools
 const problems = await client.callTool({
-  name: "getProblems",
-  arguments: { severity: "Error" }
+  name: 'getProblems',
+  arguments: { severity: 'Error' },
 });
 ```
 
@@ -785,12 +835,12 @@ The `scripts/mcp-server.js` provides:
 
 ### 🌍 **Environment Variables**
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `NODE_ENV` | `development` | Set to `production` for optimized performance |
-| `MCP_DEBUG` | `false` | Enable detailed debug logging |
-| `REFRESH_INTERVAL` | `30000` | Cache refresh interval in milliseconds |
-| `MAX_PROBLEMS` | `10000` | Maximum number of problems to cache |
+| Variable           | Default       | Description                                   |
+| ------------------ | ------------- | --------------------------------------------- |
+| `NODE_ENV`         | `development` | Set to `production` for optimized performance |
+| `MCP_DEBUG`        | `false`       | Enable detailed debug logging                 |
+| `REFRESH_INTERVAL` | `30000`       | Cache refresh interval in milliseconds        |
+| `MAX_PROBLEMS`     | `10000`       | Maximum number of problems to cache           |
 
 ### 🔄 **Data Sources**
 
@@ -879,3 +929,4 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 ---
 
 **🚀 Ready to supercharge your AI-assisted development workflow? Install the MCP Diagnostics Extension today and give your AI agents complete visibility into your codebase health!**
+```
