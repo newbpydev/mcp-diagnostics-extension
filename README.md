@@ -107,14 +107,14 @@ Before this extension, AI agents couldn't see your VS Code problems panel, makin
 
 - **🔍 Real-time Diagnostics Monitoring**: Automatically captures all diagnostic problems from VS Code's Problems panel using advanced event debouncing (300ms configurable)
 - **🤖 MCP Server Integration**: Exposes diagnostics through standardized MCP tools and resources with comprehensive filtering capabilities
-- **⚡ Performance Optimized**: Handles large workspaces efficiently with smart caching and memory management (95.45% test coverage)
+- **⚡ Performance Optimized**: Handles large workspaces efficiently with smart caching and memory management (97.99% test coverage)
 - **🏢 Multi-workspace Support**: Seamlessly works with complex project structures and multiple workspace folders
 - **📡 Real-time Notifications**: Pushes diagnostic changes instantly to connected MCP clients with structured payloads
 - **🎨 Enhanced Status Bar**: Color-coded status bar with red (errors), orange (warnings), green (clean) backgrounds and real-time updates
 - **🎛️ Command Palette**: Full integration with VS Code commands for server management and detailed status viewing with webview
 - **🔧 Highly Configurable**: Customizable port, debounce timing, logging options, and performance settings
 - **🚀 Automatic Registration**: One-click setup with intelligent MCP server registration across different environments
-- **🧪 Test Workspace**: Comprehensive testing environment with intentional errors for validation (602 tests passing)
+- **🧪 Test Workspace**: Comprehensive testing environment with intentional errors for validation (810 tests passing)
 - **🛡️ Robust Error Handling**: Graceful degradation and comprehensive error recovery mechanisms
 - **🌐 Cross-Platform Support**: Native Windows, macOS, and Linux compatibility with platform-specific optimizations
 
@@ -660,7 +660,7 @@ The extension includes `test-workspace/` with intentional errors:
 # Install dependencies
 npm install
 
-# Run tests (602 tests)
+# Run tests (810 tests)
 npm test
 
 # Run tests with coverage
@@ -881,7 +881,7 @@ We welcome contributions! Please see our [Contributing Guide](./.github/CONTRIBU
 1. **Fork the repository**
 2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
 3. **Make changes** following our coding standards
-4. **Run tests**: `npm test` (all 602 tests must pass)
+4. **Run tests**: `npm test` (all 810 tests must pass)
 5. **Lint code**: `npm run lint`
 6. **Commit changes**: `npm run commit` (uses conventional commits)
 7. **Push to branch**: `git push origin feature/amazing-feature`
