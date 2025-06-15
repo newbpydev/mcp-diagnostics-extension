@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.4.0](https://github.com/newbpydev/mcp-diagnostics-extension/compare/v1.3.1...v1.4.0) (2025-06-15)
+
+### Features
+
+- add command to configure MCP server automatically and enhance diagnostics analysis handling ([2c680d1](https://github.com/newbpydev/mcp-diagnostics-extension/commit/2c680d1aa9dc17853e66a8c1347762419dc0f1e4))
+- add MCP server registration and diagnostics watcher implementation ([1d5332a](https://github.com/newbpydev/mcp-diagnostics-extension/commit/1d5332a28210335621fe94844c8a573f111b9594))
+- add server deployment and error handling test coverage ([30c2f06](https://github.com/newbpydev/mcp-diagnostics-extension/commit/30c2f060f2a9914c8f9ca3fbf5f17153d82886a8))
+- **ci-cd.yml:** add validation step for Sprint 4 auto-deployment to ensure functionality ([2624ad3](https://github.com/newbpydev/mcp-diagnostics-extension/commit/2624ad37d6dbf1eca258ebdff6a228d6c6f67678))
+- enhance diagnostics workflow with improved error handling and unit tests ([e8f0500](https://github.com/newbpydev/mcp-diagnostics-extension/commit/e8f050009bd8c6cce0bf493e39985e44a02ab631))
+- enhance MCP server registration with improved error handling and comprehensive unit tests ([8ba727a](https://github.com/newbpydev/mcp-diagnostics-extension/commit/8ba727ab61623677d9cb419e87b2c2efa5391347))
+- implement cross-platform diagnostics server with TypeScript and ESLint analysis ([4e18aaa](https://github.com/newbpydev/mcp-diagnostics-extension/commit/4e18aaae0998f52776bba850dd132364641ee218))
+- implement MCP server registration and configuration manager ([8ab3854](https://github.com/newbpydev/mcp-diagnostics-extension/commit/8ab3854c679f897676d28003d6d1514116fd1601))
+- implement server installation utilities with atomic operations and version checks ([4ec53bc](https://github.com/newbpydev/mcp-diagnostics-extension/commit/4ec53bc8abed86022caf24d983c811365e4bed7d))
+- **mcp:** enhance ExtensionCommands with safe problem retrieval and improved VS Code API integration ([38ada61](https://github.com/newbpydev/mcp-diagnostics-extension/commit/38ada61451a330b10584ef6b41267b64a38bdb08))
+- **mcp:** implement configuration injection with validation, error handling, and atomic write operations ([1236445](https://github.com/newbpydev/mcp-diagnostics-extension/commit/1236445fdd44778a3ff5bc6b7092730bff42dcd0))
+- merge auto-server-injection branch with MCP registration, cross-platform diagnostics, and Sprint 4 auto-deployment features ([b6f6767](https://github.com/newbpydev/mcp-diagnostics-extension/commit/b6f676712495f48d846200da63e99fea5a1c50a1))
+
+### Code Refactoring
+
+- **McpServerRegistration.test.ts:** improve file operations mocking for better control and verification in tests ([b322f42](https://github.com/newbpydev/mcp-diagnostics-extension/commit/b322f4269d3de4af986ba6543d4fa1bc495ecd18))
+- migrate from .eslintignore to eslint.config.mjs and add DiagnosticsWatcher ([0e568d5](https://github.com/newbpydev/mcp-diagnostics-extension/commit/0e568d5a6d460da474d17996c439caad37b9f7f5))
+
+### Documentation
+
+- update test count to 810 and coverage to 97.99% for v1.4.0 release ([d0340eb](https://github.com/newbpydev/mcp-diagnostics-extension/commit/d0340ebf34a8676e0a651dc88bbacfa1e96302c0))
+
 ### [1.3.1](https://github.com/newbpydev/mcp-diagnostics-extension/compare/v1.3.0...v1.3.1) (2025-06-12)
 
 ### Features
