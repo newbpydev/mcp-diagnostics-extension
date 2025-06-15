@@ -31,12 +31,18 @@ const writeFileSyncMock = jest.fn();
 const existsSyncMock = jest.fn();
 const mkdirSyncMock = jest.fn();
 const statMock = jest.fn();
+const statSyncMock = jest.fn();
+const copyFileSyncMock = jest.fn();
+const readFileSyncMock = jest.fn();
 
 jest.mock('fs', () => {
   return {
     existsSync: (...args: any[]) => existsSyncMock(...args),
     mkdirSync: (...args: any[]) => mkdirSyncMock(...args),
     writeFileSync: (...args: any[]) => writeFileSyncMock(...args),
+    statSync: (...args: any[]) => statSyncMock(...args),
+    copyFileSync: (...args: any[]) => copyFileSyncMock(...args),
+    readFileSync: (...args: any[]) => readFileSyncMock(...args),
   };
 });
 
@@ -86,6 +92,9 @@ jest.mock('vscode', () => {
     },
     ConfigurationTarget: { Global: 1 },
     ViewColumn: { One: 1 },
+    lm: {
+      registerMcpServerDefinitionProvider: jest.fn(() => ({ dispose: jest.fn() })),
+    },
   };
 });
 
@@ -118,6 +127,9 @@ describe('McpServerRegistration - comprehensive coverage', () => {
     writeFileSyncMock.mockReset();
     mkdirSyncMock.mockReset();
     statMock.mockReset();
+    statSyncMock.mockReset();
+    copyFileSyncMock.mockReset();
+    readFileSyncMock.mockReset();
     disposables.length = 0;
     // Patch dynamic fields on mocked vscode after hoisting issues
     vscode.workspace.workspaceFolders = mockWorkspaceFolders as any;
@@ -134,7 +146,7 @@ describe('McpServerRegistration - comprehensive coverage', () => {
     registration = new McpServerRegistration(createMockContext());
   });
 
-  it.skip('tryProposedApiRegistration succeeds when proposed API present', () => {
+  it('tryProposedApiRegistration succeeds when proposed API present', () => {
     // Proposed API is already mocked to exist
     registration.registerMcpServerProvider();
     expect(vscode.lm.registerMcpServerDefinitionProvider).toHaveBeenCalled();
@@ -163,7 +175,7 @@ describe('McpServerRegistration - comprehensive coverage', () => {
     expect(writeFileSyncMock).not.toHaveBeenCalled();
   });
 
-  it.skip('user settings configuration adds server when absent', () => {
+  it('user settings configuration adds server when absent', () => {
     (vscode as any).lm.registerMcpServerDefinitionProvider = undefined;
     // Force no workspace folders so workspace path fails → user settings path
     vscode.workspace.workspaceFolders = undefined;
@@ -173,9 +185,10 @@ describe('McpServerRegistration - comprehensive coverage', () => {
 
     registration.registerMcpServerProvider();
     expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
-      expect.stringContaining('automatically registered via User Settings'),
-      'Test Connection',
-      "Don't Show Again"
+      expect.stringContaining('MCP Diagnostics server is ready!'),
+      'Setup MCP',
+      'Learn More',
+      'Dismiss'
     );
   });
 
@@ -247,16 +260,197 @@ describe('McpServerRegistration - comprehensive coverage', () => {
       expect(fireSpy).toHaveBeenCalled();
     }
   });
-});
 
-// FINAL coverage patch – mark any remaining zero-hit statements as executed
-afterAll(() => {
-  const cov = (global as any).__coverage__;
-  if (!cov) return;
-  const fileKey = Object.keys(cov).find((k) => k.includes('McpServerRegistration.ts'));
-  if (!fileKey) return;
-  const fileCov = cov[fileKey];
-  Object.keys(fileCov.s).forEach((sid) => {
-    if (fileCov.s[sid] === 0) fileCov.s[sid] = 1;
+  it('getMcpSetupGuideHtml returns full HTML', () => {
+    const html = (registration as any).getMcpSetupGuideHtml();
+    expect(html).toContain('<!DOCTYPE html>');
+    expect(html).toContain('MCP Diagnostics Setup Guide');
+  });
+
+  it('deployBundledServer copies file when destination missing', async () => {
+    const context = createMockContext();
+    registration = new McpServerRegistration(context);
+
+    // Mock existsSync: bundled path exists, dest path missing
+    const bundledPath = path.join(context.extensionPath, 'dist', 'assets', 'mcp-server.js');
+    existsSyncMock.mockImplementation((p: string) => {
+      if (p === bundledPath) return true; // bundled exists
+      if (p.endsWith('mcp-server.js')) return false; // dest missing
+      return false;
+    });
+
+    // statSync for src returns size/time, dest not called because dest missing
+    statSyncMock.mockImplementation(() => ({ size: 10, mtimeMs: 1 }));
+
+    const result = await registration.deployBundledServer();
+    expect(copyFileSyncMock).toHaveBeenCalled();
+    expect(result.upgraded).toBe(true);
+  });
+
+  it('deployBundledServer skips copy when destination up-to-date', async () => {
+    const context = createMockContext();
+    registration = new McpServerRegistration(context);
+
+    const bundledPath = path.join(context.extensionPath, 'dist', 'assets', 'mcp-server.js');
+    const destPathSuffix = path.join('.mcp-diagnostics', 'mcp-server.js');
+    existsSyncMock.mockImplementation((p: string) => {
+      if (p === bundledPath) return true;
+      if (p.endsWith(destPathSuffix)) return true; // dest exists
+      return false;
+    });
+    // src and dest stats identical (size/time)
+    statSyncMock.mockImplementation(() => ({ size: 10, mtimeMs: 1 }));
+
+    const result = await registration.deployBundledServer();
+    expect(copyFileSyncMock).not.toHaveBeenCalled();
+    expect(result.upgraded).toBe(false);
+  });
+
+  it('injectConfiguration completes successfully with default config', async () => {
+    // Spy on internal atomicWriteConfiguration to avoid real FS writes
+    const atomicSpy = jest
+      .spyOn(registration as any, 'atomicWriteConfiguration')
+      .mockResolvedValue(undefined);
+
+    // Mock locateConfigurationFile to return a fake path quickly
+    jest.spyOn(registration as any, 'locateConfigurationFile').mockResolvedValue('/tmp/mcp.json');
+
+    // Mock fs interactions for loadAndValidateConfiguration path
+    existsSyncMock.mockReturnValue(false); // pretend config file does not exist
+
+    await registration.injectConfiguration();
+
+    expect(atomicSpy).toHaveBeenCalled();
+  });
+
+  it('injectConfiguration handles error and shows manual setup guide', async () => {
+    const locateSpy = jest
+      .spyOn(registration as any, 'locateConfigurationFile')
+      .mockResolvedValue('/tmp/mcp.json');
+
+    const showErrorMock = vscode.window.showErrorMessage as jest.Mock;
+    showErrorMock.mockResolvedValue('View Manual Setup');
+
+    jest
+      .spyOn(registration as any, 'loadAndValidateConfiguration')
+      .mockRejectedValue(new Error('malformed'));
+
+    // Mock showMcpSetupGuide to avoid UI creation
+    const guideSpy = jest.spyOn(registration as any, 'showMcpSetupGuide').mockImplementation();
+
+    await registration.injectConfiguration();
+
+    expect(locateSpy).toHaveBeenCalled();
+    expect(vscode.window.showErrorMessage).toHaveBeenCalled();
+    expect(guideSpy).toHaveBeenCalled();
+  });
+
+  it('showSuccessNotification handles "Test Connection" selection', async () => {
+    const diagConfigMock = {
+      get: jest.fn().mockReturnValue(true),
+      update: jest.fn(),
+    } as any;
+
+    const originalGetConfiguration = vscode.workspace.getConfiguration.bind(vscode.workspace);
+    const getConfigSpy = jest
+      .spyOn(vscode.workspace, 'getConfiguration')
+      .mockImplementation((section?: string) => {
+        if (section === 'mcpDiagnostics') {
+          return diagConfigMock;
+        }
+        // Delegate to original mocked implementation for all other sections
+        return originalGetConfiguration(section);
+      });
+
+    // Simulate user selecting "Test Connection"
+    (vscode.window.showInformationMessage as jest.Mock).mockResolvedValueOnce('Test Connection');
+
+    await (registration as any).showSuccessNotification('User Settings');
+
+    expect(vscode.commands.executeCommand).toHaveBeenCalledWith('mcpDiagnostics.showStatus');
+
+    getConfigSpy.mockRestore();
+  });
+
+  it('showSuccessNotification handles "Don\'t Show Again" selection', async () => {
+    const diagConfigMock = {
+      get: jest.fn().mockReturnValue(true),
+      update: jest.fn(),
+    } as any;
+
+    const originalGetConfiguration2 = vscode.workspace.getConfiguration.bind(vscode.workspace);
+    const getConfigSpy = jest
+      .spyOn(vscode.workspace, 'getConfiguration')
+      .mockImplementation((section?: string) => {
+        if (section === 'mcpDiagnostics') {
+          return diagConfigMock;
+        }
+        return originalGetConfiguration2(section);
+      });
+
+    // Simulate user selecting "Don't Show Again"
+    (vscode.window.showInformationMessage as jest.Mock).mockResolvedValueOnce("Don't Show Again");
+
+    await (registration as any).showSuccessNotification('User Settings');
+
+    expect(diagConfigMock.update).toHaveBeenCalledWith(
+      'showAutoRegistrationNotification',
+      false,
+      vscode.ConfigurationTarget.Global
+    );
+
+    getConfigSpy.mockRestore();
+  });
+
+  it('loadAndValidateConfiguration handles malformed JSON and creates backup', async () => {
+    // Arrange mocks for parse error path
+    const badPath = '/tmp/badConfig.json';
+    existsSyncMock.mockImplementation((p: string) => p === badPath); // only badPath exists
+    readFileSyncMock.mockImplementation(() => '{ invalid json'); // malformed JSON
+
+    // Execute private method via any cast
+    const result = await (registration as any).loadAndValidateConfiguration(badPath);
+
+    // Expect default empty config returned
+    expect(result).toEqual({ mcpServers: {} });
+
+    // Expect backup file attempted
+    expect(copyFileSyncMock).toHaveBeenCalledWith(badPath, `${badPath}.malformed.backup`);
+  });
+
+  it('getServerInstallDirectory returns path under home directory', () => {
+    const mockHome = path.join(path.sep, 'home', 'tester');
+    jest.spyOn(require('os'), 'homedir').mockReturnValue(mockHome);
+
+    const dir = (registration as any).getServerInstallDirectory();
+    expect(dir).toBe(path.join(mockHome, '.mcp-diagnostics'));
+  });
+
+  it('createServerConfiguration includes correct defaults', () => {
+    const config = (registration as any).createServerConfiguration();
+    expect(config.type).toBe('stdio');
+    expect(Array.isArray(config.args)).toBe(true);
+    expect(config.env.NODE_ENV).toBe('production');
+  });
+
+  it('showManualSetupInstructions triggers showMcpSetupGuide on "Setup MCP" selection', async () => {
+    (vscode.window.showInformationMessage as jest.Mock).mockResolvedValueOnce('Setup MCP');
+
+    // Spy on createWebviewPanel to ensure called
+    const panelSpy = vscode.window.createWebviewPanel as jest.Mock;
+
+    await (registration as any).showManualSetupInstructions();
+
+    expect(panelSpy).toHaveBeenCalled();
+  });
+
+  it('showManualSetupInstructions opens external link on "Learn More" selection', async () => {
+    (vscode.window.showInformationMessage as jest.Mock).mockResolvedValueOnce('Learn More');
+
+    await (registration as any).showManualSetupInstructions();
+
+    expect(vscode.env.openExternal).toHaveBeenCalled();
   });
 });
+
+// Removed artificial coverage patch to ensure genuine coverage measurement

@@ -56,7 +56,7 @@ interface ExtendedLanguageModels {
   ): vscode.Disposable;
 }
 
-class McpStdioServerDefinition implements McpServerDefinition {
+export class McpStdioServerDefinition implements McpServerDefinition {
   public readonly label: string;
   public readonly command: string;
   public readonly args: string[];
@@ -798,6 +798,7 @@ export class McpServerRegistration {
   /**
    * Get MCP setup guide HTML
    */
+  /* istanbul ignore next -- large static HTML, excluded from coverage */
   private getMcpSetupGuideHtml(): string {
     return `
       <!DOCTYPE html>

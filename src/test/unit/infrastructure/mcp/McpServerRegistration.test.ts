@@ -57,8 +57,11 @@ jest.mock('path');
 const mockedFs = fs as jest.Mocked<typeof fs>;
 const mockedPath = path as jest.Mocked<typeof path>;
 
-// Import the class under test
-import { McpServerRegistration } from '@infrastructure/mcp/McpServerRegistration';
+// Import the classes under test
+import {
+  McpServerRegistration,
+  McpStdioServerDefinition,
+} from '@infrastructure/mcp/McpServerRegistration';
 
 // Create a mock class for testing McpStdioServerDefinition functionality
 class MockStdioServerDefinition {
@@ -134,6 +137,30 @@ describe('McpServerRegistration', () => {
 
     it('should set extension URI correctly', () => {
       expect((mcpRegistration as any).context.extensionUri).toBe(mockExtensionUri);
+    });
+
+    it('should handle EventEmitter instantiation failure gracefully', () => {
+      const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+      // vscode.EventEmitter is already a Jest mock due to jest.mock('vscode', ...)
+      const mockVscodeEventEmitter = vscode.EventEmitter as jest.Mock;
+
+      // Make it throw an error for the next instantiation within this test
+      mockVscodeEventEmitter.mockImplementationOnce(() => {
+        throw new Error('Test EventEmitter error');
+      });
+
+      let testRegistrationInstance: McpServerRegistration | null = null;
+      // The McpServerRegistration constructor should catch this error internally
+      testRegistrationInstance = new McpServerRegistration(mockContext);
+
+      expect(testRegistrationInstance).toBeDefined();
+      // Verify that didChangeEmitter was set to null as per the catch block
+      expect((testRegistrationInstance as any).didChangeEmitter).toBeNull();
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        '[MCP Registration] EventEmitter not available (likely test environment)'
+      );
+      // jest.clearAllMocks() in beforeEach should reset the mock for other tests.
+      consoleLogSpy.mockRestore();
     });
   });
 
@@ -1176,5 +1203,242 @@ describe('McpServerRegistration', () => {
         );
       });
     });
+  });
+  describe('deployBundledServer', () => {
+    let getServerInstallDirectorySpy: jest.SpiedFunction<() => string>;
+    const mockInstallDir = '/mock/install/dir';
+    const mockBundledPathDist = '/test/extension/dist/assets/mcp-server.js'; // From mockedExtensionContext.extensionPath
+    const mockDestPath = '/mock/install/dir/mcp-server.js'; // From mockInstallDir
+
+    beforeEach(() => {
+      getServerInstallDirectorySpy = jest
+        .spyOn(mcpRegistration as any, 'getServerInstallDirectory')
+        .mockReturnValue(mockInstallDir);
+
+      mockedFs.existsSync.mockReset();
+      mockedFs.statSync.mockReset(); // Reset statSync as it's used in the method
+      (mockedFs.copyFileSync as jest.Mock).mockReset();
+      (mockedFs.mkdirSync as jest.Mock).mockReset().mockImplementation(() => undefined);
+      mockedPath.join.mockImplementation((...args: string[]) => args.join('/')); // Ensure path.join is mocked for this suite
+    });
+
+    afterEach(() => {
+      getServerInstallDirectorySpy.mockRestore();
+      jest.restoreAllMocks(); // Restores spies like console.error
+    });
+
+    const createMockStats = (size: number, mtimeMsInput: number): fs.Stats => {
+      const now = Date.now();
+      return {
+        size,
+        isFile: () => true,
+        isDirectory: () => false,
+        isBlockDevice: () => false,
+        isCharacterDevice: () => false,
+        isSymbolicLink: () => false,
+        isFIFO: () => false,
+        isSocket: () => false,
+        dev: 0,
+        ino: 0,
+        mode: 0o644,
+        nlink: 1,
+        uid: 0,
+        gid: 0,
+        rdev: 0,
+        blksize: 4096,
+        blocks: Math.ceil(size / 4096),
+        atimeMs: now,
+        mtimeMs: mtimeMsInput,
+        ctimeMs: now,
+        birthtimeMs: now,
+        atime: new Date(now),
+        mtime: new Date(mtimeMsInput),
+        ctime: new Date(now),
+        birthtime: new Date(now),
+      } as fs.Stats;
+    };
+
+    const createMockBigIntStats = (size: number, mtimeMsInput: number): fs.BigIntStats => {
+      const now = Date.now();
+      const nowNs = BigInt(now) * 1000000n; // Convert ms to ns
+      const mtimeNsInput = BigInt(mtimeMsInput) * 1000000n;
+      return {
+        size: BigInt(size),
+        isFile: () => true,
+        isDirectory: () => false,
+        isBlockDevice: () => false,
+        isCharacterDevice: () => false,
+        isSymbolicLink: () => false,
+        isFIFO: () => false,
+        isSocket: () => false,
+        dev: 0n,
+        ino: 0n,
+        mode: 0o644, // mode is number
+        nlink: 1n,
+        uid: 0, // uid is number
+        gid: 0, // gid is number
+        rdev: 0n,
+        blksize: 4096n,
+        blocks: BigInt(Math.ceil(size / 4096)),
+        atimeMs: BigInt(now),
+        mtimeMs: BigInt(mtimeMsInput),
+        ctimeMs: BigInt(now),
+        birthtimeMs: BigInt(now),
+        atime: new Date(now),
+        mtime: new Date(mtimeMsInput),
+        ctime: new Date(now),
+        birthtime: new Date(now),
+        atimeNs: nowNs,
+        mtimeNs: mtimeNsInput,
+        ctimeNs: nowNs,
+        birthtimeNs: nowNs,
+      } as unknown as fs.BigIntStats;
+    };
+
+    it('should throw an error if bundled server binary is not found', async () => {
+      (mockedFs.existsSync as jest.Mock).mockReturnValue(false);
+      await expect(mcpRegistration.deployBundledServer()).rejects.toThrow(
+        'Bundled MCP server binary not found.'
+      );
+    });
+
+    it('should handle errors during fs.copyFileSync and re-throw, logging the error', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const copyError = new Error('Disk full');
+
+      // Setup mocks for a copy attempt where destination does not exist
+      mockedFs.existsSync.mockImplementation((p: fs.PathLike) => {
+        const pathStr = p.toString();
+        if (pathStr === mockBundledPathDist) return true; // Bundled server found
+        if (pathStr === mockDestPath) return false; // Destination does not exist, copy is needed
+        return false; // Other potential bundled paths don't exist
+      });
+      // fs.statSync won't be called for destPath if it doesn't exist.
+      // fs.statSync(bundledPath) also won't be called if destPath doesn't exist, according to source logic.
+
+      (mockedFs.copyFileSync as jest.Mock).mockImplementation(() => {
+        throw copyError;
+      });
+
+      await expect(mcpRegistration.deployBundledServer()).rejects.toThrow(copyError);
+      expect(mockedFs.mkdirSync).toHaveBeenCalledWith(mockInstallDir, { recursive: true });
+      expect(mockedFs.copyFileSync).toHaveBeenCalledWith(mockBundledPathDist, mockDestPath);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '[MCP Registration] Failed to deploy server:',
+        copyError
+      );
+    });
+
+    it('should copy the file if destination exists but stats are different', async () => {
+      const bundledStats = createMockStats(100, 1000);
+      const destStats = createMockStats(50, 500); // Different stats
+
+      mockedFs.existsSync.mockImplementation((p: fs.PathLike) => {
+        const pathStr = p.toString();
+        if (pathStr === mockBundledPathDist) return true;
+        if (pathStr === mockDestPath) return true; // Destination exists
+        return false;
+      });
+      (mockedFs.statSync as unknown as jest.Mock).mockImplementation((...args: any[]) => {
+        const [p, options] = args;
+        const pathStr = p.toString();
+        if (options?.bigint) {
+          if (pathStr === mockBundledPathDist) return createMockBigIntStats(100, 1000);
+          if (pathStr === mockDestPath) return createMockBigIntStats(50, 500);
+        } else {
+          if (pathStr === mockBundledPathDist) return bundledStats;
+          if (pathStr === mockDestPath) return destStats;
+        }
+        throw new Error(
+          `Unexpected statSync call to ${pathStr} with options ${JSON.stringify(options)}`
+        );
+      });
+      mockedFs.copyFileSync.mockImplementation(() => {}); // Mock successful copy
+
+      await mcpRegistration.deployBundledServer();
+
+      expect(mockedFs.mkdirSync).toHaveBeenCalledWith(mockInstallDir, { recursive: true });
+      expect(mockedFs.statSync).toHaveBeenCalledWith(mockBundledPathDist);
+      expect(mockedFs.statSync).toHaveBeenCalledWith(mockDestPath);
+      expect(mockedFs.copyFileSync).toHaveBeenCalledWith(mockBundledPathDist, mockDestPath);
+    });
+
+    it('should not copy the file if destination exists and stats are the same', async () => {
+      const sameStats = createMockStats(100, 1000);
+
+      mockedFs.existsSync.mockImplementation((p: fs.PathLike) => {
+        const pathStr = p.toString();
+        if (pathStr === mockBundledPathDist) return true;
+        if (pathStr === mockDestPath) return true; // Destination exists
+        return false;
+      });
+      (mockedFs.statSync as unknown as jest.Mock).mockImplementation((...args: any[]) => {
+        const [p, options] = args;
+        const pathStr = p.toString();
+        // sameStats is created using createMockStats(100, 1000)
+        const statsToReturn = options?.bigint ? createMockBigIntStats(100, 1000) : sameStats;
+        if (pathStr === mockBundledPathDist) return statsToReturn;
+        if (pathStr === mockDestPath) return statsToReturn;
+        throw new Error(
+          `Unexpected statSync call to ${pathStr} with options ${JSON.stringify(options)}`
+        );
+      });
+      mockedFs.copyFileSync.mockImplementation(() => {}); // Should not be called
+
+      await mcpRegistration.deployBundledServer();
+
+      expect(mockedFs.mkdirSync).toHaveBeenCalledWith(mockInstallDir, { recursive: true });
+      expect(mockedFs.statSync).toHaveBeenCalledWith(mockBundledPathDist);
+      expect(mockedFs.statSync).toHaveBeenCalledWith(mockDestPath);
+      expect(mockedFs.copyFileSync).not.toHaveBeenCalled();
+    });
+  }); // End of describe('deployBundledServer', ...)
+}); // This is the original closing brace for McpServerRegistration
+
+describe('McpStdioServerDefinition', () => {
+  const baseOptions = {
+    label: 'Test Server',
+    command: 'node',
+    args: ['server.js'],
+  };
+
+  it('should correctly assign label, command, and args', () => {
+    const definition = new McpStdioServerDefinition(baseOptions);
+    expect(definition.label).toBe(baseOptions.label);
+    expect(definition.command).toBe(baseOptions.command);
+    expect(definition.args).toEqual(baseOptions.args);
+  });
+
+  it('should assign cwd if provided', () => {
+    const mockCwd = { fsPath: '/test/cwd' } as any; // Mock vscode.Uri
+    const definition = new McpStdioServerDefinition({ ...baseOptions, cwd: mockCwd });
+    expect(definition.cwd).toBe(mockCwd);
+  });
+
+  it('should not have cwd if not provided', () => {
+    const definition = new McpStdioServerDefinition(baseOptions);
+    expect(definition.cwd).toBeUndefined();
+  });
+
+  it('should assign env if provided', () => {
+    const mockEnv = { NODE_ENV: 'test' };
+    const definition = new McpStdioServerDefinition({ ...baseOptions, env: mockEnv });
+    expect(definition.env).toEqual(mockEnv);
+  });
+
+  it('should not have env if not provided', () => {
+    const definition = new McpStdioServerDefinition(baseOptions);
+    expect(definition.env).toBeUndefined();
+  });
+
+  it('should assign version if provided', () => {
+    const mockVersion = '1.0.0';
+    const definition = new McpStdioServerDefinition({ ...baseOptions, version: mockVersion });
+    expect(definition.version).toBe(mockVersion);
+  });
+
+  it('should not have version if not provided', () => {
+    const definition = new McpStdioServerDefinition(baseOptions);
+    expect(definition.version).toBeUndefined();
   });
 });
