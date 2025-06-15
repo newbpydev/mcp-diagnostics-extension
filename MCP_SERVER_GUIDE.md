@@ -1,16 +1,16 @@
 # 🚀 MCP Diagnostics Extension - Complete Setup Guide
 
-## 🏆 **v1.3.0 - EXCEPTIONAL ACHIEVEMENTS**
-- **602 Tests Passing** | **95.45% Coverage** | **Production Ready**
-- **Real-time VS Code Diagnostics** via MCP for AI agents
-- **Cross-Platform Support** - Windows, macOS, Linux compatibility
+## 🏆 **v1.4.0 - AUTO-DEPLOYMENT & CROSS-PLATFORM EXCELLENCE**
+- **810 Tests Passing** | **97.99% Coverage** | **Production Ready**
+- **Automatic MCP Server Registration** with one-click setup
+- **Cross-Platform Diagnostic Analysis** - Enhanced TypeScript/ESLint integration
 - **Universal Client Support** - Cursor, VS Code, Windsurf, Claude Desktop
 
 ## 🎯 Overview
 
 This extension provides **real VS Code diagnostic data** via MCP (Model Context Protocol) for AI agents in Cursor, Claude Desktop, and other MCP-enabled tools.
 
-**Current Version:** v1.3.0 | **Tests:** 602 passing (3 skipped) | **Status:** Production Ready
+**Current Version:** v1.4.0 | **Tests:** 810 passing (1 skipped) | **Status:** Production Ready
 **✅ Production Server:** Use `scripts/mcp-server.js` for real diagnostic data from VS Code.
 
 ## 🔴 Architecture Overview
@@ -25,14 +25,14 @@ This extension provides **real VS Code diagnostic data** via MCP (Model Context 
 - **MCP Server:** `scripts/mcp-server.js` - Serves diagnostic data via MCP
 - **Data Bridge:** Temp file `vscode-diagnostics-export.json` - Real-time data transfer
 
-## ✨ Latest Features (v1.3.0)
+## ✨ Latest Features (v1.4.0)
 
-### 🎯 **MISSION ACCOMPLISHED: World-Class Test Coverage**
-- **602 Tests Passing** (3 skipped, 0 failures) - Exceptional reliability
-- **95.45% Statement Coverage** - Industry-leading quality standards
-- **34 Test Suites** - Comprehensive component coverage
-- **Zero External Dependencies** - Maximum security and reliability
-- **1.3MB Package** - Optimized for performance
+### 🤖 **AUTO-DEPLOYMENT & ENHANCED TESTING EXCELLENCE**
+- **810 Tests Passing** (1 skipped, 0 failures) - Unprecedented reliability
+- **97.99% Statement Coverage** - World-class quality standards
+- **46 Test Suites** - Comprehensive component and E2E coverage
+- **Automatic MCP Registration** - One-click setup automation
+- **1.4MB Package** - Enhanced features with optimized performance
 
 ### 🎨 Enhanced Status Bar Integration
 - **🔴 Red Background**: When errors are present (`$(error) MCP: 3E 2W`)
@@ -52,14 +52,14 @@ Access via Command Palette (Ctrl+Shift+P):
 - **`MCP Diagnostics: Restart Server`** - Restarts MCP server with progress indication
 - **`MCP Diagnostics: Show Setup Guide`** - Interactive setup wizard for all IDEs
 
-### 🌐 Cross-Platform Support (NEW in v1.3.0)
-- **Windows, macOS, Linux** - Full compatibility with platform-specific optimizations
-- **Intelligent Platform Detection** - Automatic handling of OS-specific requirements
-- **Smart Spawn Options** - Platform-specific command execution (shell: true for Windows)
-- **Dynamic Path Resolution** - Automatic IDE config path detection per OS
-- **Configuration Validation** - Auto-detection and fixing of common config issues
-- **Universal MCP Configuration** - Works with Cursor, VS Code, Windsurf, Claude Desktop
-- **Robust Error Handling** - Graceful degradation and comprehensive error recovery
+### 🤖 Auto-Deployment Revolution (NEW in v1.4.0)
+- **Automatic MCP Server Registration** - One-click setup via `configureServer` command
+- **Smart Environment Detection** - Automatically detects VS Code environment and configures appropriately
+- **Multi-Method Registration** - Supports proposed API, workspace config, and user settings
+- **Enterprise-Grade Infrastructure** - Atomic configuration operations with rollback support
+- **Server Installation Utilities** - Version management and dependency checking
+- **Enhanced Command System** - Intuitive commands for configuration and management
+- **Cross-Platform Diagnostic Analysis** - Enhanced TypeScript/ESLint server integration
 
 ## 🚀 Quick Setup
 

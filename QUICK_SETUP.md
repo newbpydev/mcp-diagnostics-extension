@@ -1,9 +1,9 @@
 # Quick Setup: MCP Diagnostics + Cursor
 
-## 🏆 **v1.3.0 - EXCEPTIONAL ACHIEVEMENTS**
-- **602 Tests Passing** | **95.45% Coverage** | **Production Ready**
-- **Real-time VS Code Diagnostics** via MCP for AI agents
-- **Cross-Platform Support** - Windows, macOS, Linux compatibility
+## 🏆 **v1.4.0 - AUTO-DEPLOYMENT & CROSS-PLATFORM EXCELLENCE**
+- **810 Tests Passing** | **97.99% Coverage** | **Production Ready**
+- **Automatic MCP Server Registration** with one-click setup
+- **Cross-Platform Diagnostic Analysis** - Enhanced TypeScript/ESLint integration
 - **Universal Client Support** - Cursor, VS Code, Windsurf, Claude Desktop
 
 ## 🚀 1-Minute Setup
@@ -51,7 +51,7 @@ In Cursor chat, try:
 | `getProblemsForFile` | File-specific problems | "Problems in src/app.ts?" |
 | `getWorkspaceSummary` | Statistics overview | "Problem summary by severity" |
 
-## ✨ Latest Features (v1.3.0)
+## ✨ Latest Features (v1.4.0)
 
 ### 🎨 Enhanced Status Bar
 - **🔴 Red Background**: When errors are present (`$(error) MCP: 3E 2W`)
@@ -69,11 +69,11 @@ Access via Command Palette (Ctrl+Shift+P):
 - **`MCP Diagnostics: Restart Server`** - Restart with progress indication
 - **`MCP Diagnostics: Show Setup Guide`** - Interactive setup wizard
 
-### 🌐 Cross-Platform Enhancements (NEW in v1.3.0)
-- **🔧 Intelligent Platform Detection** - Automatic Windows/macOS/Linux handling
-- **⚙️ Smart Spawn Options** - Platform-specific command execution (shell: true for Windows)
-- **📁 Dynamic Path Resolution** - Automatic IDE config path detection
-- **✅ Configuration Validation** - Auto-detection and fixing of common config issues
+### 🤖 Auto-Deployment Features (NEW in v1.4.0)
+- **🔧 Automatic MCP Server Registration** - One-click setup with `configureServer` command
+- **⚙️ Smart Detection** - Automatically detects VS Code environment and configures appropriately
+- **📁 Multi-Method Registration** - Supports proposed API, workspace config, and user settings
+- **✅ Enterprise-Grade Infrastructure** - Atomic configuration operations with rollback support
 
 ## 🌐 Universal MCP Configuration
 

@@ -1,9 +1,9 @@
 # Setting Up MCP Diagnostics Extension with Cursor
 
-## 🏆 **v1.3.0 - EXCEPTIONAL ACHIEVEMENTS**
-- **602 Tests Passing** | **95.45% Coverage** | **Production Ready**
-- **Real-time VS Code Diagnostics** via MCP for AI agents
-- **Cross-Platform Support** - Windows, macOS, Linux compatibility
+## 🏆 **v1.4.0 - AUTO-DEPLOYMENT & CROSS-PLATFORM EXCELLENCE**
+- **810 Tests Passing** | **97.99% Coverage** | **Production Ready**
+- **Automatic MCP Server Registration** with one-click setup
+- **Cross-Platform Diagnostic Analysis** - Enhanced TypeScript/ESLint integration
 - **Universal Client Support** - Cursor, VS Code, Windsurf, Claude Desktop
 
 This guide shows you how to configure Cursor to use the MCP Diagnostics server, enabling AI agents to access real-time diagnostic information from your workspace.
@@ -114,7 +114,7 @@ You should see the server listed with these tools:
 - ✅ `getProblemsForFile`
 - ✅ `getWorkspaceSummary`
 
-## ✨ Latest Features (v1.3.0)
+## ✨ Latest Features (v1.4.0)
 
 ### 🎨 Enhanced Status Bar Integration
 - **🔴 Red Background**: When errors are present (`$(error) MCP: 3E 2W`)
@@ -134,11 +134,11 @@ Access via Command Palette (Ctrl+Shift+P):
 - **`MCP Diagnostics: Restart Server`** - Restart MCP server with progress indication
 - **`MCP Diagnostics: Show Setup Guide`** - Interactive setup wizard for all IDEs
 
-### 🌐 Cross-Platform Enhancements (NEW in v1.3.0)
-- **🔧 Intelligent Platform Detection** - Automatic Windows/macOS/Linux handling
-- **⚙️ Smart Spawn Options** - Platform-specific command execution (shell: true for Windows)
-- **📁 Dynamic Path Resolution** - Automatic IDE config path detection
-- **✅ Configuration Validation** - Auto-detection and fixing of common config issues
+### 🤖 Auto-Deployment Features (NEW in v1.4.0)
+- **🔧 Automatic MCP Server Registration** - One-click setup with `configureServer` command
+- **⚙️ Smart Detection** - Automatically detects VS Code environment and configures appropriately
+- **📁 Multi-Method Registration** - Supports proposed API, workspace config, and user settings
+- **✅ Enterprise-Grade Infrastructure** - Atomic configuration operations with rollback support
 
 ## 🧪 Testing the Integration
 

@@ -24,10 +24,10 @@ Thank you for your interest in contributing to the MCP Diagnostics Extension! Th
 
 ### Project Stats (Current)
 
-- **🏆 602 Tests Passing** (3 skipped, 0 failing)
-- **📊 95.45% Test Coverage** (exceeding 90% requirement)
-- **🔧 34 Test Suites** covering all components
-- **✨ v1.3.0** with cross-platform support
+- **🏆 810 Tests Passing** (1 skipped, 0 failing)
+- **📊 97.99% Test Coverage** (exceeding 90% requirement)
+- **🔧 46 Test Suites** covering all components
+- **✨ v1.4.0** with auto-deployment & cross-platform diagnostics
 
 ### Development Tools
 
@@ -133,7 +133,7 @@ npm run test:ci
 
 ### Test Requirements
 
-- **Unit Tests**: 90%+ coverage requirement (currently achieving 95.45%)
+- **Unit Tests**: 90%+ coverage requirement (currently achieving 97.99%)
 - **Integration Tests**: Cover component interactions
 - **E2E Tests**: Full extension workflow validation
 - **Cross-Platform Tests**: Windows, macOS, Linux compatibility
