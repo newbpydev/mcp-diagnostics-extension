@@ -33,6 +33,8 @@ const mkdirSyncMock = jest.fn();
 const statMock = jest.fn();
 const statSyncMock = jest.fn();
 const copyFileSyncMock = jest.fn();
+const renameSyncMock = jest.fn();
+const unlinkSyncMock = jest.fn();
 const readFileSyncMock = jest.fn();
 
 jest.mock('fs', () => {
@@ -42,6 +44,8 @@ jest.mock('fs', () => {
     writeFileSync: (...args: any[]) => writeFileSyncMock(...args),
     statSync: (...args: any[]) => statSyncMock(...args),
     copyFileSync: (...args: any[]) => copyFileSyncMock(...args),
+    renameSync: (...args: any[]) => renameSyncMock(...args),
+    unlinkSync: (...args: any[]) => unlinkSyncMock(...args),
     readFileSync: (...args: any[]) => readFileSyncMock(...args),
   };
 });
@@ -129,6 +133,8 @@ describe('McpServerRegistration - comprehensive coverage', () => {
     statMock.mockReset();
     statSyncMock.mockReset();
     copyFileSyncMock.mockReset();
+    renameSyncMock.mockReset();
+    unlinkSyncMock.mockReset();
     readFileSyncMock.mockReset();
     disposables.length = 0;
     // Patch dynamic fields on mocked vscode after hoisting issues
@@ -418,6 +424,17 @@ describe('McpServerRegistration - comprehensive coverage', () => {
     expect(copyFileSyncMock).toHaveBeenCalledWith(badPath, `${badPath}.malformed.backup`);
   });
 
+  it('loadAndValidateConfiguration validates correct config', async () => {
+    const pathGood = '/tmp/good.json';
+    const goodConfig = { mcpServers: { 'vscode-diagnostics': { command: 'node' } } };
+
+    existsSyncMock.mockImplementation((p: string) => p === pathGood);
+    readFileSyncMock.mockImplementation(() => JSON.stringify(goodConfig));
+
+    const result = await (registration as any).loadAndValidateConfiguration(pathGood);
+    expect(result).toEqual(goodConfig);
+  });
+
   it('getServerInstallDirectory returns path under home directory', () => {
     const mockHome = path.join(path.sep, 'home', 'tester');
     jest.spyOn(require('os'), 'homedir').mockReturnValue(mockHome);
@@ -450,6 +467,147 @@ describe('McpServerRegistration - comprehensive coverage', () => {
     await (registration as any).showManualSetupInstructions();
 
     expect(vscode.env.openExternal).toHaveBeenCalled();
+  });
+
+  it('atomicWriteConfiguration performs successful atomic write', async () => {
+    const configPath = '/tmp/atomic.json';
+    const tempPath = `${configPath}.tmp`;
+    const configObj = { mcpServers: { 'vscode-diagnostics': { command: 'node' } } } as any;
+
+    // Mock fs interactions for success path
+    existsSyncMock.mockReturnValue(false); // no original file
+    writeFileSyncMock.mockImplementation(() => {});
+    readFileSyncMock.mockImplementation((p: string) => {
+      if (p === tempPath || p === configPath) {
+        return JSON.stringify(configObj);
+      }
+      return '';
+    });
+
+    await (registration as any).atomicWriteConfiguration(configPath, configObj);
+
+    expect(writeFileSyncMock).toHaveBeenCalledWith(tempPath, expect.any(String), 'utf8');
+    expect(renameSyncMock).toHaveBeenCalledWith(tempPath, configPath);
+    expect(unlinkSyncMock).not.toHaveBeenCalled();
+  });
+
+  it('atomicWriteConfiguration rolls back on verification failure', async () => {
+    const configPath = '/tmp/atomicFail.json';
+    const tempPath = `${configPath}.tmp`;
+    const backupPath = `${configPath}.backup`;
+    const badConfig = { mcpServers: {} } as any; // will trigger verification failure
+
+    // First call existsSync(configPath) => true (simulate existing file) so backup path created
+    // Subsequent calls: existsSync(tempPath) etc.
+    existsSyncMock.mockImplementation((p: string) => p === configPath || p === backupPath);
+
+    // copyFileSync for backup should succeed silently
+    copyFileSyncMock.mockImplementation(() => {});
+
+    // writeFileSync called for temp path
+    writeFileSyncMock.mockImplementation(() => {});
+
+    // readFileSync behaviour
+    readFileSyncMock.mockImplementation((p: string) => {
+      if (p === tempPath || p === configPath) {
+        return JSON.stringify(badConfig);
+      }
+      return '';
+    });
+
+    // renameSync just a noop
+    renameSyncMock.mockImplementation(() => {});
+
+    await expect(
+      (registration as any).atomicWriteConfiguration(configPath, badConfig)
+    ).rejects.toThrow('Verification failed');
+
+    // Verify rollback attempted
+    expect(copyFileSyncMock).toHaveBeenCalledWith(backupPath, configPath);
+  });
+
+  it('showMcpSetupGuide processes configureServer message', async () => {
+    // Craft mock panel with message listener support
+    let capturedListener: ((msg: unknown) => void) | undefined;
+    const disposeMock = jest.fn();
+    const panelMock = {
+      webview: {
+        html: '',
+        onDidReceiveMessage: (listener: (...args: unknown[]) => void) => {
+          capturedListener = listener as any;
+        },
+      },
+      dispose: disposeMock,
+    } as any;
+
+    const createPanelMock = vscode.window.createWebviewPanel as jest.Mock;
+    createPanelMock.mockReturnValueOnce(panelMock);
+
+    const execSpy = vscode.commands.executeCommand as jest.Mock;
+
+    registration.showMcpSetupGuide();
+
+    // Invoke captured listener synchronously
+    capturedListener?.({ command: 'configureServer' });
+
+    // Allow async IIFE to resolve
+    await Promise.resolve();
+
+    expect(execSpy).toHaveBeenCalledWith('mcpDiagnostics.configureServer');
+    expect(disposeMock).toHaveBeenCalled();
+  });
+
+  it('mergeWithDiagnosticsServer adds diagnostics server when missing', () => {
+    const existing = { mcpServers: {} } as any;
+    const merged = (registration as any).mergeWithDiagnosticsServer(existing);
+    expect(merged.mcpServers['vscode-diagnostics']).toBeDefined();
+  });
+
+  it('getInstalledServerPath returns path ending with script', () => {
+    const installedPath = (registration as any).getInstalledServerPath();
+    expect(installedPath.endsWith('mcp-server.js')).toBe(true);
+  });
+
+  it('refreshServerDefinitions safely handles null emitter', () => {
+    // Force didChangeEmitter to null
+    (registration as any).didChangeEmitter = null;
+    expect(() => registration.refreshServerDefinitions()).not.toThrow();
+  });
+
+  it('atomicWriteConfiguration cleans up temp file on early failure', async () => {
+    const configPath = '/tmp/earlyFail.json';
+    const tempPath = `${configPath}.tmp`;
+    const conf = { mcpServers: { 'vscode-diagnostics': { command: 'node' } } } as any;
+
+    existsSyncMock.mockImplementation((p: string) => p === tempPath); // temp file exists after failure
+
+    writeFileSyncMock.mockImplementation(() => {
+      throw new Error('disk full');
+    });
+
+    await expect((registration as any).atomicWriteConfiguration(configPath, conf)).rejects.toThrow(
+      'disk full'
+    );
+
+    expect(unlinkSyncMock).toHaveBeenCalledWith(tempPath);
+  });
+
+  it('atomicWriteConfiguration creates backup when file exists', async () => {
+    const configPath = '/tmp/backup.json';
+    const tempPath = `${configPath}.tmp`;
+    const backupPath = `${configPath}.backup`;
+    const conf = { mcpServers: { 'vscode-diagnostics': { command: 'node' } } } as any;
+
+    existsSyncMock.mockImplementation((p: string) => p === configPath); // existing file
+
+    // Mock read/write operations
+    writeFileSyncMock.mockImplementation(() => {});
+    readFileSyncMock.mockImplementation(() => JSON.stringify(conf));
+    renameSyncMock.mockImplementation(() => {});
+
+    await (registration as any).atomicWriteConfiguration(configPath, conf);
+
+    expect(copyFileSyncMock).toHaveBeenCalledWith(configPath, backupPath);
   });
 });
 
