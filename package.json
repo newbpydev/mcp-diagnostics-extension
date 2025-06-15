@@ -112,6 +112,10 @@
       {
         "command": "mcpDiagnostics.showSetupGuide",
         "title": "MCP Diagnostics: Show Setup Guide"
+      },
+      {
+        "command": "mcpDiagnostics.configureServer",
+        "title": "MCP Diagnostics: Configure Server Automatically"
       }
     ]
   },
@@ -136,6 +140,7 @@
     "publish:pre-release": "vsce publish --pre-release",
     "clean": "rimraf out coverage .vscode-test",
     "ci:check": "npm run lint && npm run format:check && npm run compile:prod && npm run test:ci",
+    "validate:sprint4": "node scripts/validate-sprint4-deployment.js",
     "validate-package": "bash scripts/validate-package.sh",
     "package:validate": "npm run validate-package",
     "version:patch": "npm version patch",

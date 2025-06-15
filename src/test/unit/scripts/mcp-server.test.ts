@@ -1,6 +1,19 @@
 import path from 'path';
 import { EventEmitter } from 'events';
 
+// ------------------------------------------------------------------
+// Silence noisy console output emitted by the bootstrap code in the
+// bundled `scripts/mcp-server.js` when it is required under Jest.
+// ------------------------------------------------------------------
+const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+// Restore the spies after the entire test file has finished.
+afterAll(() => {
+  consoleErrorSpy.mockRestore();
+  consoleLogSpy.mockRestore();
+});
+
 // -------------------------------------------------------------
 // 🧩 Necessary mocks BEFORE requiring the server script so that
 // heavy dependencies are stubbed out and no long-running server

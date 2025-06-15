@@ -427,10 +427,12 @@ describe('Extension', () => {
     describe('🎯 Workspace Analysis Error Scenarios', () => {
       beforeEach(() => {
         jest.useFakeTimers();
+        process.env['MCP_DIAGNOSTICS_FORCE_ANALYSIS'] = 'true';
       });
 
       afterEach(() => {
         jest.useRealTimers();
+        delete process.env['MCP_DIAGNOSTICS_FORCE_ANALYSIS'];
       });
 
       it('should handle workspace analysis errors gracefully', async () => {

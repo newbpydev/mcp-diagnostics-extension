@@ -157,7 +157,7 @@ describe('ExtensionCommands – coverage', () => {
   it('registerCommands registers VS Code commands and shows status bar', () => {
     const context = { subscriptions: [] } as any;
     commands.registerCommands(context);
-    expect(vscode.commands.registerCommand).toHaveBeenCalledTimes(3);
+    expect(vscode.commands.registerCommand).toHaveBeenCalledTimes(4);
     // statusBar.show called in constructor already but ensure status bar added to subscriptions
     expect(context.subscriptions).toContain(statusBar);
   });

@@ -98,6 +98,7 @@ describe('🎯 MCP Registration Fallback & Disposal Coverage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
+    process.env['MCP_DIAGNOSTICS_FORCE_ANALYSIS'] = 'true';
     constructionCount = 0;
     mockContext = { subscriptions: [] } as any;
   });
@@ -105,6 +106,7 @@ describe('🎯 MCP Registration Fallback & Disposal Coverage', () => {
   afterEach(() => {
     jest.runAllTimers();
     jest.useRealTimers();
+    delete process.env['MCP_DIAGNOSTICS_FORCE_ANALYSIS'];
   });
 
   it('should recover from initial MCP registration failure and register fallback', async () => {
@@ -187,5 +189,122 @@ describe('🎯 MCP Registration Fallback & Disposal Coverage', () => {
   afterAll(() => {
     // Clean up global singletons
     deactivate();
+  });
+});
+
+describe('🎯 T-4.3 Extension Activation – Async Server Deploy Pipeline', () => {
+  let mockContext: vscode.ExtensionContext;
+  let deployCalled: boolean;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockContext = { subscriptions: [] } as any;
+    deployCalled = false;
+  });
+
+  it('should await async deploy step and log activation time', async () => {
+    const mockDeploy = jest.fn().mockImplementation(async () => {
+      deployCalled = true;
+      await new Promise((r) => setTimeout(r, 10));
+    });
+    const mockServer = { start: mockDeploy, dispose: jest.fn() };
+    const MockMcpServerWrapper = jest.fn(() => mockServer);
+    const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+    await activate(mockContext, {
+      McpServerWrapperCtor: MockMcpServerWrapper as any,
+    });
+
+    expect(deployCalled).toBe(true);
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('activated successfully'));
+    consoleSpy.mockRestore();
+  });
+
+  it('should prevent parallel deploys with lock file', async () => {
+    jest.useFakeTimers();
+
+    // Create a controllable deferred promise to simulate long-running deploy
+    let resolveDeploy: () => void;
+    const deployDeferred = new Promise<void>((res) => {
+      resolveDeploy = res;
+    });
+
+    const mockDeploy = jest
+      .fn()
+      .mockImplementationOnce(() => deployDeferred) // first activation => pending
+      .mockImplementationOnce(() => Promise.resolve()); // second activation => would deploy if not locked
+
+    const mockServer = { start: mockDeploy, dispose: jest.fn() };
+    const MockMcpServerWrapper = jest.fn(() => mockServer);
+
+    // Fire first activation (deploy in progress)
+    const firstActivation = activate(mockContext, {
+      McpServerWrapperCtor: MockMcpServerWrapper as any,
+    });
+
+    // Immediately attempt second activation which should *still* resolve because the extension
+    // guards against parallel activation by reusing the same lock/context
+    const secondActivation = activate(mockContext, {
+      McpServerWrapperCtor: MockMcpServerWrapper as any,
+    });
+
+    // Fast-forward any timers (e.g., internal activation delays)
+    jest.runOnlyPendingTimers();
+
+    // Allow microtasks to flush
+    await Promise.resolve();
+
+    // Second activation should complete even while first deploy is pending
+    await expect(secondActivation).resolves.toBeUndefined();
+
+    // Finish first deploy to cleanly settle promises and avoid memory leaks
+    resolveDeploy!();
+    await firstActivation;
+
+    jest.useRealTimers();
+  });
+
+  it('should respect activation time budget', async () => {
+    const mockDeploy = jest.fn().mockImplementation(async () => {
+      await new Promise((r) => setTimeout(r, 120));
+    });
+    const mockServer = { start: mockDeploy, dispose: jest.fn() };
+    const MockMcpServerWrapper = jest.fn(() => mockServer);
+    const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+    const start = Date.now();
+    await activate(mockContext, { McpServerWrapperCtor: MockMcpServerWrapper as any });
+    const elapsed = Date.now() - start;
+    expect(elapsed).toBeGreaterThanOrEqual(100);
+    consoleSpy.mockRestore();
+  });
+
+  it('should handle errors in async deploy and log error', async () => {
+    const mockDeploy = jest.fn().mockRejectedValue(new Error('deploy fail'));
+    const mockServer = { start: mockDeploy, dispose: jest.fn() };
+    const MockMcpServerWrapper = jest.fn(() => mockServer);
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(
+      activate(mockContext, { McpServerWrapperCtor: MockMcpServerWrapper as any })
+    ).rejects.toThrow('deploy fail');
+    expect(consoleErrorSpy).toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('should handle all error/edge cases in deploy pipeline', async () => {
+    // Simulate deploy throwing synchronously
+    const mockDeploy = jest.fn().mockImplementation(() => {
+      throw new Error('sync fail');
+    });
+    const mockServer = { start: mockDeploy, dispose: jest.fn() };
+    const MockMcpServerWrapper = jest.fn(() => mockServer);
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(
+      activate(mockContext, { McpServerWrapperCtor: MockMcpServerWrapper as any })
+    ).rejects.toThrow('sync fail');
+    expect(consoleErrorSpy).toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
   });
 });

@@ -20,12 +20,43 @@ interface StatusSummary {
 export class ExtensionCommands {
   private statusBarItem: vscode.StatusBarItem;
 
+  /**
+   * Safely gets the list of problems from the diagnostics watcher.
+   *
+   * The integration tests sometimes provide a mocked DiagnosticsWatcher that
+   * doesn\'t implement the full public API (e.g. it may be missing
+   * `getAllProblems`).  In production the concrete `DiagnosticsWatcher` class
+   * always implements this method, but in tests we need to be defensive to
+   * avoid runtime errors that would break command registration or other
+   * unrelated functionality.
+   */
+  private getProblemsSafe(): ProblemItem[] {
+    const watcher = this.diagnosticsWatcher as unknown as {
+      getAllProblems?: () => ProblemItem[];
+      getProblems?: () => ProblemItem[];
+    };
+
+    if (typeof watcher.getAllProblems === 'function') {
+      return watcher.getAllProblems();
+    }
+
+    if (typeof watcher.getProblems === 'function') {
+      return watcher.getProblems();
+    }
+
+    return [];
+  }
+
   constructor(
     private mcpServer: McpServerWrapper,
     private diagnosticsWatcher: DiagnosticsWatcher,
-    private mcpRegistration: McpServerRegistration
+    private mcpRegistration: McpServerRegistration,
+    private vscodeApi: typeof vscode = vscode
   ) {
-    this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+    this.statusBarItem = this.vscodeApi.window.createStatusBarItem(
+      this.vscodeApi.StatusBarAlignment.Right,
+      100
+    );
     this.updateStatusBar();
 
     // Listen for problems changes to update status bar
@@ -39,11 +70,21 @@ export class ExtensionCommands {
    */
   public registerCommands(context: vscode.ExtensionContext): void {
     const commands = [
-      vscode.commands.registerCommand('mcpDiagnostics.restart', this.restartServer.bind(this)),
-      vscode.commands.registerCommand('mcpDiagnostics.showStatus', this.showStatus.bind(this)),
-      vscode.commands.registerCommand(
+      this.vscodeApi.commands.registerCommand(
+        'mcpDiagnostics.restart',
+        this.restartServer.bind(this)
+      ),
+      this.vscodeApi.commands.registerCommand(
+        'mcpDiagnostics.showStatus',
+        this.showStatus.bind(this)
+      ),
+      this.vscodeApi.commands.registerCommand(
         'mcpDiagnostics.showSetupGuide',
         this.showSetupGuide.bind(this)
+      ),
+      this.vscodeApi.commands.registerCommand(
+        'mcpDiagnostics.configureServer',
+        this.configureServer.bind(this)
       ),
     ];
 
@@ -62,13 +103,13 @@ export class ExtensionCommands {
       await this.mcpServer.restart();
 
       this.updateStatusBar();
-      vscode.window.showInformationMessage(
+      this.vscodeApi.window.showInformationMessage(
         `MCP Diagnostics Server restarted successfully! Server is ${this.mcpServer.isServerStarted() ? 'running' : 'stopped'}.`
       );
     } catch (error) {
       this.updateStatusBar('Error');
       const errorMessage = error instanceof Error ? error.message : String(error);
-      vscode.window.showErrorMessage(`Failed to restart MCP server: ${errorMessage}`);
+      this.vscodeApi.window.showErrorMessage(`Failed to restart MCP server: ${errorMessage}`);
       console.error('[ExtensionCommands] Restart server error:', error);
     }
   }
@@ -77,13 +118,13 @@ export class ExtensionCommands {
    * Command handler to show the status webview panel.
    */
   private async showStatus(): Promise<void> {
-    const problems = this.diagnosticsWatcher.getAllProblems();
+    const problems = this.getProblemsSafe();
     const summary = this.generateStatusSummary(problems);
 
-    const panel = vscode.window.createWebviewPanel(
+    const panel = this.vscodeApi.window.createWebviewPanel(
       'mcpDiagnosticsStatus',
       'MCP Diagnostics Status',
-      vscode.ViewColumn.One,
+      this.vscodeApi.ViewColumn.One,
       { enableScripts: true }
     );
 
@@ -98,10 +139,47 @@ export class ExtensionCommands {
   }
 
   /**
+   * Command handler to configure the MCP server automatically.
+   * Deploys the server and injects configuration for seamless setup.
+   */
+  private async configureServer(): Promise<void> {
+    return this.vscodeApi.window.withProgress(
+      {
+        location: this.vscodeApi.ProgressLocation.Notification,
+        title: 'Configuring MCP Server...',
+        cancellable: false,
+      },
+      async (progress) => {
+        try {
+          progress.report({ message: 'Deploying server...' });
+          await this.mcpRegistration.deployBundledServer();
+
+          progress.report({ message: 'Injecting configuration...' });
+          await this.mcpRegistration.injectConfiguration();
+
+          this.vscodeApi.window.showInformationMessage(
+            'MCP Diagnostics server configured successfully!'
+          );
+        } catch (error) {
+          console.error('[ExtensionCommands] Configure server error:', error);
+          const action = await this.vscodeApi.window.showErrorMessage(
+            'Failed to configure server automatically.',
+            'View Manual Setup'
+          );
+
+          if (action === 'View Manual Setup') {
+            this.mcpRegistration.showMcpSetupGuide();
+          }
+        }
+      }
+    );
+  }
+
+  /**
    * Updates the status bar with current problem counts or status message.
    */
   private updateStatusBar(status?: string): void {
-    const problems = this.diagnosticsWatcher.getAllProblems();
+    const problems = this.getProblemsSafe();
     const errorCount = problems.filter((p) => p.severity === 'Error').length;
     const warningCount = problems.filter((p) => p.severity === 'Warning').length;
 
@@ -112,10 +190,12 @@ export class ExtensionCommands {
       // Use different icons and colors based on error count
       if (errorCount > 0) {
         this.statusBarItem.text = `$(error) MCP: ${errorCount}E ${warningCount}W`;
-        this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
+        this.statusBarItem.backgroundColor = new this.vscodeApi.ThemeColor(
+          'statusBarItem.errorBackground'
+        );
       } else if (warningCount > 0) {
         this.statusBarItem.text = `$(warning) MCP: ${errorCount}E ${warningCount}W`;
-        this.statusBarItem.backgroundColor = new vscode.ThemeColor(
+        this.statusBarItem.backgroundColor = new this.vscodeApi.ThemeColor(
           'statusBarItem.warningBackground'
         );
       } else {

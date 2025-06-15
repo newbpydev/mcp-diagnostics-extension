@@ -12,6 +12,16 @@ import { DEFAULT_CONFIG } from '@shared/constants';
 import { ProblemItem, ProblemSeverity } from '@shared/types';
 
 describe('Task 3.4.1: End-to-End Testing - Final Validation', () => {
+  beforeAll(async () => {
+    process.env['MCP_DIAGNOSTICS_FORCE_ANALYSIS'] = 'true';
+    jest.useFakeTimers();
+  });
+
+  afterAll(async () => {
+    jest.useRealTimers();
+    delete process.env['MCP_DIAGNOSTICS_FORCE_ANALYSIS'];
+  });
+
   describe('✅ 1. Complete Extension Workflow Testing', () => {
     it('should initialize all core components successfully', () => {
       const mockVsCodeApi = {

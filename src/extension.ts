@@ -19,6 +19,8 @@ import { VsCodeApiAdapter } from './infrastructure/vscode/VsCodeApiAdapter';
 import { ExtensionCommands } from './commands/ExtensionCommands';
 import { DEFAULT_CONFIG } from './shared/constants';
 import { McpServerRegistration } from './infrastructure/mcp/McpServerRegistration';
+import { deployBundledServer } from './shared/deployment/ServerDeployment';
+import { promises as fsp } from 'fs';
 
 /**
  * Global DiagnosticsWatcher instance for the extension lifecycle
@@ -104,11 +106,42 @@ export async function activate(
 
     console.log('🚀 Server config:', serverConfig);
 
+    // 🔄 Task 4.3: Deploy bundled MCP server to user directory (async step)
+    try {
+      const bundledPath = context.asAbsolutePath('dist/assets/mcp-server.js');
+      const versionManifestPath = context.asAbsolutePath('dist/assets/mcp-server-version.json');
+      let bundledVersion = '0.0.0';
+      try {
+        const manifestRaw = await fsp.readFile(versionManifestPath, 'utf8');
+        bundledVersion = JSON.parse(manifestRaw).version ?? bundledVersion;
+      } catch {
+        console.log('🟡 [MCP Diagnostics] Version manifest not found, defaulting to 0.0.0');
+      }
+
+      const deployResult = await deployBundledServer({
+        bundledPath,
+        version: bundledVersion,
+        logger: console.log,
+      });
+      console.log('🟢 [MCP Diagnostics] server-deployed', deployResult);
+    } catch (deployErr) {
+      console.error('🔴 [MCP Diagnostics] Bundled server deployment failed:', deployErr);
+      // Continue activation; users may configure server manually.
+    }
+
     // Step 2: MCP Server
     console.log('🟡 [MCP Diagnostics] Initializing MCP Server...');
     mcpServer = new McpServerWrapperCtor(diagnosticsWatcher, serverConfig);
-    await mcpServer.start();
-    console.log('🟢 [MCP Diagnostics] MCP Server started.');
+    try {
+      await mcpServer.start();
+      console.log('🟢 [MCP Diagnostics] MCP Server started.');
+    } catch (error) {
+      console.error('🔴 [MCP Diagnostics] MCP Server start failed:', error);
+      vscode.window.showErrorMessage(
+        `MCP Diagnostics Extension failed: ${error instanceof Error ? error.message : String(error)}`
+      );
+      throw error;
+    }
 
     // Step 3: Optional MCP Registration and ExtensionCommands
     console.log('🟡 [MCP Diagnostics] Setting up MCP registration and extension commands...');
@@ -183,15 +216,30 @@ export async function activate(
     }
 
     // Step 6: Trigger comprehensive workspace analysis to ensure we detect all issues
-    console.log('🔍 [MCP Diagnostics] Triggering comprehensive workspace analysis...');
-    if (diagnosticsWatcher) {
-      // Schedule workspace analysis after extension initialization
+    // Skip heavy workspace analysis entirely during unit tests to avoid
+    // asynchronous console logs that Jest/Wallaby treat as "log after tests done".
+    const isTestEnv = process.env['NODE_ENV'] === 'test';
+    const forceAnalysisInTests = process.env['MCP_DIAGNOSTICS_FORCE_ANALYSIS'] === 'true';
+
+    if (diagnosticsWatcher && (!isTestEnv || forceAnalysisInTests)) {
+      console.log('🔍 [MCP Diagnostics] Triggering comprehensive workspace analysis...');
+
+      // Schedule workspace analysis after extension initialization (non-blocking)
       Promise.resolve()
         .then(async () => {
-          // Wait for extension to fully initialize
-          await new Promise((resolve) => setTimeout(resolve, 3000));
+          // Give VS Code a few seconds to settle when running in the real editor
+          const delay = 3000;
+          await new Promise((resolve) => setTimeout(resolve, delay));
+
           try {
-            await diagnosticsWatcher!.triggerWorkspaceAnalysis();
+            const dw = diagnosticsWatcher as unknown as Record<string, unknown>;
+            const fn = dw['triggerWorkspaceAnalysis'] as undefined | (() => Promise<void>);
+            if (typeof fn === 'function') {
+              // Bind the watcher instance as "this" to preserve context
+              await fn.call(diagnosticsWatcher);
+            } else {
+              throw new TypeError('triggerWorkspaceAnalysis is not a function');
+            }
             console.log('✅ [MCP Diagnostics] Initial workspace analysis complete');
           } catch (error) {
             console.error('⚠️ [MCP Diagnostics] Error during workspace analysis:', error);

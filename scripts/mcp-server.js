@@ -281,7 +281,10 @@ function parseESLintOutput(output) {
       }
     }
   } catch (error) {
-    console.error('[Real Diagnostics] Error parsing ESLint JSON:', error);
+    // Avoid noisy console output during automated test runs
+    if (process.env.NODE_ENV !== 'test') {
+      console.error('[Real Diagnostics] Error parsing ESLint JSON:', error);
+    }
   }
 
   return problems;

@@ -6,7 +6,17 @@ import prettierPlugin from 'eslint-plugin-prettier';
 export default [
   {
     files: ['**/*.ts'],
-    ignores: ['**/*.test.ts', '**/*.spec.ts', 'test-workspace/**/*'],
+    ignores: [
+      '**/*.test.ts',
+      '**/*.spec.ts',
+      'test-workspace/**/*',
+      'out/**',
+      'dist/**',
+      'coverage/**',
+      'node_modules/**',
+      '.vscode-test/**',
+      '*.log',
+    ],
     plugins: {
       '@typescript-eslint': typescriptEslint,
       prettier: prettierPlugin,
