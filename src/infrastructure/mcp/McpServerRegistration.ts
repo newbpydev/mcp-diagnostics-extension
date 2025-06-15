@@ -10,10 +10,7 @@ interface McpServerConfig {
   type: string;
   command: string;
   args: string[];
-  env: {
-    NODE_ENV: string;
-    MCP_DEBUG: string;
-  };
+  env: Record<string, string>;
 }
 
 interface McpConfiguration {
@@ -120,11 +117,17 @@ export class McpServerRegistration {
    * Returns the destination path and whether the file was (re)deployed.
    */
   public async deployBundledServer(): Promise<{ installedPath: string; upgraded: boolean }> {
+    // Priority order: always prefer the fully-featured development script; the
+    // `dist/assets` copy may be a tiny stub used by the bundler for tree-shaken
+    // production builds.  Choosing it first led to a 29-byte file that only
+    // prints "Activation test" – the root cause of the empty server you saw
+    // in C:\Users\<user>\.mcp-diagnostics .
+
     const bundledPathVariants = [
-      // When running from VS Code extension build output (webpack/rollup)
-      path.join(this.context.extensionPath, 'dist', 'assets', 'mcp-server.js'),
-      // Fallback – raw script in repo (development)
+      // 1️⃣ Raw script in repo (development & CI) – **always** the full file
       path.join(this.context.extensionPath, 'scripts', 'mcp-server.js'),
+      // 2️⃣ Compiled asset produced by rollup/webpack for marketplace builds
+      path.join(this.context.extensionPath, 'dist', 'assets', 'mcp-server.js'),
     ];
 
     const bundledPath = bundledPathVariants.find((p) => fs.existsSync(p));
@@ -148,9 +151,28 @@ export class McpServerRegistration {
       })();
 
       if (needCopy) {
-        fs.copyFileSync(bundledPath, destPath);
-        upgraded = true;
-        console.log('[MCP Registration] Deployed bundled server to:', destPath);
+        try {
+          fs.copyFileSync(bundledPath, destPath);
+          upgraded = true;
+          console.log('[MCP Registration] Deployed bundled server to:', destPath);
+        } catch (copyError) {
+          const code =
+            copyError && typeof copyError === 'object' && 'code' in copyError
+              ? (copyError as NodeJS.ErrnoException).code
+              : undefined;
+
+          // Windows locks the file if the previous process has not released the
+          // handle yet.  Rather than failing the whole activation we tolerate
+          // the common lock codes and keep using the previously deployed copy.
+          if (code === 'EBUSY' || code === 'EPERM' || code === 'EACCES') {
+            console.warn(
+              '[MCP Registration] Destination file locked – using existing server binary'
+            );
+            upgraded = false;
+          } else {
+            throw copyError;
+          }
+        }
       } else {
         console.log('[MCP Registration] Existing server up-to-date at:', destPath);
       }
@@ -343,6 +365,7 @@ export class McpServerRegistration {
       env: {
         NODE_ENV: 'production',
         MCP_DEBUG: 'false',
+        MCP_NODE_MODULES_PATH: path.join(this.context.extensionPath, 'node_modules'),
       },
     };
 
@@ -719,6 +742,7 @@ export class McpServerRegistration {
       env: {
         NODE_ENV: 'production',
         MCP_DEBUG: 'false',
+        MCP_NODE_MODULES_PATH: path.join(this.context.extensionPath, 'node_modules'),
       },
       version: '1.0.0',
     });
@@ -782,6 +806,7 @@ export class McpServerRegistration {
       env: {
         NODE_ENV: 'production',
         MCP_DEBUG: 'false',
+        MCP_NODE_MODULES_PATH: path.join(this.context.extensionPath, 'node_modules'),
       },
     };
   }
@@ -1006,7 +1031,8 @@ export class McpServerRegistration {
       ],
       "env": {
         "NODE_ENV": "production",
-        "MCP_DEBUG": "false"
+        "MCP_DEBUG": "false",
+        "MCP_NODE_MODULES_PATH": "${path.join(this.context.extensionPath, 'node_modules')}"
       }
     }
   }
@@ -1032,7 +1058,8 @@ export class McpServerRegistration {
       ],
       "env": {
         "NODE_ENV": "production",
-        "MCP_DEBUG": "false"
+        "MCP_DEBUG": "false",
+        "MCP_NODE_MODULES_PATH": "${path.join(this.context.extensionPath, 'node_modules')}"
       }
     }
   }

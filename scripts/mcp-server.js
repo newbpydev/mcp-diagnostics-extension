@@ -1,18 +1,47 @@
 #!/usr/bin/env node
 
+// 🚀 MCP Diagnostics Bootstrap – ensure additional node_module paths
+// This must be executed BEFORE any `require()` that depends on extension-provided
+// dependencies (e.g. @modelcontextprotocol/sdk).  We read a path from the
+// MCP_NODE_MODULES_PATH environment variable that the extension sets when it
+// generates the MCP configuration and, if present, push it onto Node's global
+// module resolution list so that `require()` can locate the dependency even
+// though the standalone server is running from the user's home directory.
+const Module = require('module');
+if (process.env.MCP_NODE_MODULES_PATH) {
+  const extra = process.env.MCP_NODE_MODULES_PATH;
+  if (!Module.globalPaths.includes(extra)) {
+    Module.globalPaths.push(extra);
+  }
+}
+
 /**
  * Standalone Real VS Code Diagnostics MCP Server - Cross-Platform Enhanced
  * This script provides REAL diagnostic data from workspace analysis
  * with full cross-platform compatibility (Windows, macOS, Linux)
  */
 
-const { Server } = require('../node_modules/@modelcontextprotocol/sdk/dist/cjs/server/index.js');
-const { StdioServerTransport } = require('../node_modules/@modelcontextprotocol/sdk/dist/cjs/server/stdio.js');
+const path = require('path');
+
+// Resolve SDK paths from injected NODE_MODULES dir (set by VS Code extension)
+const NODE_MODULES_DIR =
+  process.env.MCP_NODE_MODULES_PATH || path.join(__dirname, '..', 'node_modules');
+
+function r(relPath) {
+  try {
+    return require(path.join(NODE_MODULES_DIR, relPath));
+  } catch {
+    // Fallback to Node's resolver (will succeed when script runs inside extension dir)
+    return require(relPath.startsWith('@') ? relPath : path.join('..', 'node_modules', relPath));
+  }
+}
+
+const { Server } = r('@modelcontextprotocol/sdk/dist/cjs/server/index.js');
+const { StdioServerTransport } = r('@modelcontextprotocol/sdk/dist/cjs/server/stdio.js');
 const {
   CallToolRequestSchema,
   ListToolsRequestSchema
-} = require('../node_modules/@modelcontextprotocol/sdk/dist/cjs/types.js');
-const path = require('path');
+} = r('@modelcontextprotocol/sdk/dist/cjs/types.js');
 const fs = require('fs');
 const { spawn } = require('child_process');
 
