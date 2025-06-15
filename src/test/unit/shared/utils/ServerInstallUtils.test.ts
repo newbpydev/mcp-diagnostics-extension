@@ -1,5 +1,6 @@
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
-import * as fs from 'fs';
+import fs from 'fs';
+import os from 'os';
 import * as path from 'path';
 
 // NOTE: The implementation will live in src/shared/utils/ServerInstallUtils.ts
@@ -114,7 +115,7 @@ describe('ServerInstallUtils – compareVersions', () => {
 });
 
 describe('ServerInstallUtils – File Copy & Manifest (TDD Red Phase)', () => {
-  const tmpDir = path.join(__dirname, 'tmp-test');
+  const tmpDir = path.join(os.tmpdir(), 'mcp-tmp-test');
   const serverSrc = path.join(tmpDir, 'mcp-server.js');
   const serverDest = path.join(tmpDir, 'dest', 'mcp-server.js');
   const manifestPath = path.join(tmpDir, 'dest', 'version.json');
@@ -180,7 +181,7 @@ describe('ServerInstallUtils – File Copy & Manifest (TDD Red Phase)', () => {
 });
 
 describe('ServerInstallUtils – Atomic Copy, Hash, Lock, Manifest', () => {
-  const tmpDir = path.join(__dirname, 'tmp-atomic');
+  const tmpDir = path.join(os.tmpdir(), 'mcp-tmp-atomic');
   const serverSrc = path.join(tmpDir, 'mcp-server.js');
   const serverDest = path.join(tmpDir, 'dest', 'mcp-server.js');
   const manifestPath = path.join(tmpDir, 'dest', 'manifest.json');
@@ -276,7 +277,7 @@ describe('ServerInstallUtils – Atomic Copy, Hash, Lock, Manifest', () => {
 });
 
 describe('ServerInstallUtils – Full Branch & Error Path Coverage', () => {
-  const tmpDir = path.join(__dirname, 'tmp-branch');
+  const tmpDir = path.join(os.tmpdir(), 'mcp-tmp-branch');
   const serverSrc = path.join(tmpDir, 'mcp-server.js');
   const serverDest = path.join(tmpDir, 'dest', 'mcp-server.js');
   const lockFile = serverDest + '.lock';
