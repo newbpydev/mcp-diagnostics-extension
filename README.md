@@ -64,7 +64,7 @@
 - **🔄 Real-time Synchronization** - Live diagnostic updates via MCP notifications
 - **🌐 Cross-Platform Compatibility** - Windows, macOS, Linux support with intelligent spawn handling
 
-### **✨ Latest Features (v1.3.0)**
+### **✨ Latest Features (v1.4.0)**
 
 - **🔧 Cross-Platform Utilities** - Smart platform detection and spawn option handling
 - **⚙️ Configuration Validation** - Automatic validation and enhancement of MCP client configurations
