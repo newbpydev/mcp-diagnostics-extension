@@ -6,12 +6,12 @@
  * with full cross-platform compatibility (Windows, macOS, Linux)
  */
 
-const { Server } = require('@modelcontextprotocol/sdk/server/index.js');
-const { StdioServerTransport } = require('@modelcontextprotocol/sdk/server/stdio.js');
+const { Server } = require('../node_modules/@modelcontextprotocol/sdk/dist/cjs/server/index.js');
+const { StdioServerTransport } = require('../node_modules/@modelcontextprotocol/sdk/dist/cjs/server/stdio.js');
 const {
   CallToolRequestSchema,
   ListToolsRequestSchema
-} = require('@modelcontextprotocol/sdk/types.js');
+} = require('../node_modules/@modelcontextprotocol/sdk/dist/cjs/types.js');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
@@ -32,13 +32,13 @@ try {
   const compiledUtilsPath = path.join(extensionDir, 'out', 'shared', 'utils', 'CrossPlatformUtils.js');
   if (fs.existsSync(compiledUtilsPath)) {
     CrossPlatformUtils = require(compiledUtilsPath).CrossPlatformUtils;
-    console.error('[Cross-Platform] Using compiled CrossPlatformUtils');
+    // Silently loaded - no output to prevent MCP protocol interference
   } else {
-    console.error('[Cross-Platform] Compiled utils not found, using fallback implementation');
+    // Silently using fallback - no output to prevent MCP protocol interference
     CrossPlatformUtils = null;
   }
 } catch (error) {
-  console.error('[Cross-Platform] Error importing CrossPlatformUtils:', error);
+  // Silently handling error - no output to prevent MCP protocol interference
   CrossPlatformUtils = null;
 }
 
@@ -115,6 +115,36 @@ const CrossPlatform = CrossPlatformUtils || {
   isLinux() { return process.platform !== 'win32' && process.platform !== 'darwin'; }
 };
 
+// ✅ CRITICAL FIX: Silent logging in MCP mode to prevent JSON protocol violations
+function mcpLog(...args) {
+  // Only log when NOT running as MCP server
+  // MCP uses stdio for JSON communication, any extra output breaks the protocol
+  // Detect MCP mode by checking if we're being run by an MCP client
+  const isMcpMode = process.argv.includes('--stdio') ||
+                    process.env.MCP_MODE === 'true' ||
+                    process.env.NODE_ENV === 'production' ||
+                    !process.stdin.isTTY ||
+                    process.stdout.isTTY === false;
+
+  // Only output logs in development/debug mode when NOT in MCP mode
+  if (!isMcpMode && process.env.NODE_ENV !== 'test' && process.env.MCP_DEBUG === 'true') {
+    console.error(...args);
+  }
+}
+
+// ✅ PHASE 4.2: Platform detection and logging with cross-platform info
+mcpLog(`[System Info] Running on ${process.platform} (${process.arch})`);
+mcpLog(`[System Info] Node.js ${process.version}`);
+mcpLog(`[System Info] Extension directory: ${extensionDir}`);
+mcpLog(`[Cross-Platform] Windows: ${CrossPlatform.isWindows()}`);
+mcpLog(`[Cross-Platform] macOS: ${CrossPlatform.isMac()}`);
+mcpLog(`[Cross-Platform] Linux: ${CrossPlatform.isLinux()}`);
+if (CrossPlatformUtils) {
+  mcpLog(`[Cross-Platform] Using compiled CrossPlatformUtils`);
+} else {
+  mcpLog(`[Cross-Platform] Using fallback cross-platform implementation`);
+}
+
 // ✅ PHASE 4.2: Enhanced TypeScript diagnostics with cross-platform support
 async function runTypeScriptDiagnostics() {
   return new Promise(async (resolve) => {
@@ -122,7 +152,7 @@ async function runTypeScriptDiagnostics() {
     const tsconfigPath = path.join(extensionDir, 'tsconfig.json');
 
     if (!fs.existsSync(tsconfigPath)) {
-      console.error(`[Real Diagnostics] No tsconfig.json found at ${tsconfigPath}, skipping TypeScript diagnostics`);
+      mcpLog(`[Real Diagnostics] No tsconfig.json found at ${tsconfigPath}, skipping TypeScript diagnostics`);
       resolve([]);
       return;
     }
@@ -131,12 +161,12 @@ async function runTypeScriptDiagnostics() {
     const tscCommand = CrossPlatform.getCommandForPlatform('npx');
     const hasTypeScript = await CrossPlatform.commandExists('tsc');
     if (!hasTypeScript) {
-      console.error('[Real Diagnostics] TypeScript not found, skipping diagnostics');
+      mcpLog('[Real Diagnostics] TypeScript not found, skipping diagnostics');
       resolve([]);
       return;
     }
 
-    console.error('[Real Diagnostics] Running TypeScript diagnostics with cross-platform support...');
+    mcpLog('[Real Diagnostics] Running TypeScript diagnostics with cross-platform support...');
 
     // ✅ Use cross-platform spawn options
     const spawnOptions = CrossPlatform.getSpawnOptions(extensionDir);
@@ -153,12 +183,12 @@ async function runTypeScriptDiagnostics() {
         const problems = parseTypeScriptOutput(output);
         results.push(...problems);
       }
-      console.error(`[Real Diagnostics] TypeScript analysis complete: ${results.length} problems found`);
+      mcpLog(`[Real Diagnostics] TypeScript analysis complete: ${results.length} problems found`);
       resolve(results);
     });
 
     tsc.on('error', (error) => {
-      console.error('[Real Diagnostics] TypeScript error:', error);
+      mcpLog('[Real Diagnostics] TypeScript error:', error);
       resolve([]);
     });
   });
@@ -174,7 +204,7 @@ async function runESLintDiagnostics() {
     );
 
     if (!hasEslintConfig) {
-      console.error(`[Real Diagnostics] No ESLint config found in ${extensionDir}, skipping ESLint diagnostics`);
+      mcpLog(`[Real Diagnostics] No ESLint config found in ${extensionDir}, skipping ESLint diagnostics`);
       resolve([]);
       return;
     }
@@ -183,12 +213,12 @@ async function runESLintDiagnostics() {
     const eslintCommand = CrossPlatform.getCommandForPlatform('npx');
     const hasESLint = await CrossPlatform.commandExists('eslint');
     if (!hasESLint) {
-      console.error('[Real Diagnostics] ESLint not found, skipping diagnostics');
+      mcpLog('[Real Diagnostics] ESLint not found, skipping diagnostics');
       resolve([]);
       return;
     }
 
-    console.error('[Real Diagnostics] Running ESLint diagnostics with cross-platform support...');
+    mcpLog('[Real Diagnostics] Running ESLint diagnostics with cross-platform support...');
 
     // ✅ Use cross-platform spawn options
     const spawnOptions = CrossPlatform.getSpawnOptions(extensionDir);
@@ -214,15 +244,15 @@ async function runESLintDiagnostics() {
           const problems = parseESLintOutput(output);
           results.push(...problems);
         } catch (error) {
-          console.error('[Real Diagnostics] Error parsing ESLint output:', error);
+          mcpLog('[Real Diagnostics] Error parsing ESLint output:', error);
         }
       }
-      console.error(`[Real Diagnostics] ESLint analysis complete: ${results.length} problems found`);
+      mcpLog(`[Real Diagnostics] ESLint analysis complete: ${results.length} problems found`);
       resolve(results);
     });
 
     eslint.on('error', (error) => {
-      console.error('[Real Diagnostics] ESLint error:', error);
+      mcpLog('[Real Diagnostics] ESLint error:', error);
       resolve([]);
     });
   });
@@ -281,10 +311,8 @@ function parseESLintOutput(output) {
       }
     }
   } catch (error) {
-    // Avoid noisy console output during automated test runs
-    if (process.env.NODE_ENV !== 'test') {
-      console.error('[Real Diagnostics] Error parsing ESLint JSON:', error);
-    }
+    // Avoid noisy console output during automated test runs and MCP mode
+    mcpLog('[Real Diagnostics] Error parsing ESLint JSON:', error);
   }
 
   return problems;
@@ -302,16 +330,16 @@ async function loadVSCodeExportedDiagnostics() {
       // Use exported data if it's less than 5 minutes old
       if (age < 5 * 60 * 1000) {
         const data = JSON.parse(fs.readFileSync(exportPath, 'utf8'));
-        console.error(`[Real Diagnostics] Loaded ${data.problemCount || 0} VS Code problems from export (${Math.round(age/1000)}s old)`);
+        mcpLog(`[Real Diagnostics] Loaded ${data.problemCount || 0} VS Code problems from export (${Math.round(age/1000)}s old)`);
         return data.problems || [];
       } else {
-        console.error(`[Real Diagnostics] VS Code export is too old (${Math.round(age/1000)}s), using fallback analysis`);
+        mcpLog(`[Real Diagnostics] VS Code export is too old (${Math.round(age/1000)}s), using fallback analysis`);
       }
     } else {
-      console.error('[Real Diagnostics] No VS Code export found, using fallback analysis');
+      mcpLog('[Real Diagnostics] No VS Code export found, using fallback analysis');
     }
   } catch (error) {
-    console.error('[Real Diagnostics] Error loading VS Code export:', error);
+    mcpLog('[Real Diagnostics] Error loading VS Code export:', error);
   }
 
   return null;
@@ -326,7 +354,7 @@ async function refreshDiagnostics() {
 
   refreshPromise = (async () => {
     try {
-      console.error('[Real Diagnostics] Refreshing diagnostic cache...');
+      mcpLog('[Real Diagnostics] Refreshing diagnostic cache...');
       const startTime = Date.now();
 
       // Clear existing cache
@@ -341,10 +369,10 @@ async function refreshDiagnostics() {
           const key = `${problem.filePath}:${problem.range.start.line}:${problem.range.start.character}`;
           diagnosticsCache.set(key, problem);
         }
-        console.error(`[Real Diagnostics] Using ${vsCodeProblems.length} problems from VS Code export`);
+        mcpLog(`[Real Diagnostics] Using ${vsCodeProblems.length} problems from VS Code export`);
       } else {
         // Fall back to static analysis
-        console.error('[Real Diagnostics] Running static analysis fallback...');
+        mcpLog('[Real Diagnostics] Running static analysis fallback...');
 
         const [typeScriptProblems, eslintProblems] = await Promise.all([
           runTypeScriptDiagnostics(),
@@ -358,15 +386,15 @@ async function refreshDiagnostics() {
           diagnosticsCache.set(key, problem);
         }
 
-        console.error(`[Real Diagnostics] Static analysis complete: ${typeScriptProblems.length} TypeScript + ${eslintProblems.length} ESLint = ${allProblems.length} total problems`);
+        mcpLog(`[Real Diagnostics] Static analysis complete: ${typeScriptProblems.length} TypeScript + ${eslintProblems.length} ESLint = ${allProblems.length} total problems`);
       }
 
       lastRefresh = Date.now();
       const duration = lastRefresh - startTime;
-      console.error(`[Real Diagnostics] Cache refresh completed in ${duration}ms`);
+      mcpLog(`[Real Diagnostics] Cache refresh completed in ${duration}ms`);
 
     } catch (error) {
-      console.error('[Real Diagnostics] Error refreshing diagnostics:', error);
+      mcpLog('[Real Diagnostics] Error refreshing diagnostics:', error);
     } finally {
       refreshPromise = null;
     }
@@ -417,19 +445,6 @@ function getWorkspaceSummary() {
   }
 
   return summary;
-}
-
-// ✅ PHASE 4.2: Platform detection and logging with cross-platform info
-console.error(`[System Info] Running on ${process.platform} (${process.arch})`);
-console.error(`[System Info] Node.js ${process.version}`);
-console.error(`[System Info] Extension directory: ${extensionDir}`);
-console.error(`[Cross-Platform] Windows: ${CrossPlatform.isWindows()}`);
-console.error(`[Cross-Platform] macOS: ${CrossPlatform.isMac()}`);
-console.error(`[Cross-Platform] Linux: ${CrossPlatform.isLinux()}`);
-if (CrossPlatformUtils) {
-  console.error(`[Cross-Platform] Using compiled CrossPlatformUtils`);
-} else {
-  console.error(`[Cross-Platform] Using fallback cross-platform implementation`);
 }
 
 // -------------------------------------------------------------
@@ -532,13 +547,13 @@ if (!isTestEnv && require.main === module) {
   /* istanbul ignore next – CLI main */
   async function main() {
     try {
-      console.error('[MCP Server] Starting cross-platform VS Code Diagnostics MCP server...');
+      mcpLog('[MCP Server] Starting cross-platform VS Code Diagnostics MCP server...');
       await refreshDiagnostics();
       const transport = new StdioServerTransport();
       await server.connect(transport);
-      console.error('[MCP Server] ✅ Server started');
+      mcpLog('[MCP Server] ✅ Server started');
     } catch (error) {
-      console.error('[MCP Server] ❌ Failed to start server:', error);
+      mcpLog('[MCP Server] ❌ Failed to start server:', error);
       process.exit(1);
     }
   }
