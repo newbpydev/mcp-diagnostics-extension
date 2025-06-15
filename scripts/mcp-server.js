@@ -548,10 +548,24 @@ if (!isTestEnv && require.main === module) {
   async function main() {
     try {
       mcpLog('[MCP Server] Starting cross-platform VS Code Diagnostics MCP server...');
-      await refreshDiagnostics();
+
+      // 1. Establish the STDIO transport **first** so that the MCP client
+      //    immediately receives the required "server/info" payload.  Delaying
+      //    this until after heavyweight static analysis can cause the client
+      //    to time-out with the cryptic "No server info found" error that the
+      //    user observed in the logs.
       const transport = new StdioServerTransport();
       await server.connect(transport);
-      mcpLog('[MCP Server] ✅ Server started');
+      mcpLog('[MCP Server] ✅ Server connected – initial server/info sent');
+
+      // 2. Kick-off the diagnostics refresh *after* the connection has been
+      //    established.  We run this in the background (fire-and-forget) so
+      //    that the MCP handshake completes instantly.  The CallTool handler
+      //    already guards against stale caches, so subsequent requests will
+      //    either use these freshly collected diagnostics or trigger a
+      //    refresh if the cache is still warming up.
+      void refreshDiagnostics();
+      mcpLog('[MCP Server] 🔄 Background diagnostics refresh started');
     } catch (error) {
       mcpLog('[MCP Server] ❌ Failed to start server:', error);
       process.exit(1);

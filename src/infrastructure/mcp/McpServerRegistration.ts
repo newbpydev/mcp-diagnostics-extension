@@ -215,25 +215,45 @@ export class McpServerRegistration {
   }
 
   /**
-   * Locates the configuration file using priority-based discovery
-   * Priority: workspace/.cursor/mcp.json > workspace/mcp.json > global/.cursor/mcp.json
+   * Locates the appropriate configuration file for MCP server injection
+   * Prioritizes global user config when using deployed server
    */
   private async locateConfigurationFile(): Promise<string> {
     const configPaths = this.getConfigurationPaths();
 
-    // Check existing files in priority order
-    for (const configPath of configPaths) {
-      if (fs.existsSync(configPath)) {
-        console.log('[MCP Configuration] Found existing configuration at:', configPath);
-        return configPath;
+    // Check if we have a deployed server in the user directory
+    const deployedServerPath = this.getInstalledServerPath();
+    const isServerDeployed = fs.existsSync(deployedServerPath);
+
+    let targetPath: string;
+
+    if (isServerDeployed) {
+      // When server is deployed to user directory, prioritize global user config
+      // This ensures the configuration points to the deployed server location
+      const homeDir = os.homedir();
+      if (!homeDir) {
+        throw new Error('Unable to determine home directory');
       }
+      targetPath = path.join(homeDir, '.cursor', 'mcp.json');
+      console.log('[MCP Configuration] Using global user config for deployed server:', targetPath);
+    } else {
+      // Fallback to existing priority order for development/workspace scenarios
+      for (const configPath of configPaths) {
+        if (fs.existsSync(configPath)) {
+          console.log('[MCP Configuration] Found existing configuration at:', configPath);
+          return configPath;
+        }
+      }
+
+      // If no existing file found, create in highest priority location
+      const firstPath = configPaths[0];
+      if (!firstPath) {
+        throw new Error('No configuration paths available');
+      }
+      targetPath = firstPath;
+      console.log('[MCP Configuration] Will create new configuration at:', targetPath);
     }
 
-    // If no existing file found, create in highest priority location
-    const targetPath = configPaths[0];
-    if (!targetPath) {
-      throw new Error('No configuration paths available');
-    }
     const targetDir = path.dirname(targetPath);
 
     // Ensure directory exists
@@ -242,7 +262,6 @@ export class McpServerRegistration {
       fs.mkdirSync(targetDir, { recursive: true });
     }
 
-    console.log('[MCP Configuration] Will create new configuration at:', targetPath);
     return targetPath;
   }
 

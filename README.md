@@ -509,8 +509,8 @@ Get all diagnostic problems with powerful filtering options:
 {
   "content": [
     {
-      "type": "text",
-      "text": "[{\"filePath\":\"/workspace/src/app.ts\",\"severity\":\"Error\",\"message\":\"Cannot find name 'foo'\",\"range\":{\"start\":{\"line\":10,\"character\":5},\"end\":{\"line\":10,\"character\":8}},\"source\":\"typescript\",\"workspaceFolder\":\"/workspace\",\"code\":\"2304\"}]"
+    "type": "text",
+    "text": "[{\"filePath\":\"/workspace/src/app.ts\",\"severity\":\"Error\",\"message\":\"Cannot find name 'foo'\",\"range\":{\"start\":{\"line\":10,\"character\":5},\"end\":{\"line\":10,\"character\":8}},\"source\":\"typescript\",\"workspaceFolder\":\"/workspace\",\"code\":\"2304\"}]"
     }
   ]
 }
@@ -548,8 +548,8 @@ Get comprehensive workspace diagnostic statistics:
 {
   "content": [
     {
-      "type": "text",
-      "text": "{\"totalProblems\":15,\"byFile\":{\"app.ts\":3,\"utils.ts\":2},\"bySeverity\":{\"Error\":5,\"Warning\":10},\"bySource\":{\"typescript\":8,\"eslint\":7},\"byWorkspace\":{\"main\":15},\"timestamp\":\"2024-01-15T10:30:00.000Z\"}"
+    "type": "text",
+    "text": "{\"totalProblems\":15,\"byFile\":{\"app.ts\":3,\"utils.ts\":2},\"bySeverity\":{\"Error\":5,\"Warning\":10},\"bySource\":{\"typescript\":8,\"eslint\":7},\"byWorkspace\":{\"main\":15},\"timestamp\":\"2024-01-15T10:30:00.000Z\"}"
     }
   ]
 }
