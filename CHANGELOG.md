@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.5.0] - 2025-06-17
+### Added
+- **IDE Context Bridge (Phase III)** – The extension now streams additional IDE data to MCP clients:
+  - Output Channel lines via `outputChannel/didChange` notification.
+  - Debug Console output via `debugConsole/didChange` notification.
+  - Integrated Terminal data via `terminal/didWrite` notification.
+  - Task completion status via `tasks/didEndProcess` notification.
+- Four new configuration toggles under `mcpDiagnostics.watchers.*` for granular control (all **enabled by default**).
+- Command `mcpDiagnostics.createWatchedTerminal` to spawn an MCP-enabled terminal.
+
+### Changed
+- Updated internal documentation and README with new Features & Configuration sections.
+- Increased test matrix to cover new watchers (>95% overall coverage).
+
+### Fixed
+- Minor ESLint strictness updates ensuring `exactOptionalPropertyTypes` compliance across new models.
+
 ### [1.4.1](https://github.com/newbpydev/mcp-diagnostics-extension/compare/v1.4.0...v1.4.1) (2025-06-15)
 
 ### Bug Fixes

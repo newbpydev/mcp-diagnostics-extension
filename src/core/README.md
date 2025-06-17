@@ -37,13 +37,22 @@ The core layer serves as the **heart of the application**, containing:
 
 ```
 core/
+├── debug/                    # Debug Console monitoring
+│   └── DebugConsoleWatcher.ts   # Debug session output capture
 ├── diagnostics/              # Diagnostic monitoring and processing
 │   ├── DiagnosticsWatcher.ts    # Main diagnostic event processor
-│   └── DiagnosticConverter.ts   # VS Code diagnostic → ProblemItem conversion
+│   ├── DiagnosticConverter.ts   # VS Code diagnostic → ProblemItem conversion
+│   └── PerformanceMonitor.ts    # Performance tracking and metrics
 ├── models/                   # Domain entities and value objects
-│   └── ProblemItem.ts           # Core diagnostic problem representation
-└── services/                 # Business logic services
-    └── PerformanceMonitor.ts    # Performance tracking and metrics
+│   └── index.ts                 # Core diagnostic problem representation
+├── output/                   # Output Channel monitoring
+│   └── OutputChannelWatcher.ts  # Custom output channel data capture
+├── services/                 # Business logic services
+│   └── index.ts                 # Business logic service exports
+├── tasks/                    # Task execution monitoring
+│   └── TaskWatcher.ts           # VS Code task completion tracking
+└── terminal/                 # Terminal integration
+    └── TerminalWatcher.ts       # Integrated terminal data capture
 ```
 
 ## 🎯 Core Components
@@ -110,6 +119,55 @@ class DiagnosticConverter {
   static validateProblemItem(item: unknown): item is ProblemItem
 }
 ```
+
+### Debug Module
+**Purpose**: Monitor and capture debug console output from active debug sessions
+
+#### DebugConsoleWatcher.ts
+**Primary responsibility**: Listen to Debug Adapter Protocol (DAP) output events
+
+##### Key Features
+- **DAP Integration** - Subscribes to `vscode.debug.onDidReceiveDebugSessionCustomEvent`
+- **Output Filtering** - Captures only 'output' events with valid data
+- **Session Tracking** - Associates output with specific debug sessions
+- **Category Support** - Handles stdout, stderr, console categories
+- **Real-time Streaming** - Emits `DebugOutputItem` events for MCP clients
+
+### Output Module
+**Purpose**: Monitor and capture custom output channel data
+
+#### OutputChannelWatcher.ts
+**Primary responsibility**: Proxy VS Code output channels to capture written data
+
+##### Key Features
+- **Proxy Pattern** - Intercepts `appendLine` calls to capture data
+- **Channel Management** - Creates and manages extension-owned output channels
+- **Real-time Monitoring** - Emits `OutputChannelItem` events as data is written
+- **Configurable** - Can be enabled/disabled via `watchers.enableOutputChannels`
+
+### Terminal Module
+**Purpose**: Capture integrated terminal input/output data
+
+#### TerminalWatcher.ts
+**Primary responsibility**: Create observable terminals using Pseudoterminal interface
+
+##### Key Features
+- **Pseudoterminal Implementation** - Custom pty that captures user input
+- **Terminal Creation** - Provides `createTerminal()` method for watched terminals
+- **Input Capture** - Monitors data written to terminal by user
+- **Command Integration** - Accessible via `mcpDiagnostics.createWatchedTerminal`
+
+### Tasks Module
+**Purpose**: Monitor VS Code task execution and completion
+
+#### TaskWatcher.ts
+**Primary responsibility**: Track task process completion events
+
+##### Key Features
+- **Task Monitoring** - Subscribes to `vscode.tasks.onDidEndTaskProcess`
+- **Exit Code Tracking** - Captures task success/failure status
+- **Process Information** - Records task name, execution time, exit codes
+- **Real-time Notifications** - Emits `TaskProcessEndItem` for completion events
 
 ### Models Module
 **Purpose**: Define core domain entities and value objects
