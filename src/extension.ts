@@ -20,6 +20,8 @@ import { ExtensionCommands } from './commands/ExtensionCommands';
 import { DEFAULT_CONFIG } from './shared/constants';
 import { McpServerRegistration } from './infrastructure/mcp/McpServerRegistration';
 import { deployBundledServer } from './shared/deployment/ServerDeployment';
+import { OutputChannelWatcher } from './core/output/OutputChannelWatcher';
+import { OutputChannelItem } from './shared/types';
 import { promises as fsp } from 'fs';
 
 /**
@@ -135,6 +137,47 @@ export async function activate(
     try {
       await mcpServer.start();
       console.log('🟢 [MCP Diagnostics] MCP Server started.');
+
+      /* ------------------------------------------------------------------
+       * Step 2.5 – OutputChannelWatcher Integration (User Story 1.2)
+       * ------------------------------------------------------------------
+       * We initialise the OutputChannelWatcher **after** the MCP server is
+       * confirmed running so that events can be forwarded immediately.  The
+       * watcher is only created when the corresponding configuration flag is
+       * enabled (defaults to `true`).  All data is forwarded via the optional
+       * `sendOutputChannelChanged` notification stub until the full
+       * notification pipeline is implemented.
+       * ------------------------------------------------------------------ */
+
+      /* istanbul ignore next -- runtime-only OutputChannelWatcher integration */
+      try {
+        const enableOutputChannels = config.get('watchers.enableOutputChannels', true);
+
+        if (enableOutputChannels) {
+          console.log('🟡 [MCP Diagnostics] Initialising OutputChannelWatcher…');
+
+          const ocWatcher = new OutputChannelWatcher(vscode);
+
+          // Forward output-channel data to the MCP notifications layer (stub).
+          ocWatcher.on('onData', (item: OutputChannelItem) => {
+            mcpServer?.getNotifications()?.sendOutputChannelChanged?.(item);
+          });
+
+          // Extension-owned output channel for internal logs that is also
+          // streamed via the watcher.
+          const extChannel = ocWatcher.createChannel('MCP Extension Logs');
+          extChannel.appendLine('MCP Diagnostics Extension activated with OutputChannelWatcher.');
+
+          // Ensure proper disposal via VS Code's subscription mechanism.
+          context.subscriptions.push(extChannel, { dispose: () => ocWatcher.dispose() });
+
+          console.log('🟢 [MCP Diagnostics] OutputChannelWatcher active.');
+        } else {
+          console.log('🟡 [MCP Diagnostics] OutputChannelWatcher disabled via configuration.');
+        }
+      } catch (ocError) {
+        console.error('🔴 [MCP Diagnostics] Failed to initialise OutputChannelWatcher:', ocError);
+      }
     } catch (error) {
       console.error('🔴 [MCP Diagnostics] MCP Server start failed:', error);
       vscode.window.showErrorMessage(

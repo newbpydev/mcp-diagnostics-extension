@@ -10,6 +10,7 @@ import * as path from 'path';
 import * as os from 'os';
 import { DiagnosticsWatcher } from '../../core/diagnostics/DiagnosticsWatcher';
 import { DiagnosticsChangeEvent } from '../../shared/types';
+import { OutputChannelItem } from '../../shared/types';
 
 /**
  * Configuration interface for MCP server
@@ -545,11 +546,23 @@ export class McpServerWrapper {
   /**
    * Gets the notifications (for testing compatibility)
    */
-  public getNotifications(): { sendProblemsChangedNotification: (data: unknown) => void } {
+  public getNotifications(): {
+    sendProblemsChangedNotification: (data: unknown) => void;
+    sendOutputChannelChanged?: (item: OutputChannelItem) => void;
+  } {
     return {
       sendProblemsChangedNotification: (data: unknown): void => {
         if (this.config.enableDebugLogging) {
           console.log('[MCP Server] Sending problems changed notification:', data);
+        }
+      },
+      // Optional: stub implementation for output channel data until full notification infrastructure is implemented
+      sendOutputChannelChanged: (item: OutputChannelItem): void => {
+        if (this.config.enableDebugLogging) {
+          console.log('[MCP Server] OutputChannelChanged:', {
+            channel: item.channelName,
+            preview: item.line?.slice(0, 80),
+          });
         }
       },
     };

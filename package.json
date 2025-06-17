@@ -82,6 +82,11 @@
           "maximum": 10000,
           "description": "Maximum number of problems to track per file"
         },
+        "mcpDiagnostics.watchers.enableOutputChannels": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable monitoring of Output Channels created via the MCP Diagnostics Extension. Disable if you do not need Output Channel data streamed to MCP clients."
+        },
         "mcpDiagnostics.debug.logLevel": {
           "type": "string",
           "enum": [
