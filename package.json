@@ -97,6 +97,11 @@
           "default": true,
           "description": "Enable creation and monitoring of watched Integrated Terminals to stream their input to MCP clients."
         },
+        "mcpDiagnostics.watchers.enableTasks": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable monitoring of task completion events and stream them to MCP clients."
+        },
         "mcpDiagnostics.debug.logLevel": {
           "type": "string",
           "enum": [

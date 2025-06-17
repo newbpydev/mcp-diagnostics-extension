@@ -27,6 +27,8 @@ import { DebugOutputItem } from './shared/types';
 import { TerminalWatcher } from './core/terminal/TerminalWatcher';
 import { TerminalOutputItem } from './shared/types';
 import { promises as fsp } from 'fs';
+import { TaskWatcher } from './core/tasks/TaskWatcher';
+import { TaskProcessEndItem } from './shared/types';
 
 /**
  * Global DiagnosticsWatcher instance for the extension lifecycle
@@ -232,6 +234,23 @@ export async function activate(
         }
       } catch (twError) {
         console.error('🔴 [MCP Diagnostics] Failed to initialise TerminalWatcher:', twError);
+      }
+
+      /* istanbul ignore next -- runtime-only TaskWatcher integration */
+      try {
+        const enableTasks = config.get('watchers.enableTasks', true);
+
+        if (enableTasks) {
+          console.log('🟡 [MCP Diagnostics] Initialising TaskWatcher…');
+          const taskWatcher = new TaskWatcher(vscode);
+          taskWatcher.on('onData', (item: TaskProcessEndItem) => {
+            mcpServer?.getNotifications()?.sendTaskProcessEnded?.(item);
+          });
+          context.subscriptions.push({ dispose: () => taskWatcher.dispose() });
+          console.log('🟢 [MCP Diagnostics] TaskWatcher active.');
+        }
+      } catch (taskErr) {
+        console.error('🔴 [MCP Diagnostics] Failed to initialise TaskWatcher:', taskErr);
       }
     } catch (error) {
       console.error('🔴 [MCP Diagnostics] MCP Server start failed:', error);

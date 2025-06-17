@@ -551,6 +551,7 @@ export class McpServerWrapper {
     sendOutputChannelChanged?: (item: OutputChannelItem) => void;
     sendDebugConsoleChanged?: (item: import('../../shared/types').DebugOutputItem) => void;
     sendTerminalData?: (item: import('../../shared/types').TerminalOutputItem) => void;
+    sendTaskProcessEnded?: (item: import('../../shared/types').TaskProcessEndItem) => void;
   } {
     return {
       sendProblemsChangedNotification: (data: unknown): void => {
@@ -581,6 +582,11 @@ export class McpServerWrapper {
             terminal: item.terminalName,
             preview: item.data?.slice(0, 80),
           });
+        }
+      },
+      sendTaskProcessEnded: (item: import('../../shared/types').TaskProcessEndItem): void => {
+        if (this.config.enableDebugLogging) {
+          console.log('[MCP Server] TaskProcessEnded:', item);
         }
       },
     };
