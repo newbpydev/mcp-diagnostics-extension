@@ -149,3 +149,108 @@ export interface ProblemSummary {
   readonly fileCount: number;
   readonly workspaceFolders: ReadonlyArray<string>;
 }
+
+// ===== NEW IDE CONTEXT DATA MODELS =====
+
+/**
+ * Represents a single line of output from a named Output Channel
+ *
+ * Output Channels in VS Code are used by extensions and built-in features
+ * to display logging and status information. This interface captures
+ * individual lines written to channels for real-time monitoring.
+ *
+ * @example
+ * ```typescript
+ * const outputItem: OutputChannelItem = {
+ *   channelName: 'TypeScript',
+ *   line: 'Compiling project...',
+ *   timestamp: Date.now()
+ * };
+ * ```
+ */
+export interface OutputChannelItem {
+  /** Name of the output channel (e.g., 'TypeScript', 'ESLint', 'Git') */
+  channelName: string;
+  /** The actual line of text written to the channel */
+  line: string;
+  /** Unix timestamp when this line was written */
+  timestamp: number;
+}
+
+/**
+ * Represents output from the Debug Console for a specific debug session
+ *
+ * Debug Console output follows the Debug Adapter Protocol (DAP) specification
+ * and includes various categories of output from running debug sessions.
+ * This enables AI agents to monitor application behavior during debugging.
+ *
+ * @example
+ * ```typescript
+ * const debugOutput: DebugOutputItem = {
+ *   sessionId: 'debug-session-1',
+ *   category: 'stdout',
+ *   output: 'User logged in successfully\n',
+ *   timestamp: Date.now()
+ * };
+ * ```
+ */
+export interface DebugOutputItem {
+  /** Unique identifier for the debug session */
+  sessionId: string;
+  /** Category of debug output following DAP specification */
+  category: 'stdout' | 'stderr' | 'console' | 'telemetry' | string;
+  /** The actual output content from the debug session */
+  output: string;
+  /** Unix timestamp when this output was received */
+  timestamp: number;
+}
+
+/**
+ * Represents a chunk of data written to an integrated terminal
+ *
+ * Integrated Terminal data is captured through VS Code's Pseudoterminal API.
+ * This interface represents user input and command output from terminal sessions
+ * that can be monitored by AI agents for build processes, script execution, etc.
+ *
+ * @example
+ * ```typescript
+ * const terminalData: TerminalOutputItem = {
+ *   terminalName: 'MCP Watched Terminal',
+ *   data: 'npm run build\n',
+ *   timestamp: Date.now()
+ * };
+ * ```
+ */
+export interface TerminalOutputItem {
+  /** Name of the terminal instance */
+  terminalName: string;
+  /** Raw data written to or from the terminal */
+  data: string;
+  /** Unix timestamp when this data was captured */
+  timestamp: number;
+}
+
+/**
+ * Represents the result of a completed VS Code Task
+ *
+ * VS Code Tasks are used for build processes, linting, testing, and other
+ * automated workflows. This interface captures task completion events
+ * with exit codes, enabling AI agents to understand build success/failure.
+ *
+ * @example
+ * ```typescript
+ * const taskResult: TaskProcessEndItem = {
+ *   taskName: 'npm: build',
+ *   exitCode: 0,
+ *   timestamp: Date.now()
+ * };
+ * ```
+ */
+export interface TaskProcessEndItem {
+  /** Display name of the completed task */
+  taskName: string;
+  /** Exit code of the task process (0 = success, non-zero = failure) */
+  exitCode?: number;
+  /** Unix timestamp when the task completed */
+  timestamp: number;
+}

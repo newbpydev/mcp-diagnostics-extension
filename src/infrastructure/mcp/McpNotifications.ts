@@ -1,7 +1,14 @@
-import { DiagnosticsChangeEvent, ProblemItem } from '@shared/types';
+import {
+  DiagnosticsChangeEvent,
+  ProblemItem,
+  OutputChannelItem,
+  DebugOutputItem,
+  TerminalOutputItem,
+  TaskProcessEndItem,
+} from '@shared/types';
 
 /**
- * Interface for MCP notification structure
+ * Interface for MCP notification structure (diagnostics)
  */
 interface McpNotification {
   method: string;
@@ -14,6 +21,22 @@ interface McpNotification {
       problemCount: number;
       problems: ProblemItem[];
       timestamp: string;
+    };
+  };
+}
+
+/**
+ * Interface for generic IDE context notifications
+ */
+interface IdeContextNotification {
+  method: string;
+  params: {
+    level: string;
+    logger: string;
+    data: {
+      type: string;
+      timestamp: string;
+      [key: string]: unknown;
     };
   };
 }
@@ -34,7 +57,7 @@ interface McpServer {
     method: string,
     handler: (notification: SubscriptionNotification) => void
   ) => void;
-  sendNotification: (notification: McpNotification) => void;
+  sendNotification: (notification: McpNotification | IdeContextNotification) => void;
 }
 
 /**
@@ -173,5 +196,131 @@ export class McpNotifications {
    */
   public clearSubscriptions(): void {
     this.subscribedClients.clear();
+  }
+
+  // ===== NEW IDE CONTEXT NOTIFICATION HELPERS =====
+
+  /**
+   * Generic helper for sending IDE context notifications with consistent structure
+   * @private
+   * @param method - The notification method name
+   * @param payload - The notification payload (IDE context item)
+   */
+  private sendGeneric<
+    T extends OutputChannelItem | DebugOutputItem | TerminalOutputItem | TaskProcessEndItem,
+  >(method: string, payload: T): void {
+    if (this.subscribedClients.size === 0) {
+      return;
+    }
+
+    const notificationType = method.split('/')[1] || 'unknown'; // Extract type from method
+
+    const notification: IdeContextNotification = {
+      method: 'notifications/message',
+      params: {
+        level: 'info',
+        logger: 'vscode-diagnostics',
+        data: {
+          type: notificationType,
+          ...payload,
+          timestamp: new Date(payload.timestamp).toISOString(),
+        },
+      },
+    };
+
+    this.subscribedClients.forEach((clientId) => {
+      try {
+        this.server.sendNotification(notification);
+      } catch (error) {
+        console.error(`Failed to send ${method} notification to client ${clientId}:`, error);
+      }
+    });
+  }
+
+  /**
+   * Sends an Output Channel change notification to all subscribed clients
+   *
+   * This method is called when VS Code Output Channels receive new content.
+   * It broadcasts the change to all clients that have subscribed to IDE notifications.
+   *
+   * @param item - The output channel item containing channel name and content
+   *
+   * @example
+   * ```typescript
+   * notifications.sendOutputChannelChanged({
+   *   channelName: 'TypeScript',
+   *   line: 'Compiling src/main.ts...',
+   *   timestamp: Date.now()
+   * });
+   * ```
+   */
+  public sendOutputChannelChanged(item: OutputChannelItem): void {
+    this.sendGeneric('ide/outputChannelDidChange', item);
+  }
+
+  /**
+   * Sends a Debug Console change notification to all subscribed clients
+   *
+   * This method is called when Debug Console receives output from debug sessions.
+   * It broadcasts DAP (Debug Adapter Protocol) output events to subscribed clients.
+   *
+   * @param item - The debug output item containing session and output information
+   *
+   * @example
+   * ```typescript
+   * notifications.sendDebugConsoleChanged({
+   *   sessionId: 'debug-session-1',
+   *   category: 'stdout',
+   *   output: 'Application started successfully\n',
+   *   timestamp: Date.now()
+   * });
+   * ```
+   */
+  public sendDebugConsoleChanged(item: DebugOutputItem): void {
+    this.sendGeneric('ide/debugConsoleDidChange', item);
+  }
+
+  /**
+   * Sends a Terminal data notification to all subscribed clients
+   *
+   * This method is called when Integrated Terminal receives input or output.
+   * It broadcasts terminal activity to help AI agents monitor build processes,
+   * script execution, and command-line interactions.
+   *
+   * @param item - The terminal output item containing terminal name and data
+   *
+   * @example
+   * ```typescript
+   * notifications.sendTerminalData({
+   *   terminalName: 'MCP Watched Terminal',
+   *   data: 'npm run build\n',
+   *   timestamp: Date.now()
+   * });
+   * ```
+   */
+  public sendTerminalData(item: TerminalOutputItem): void {
+    this.sendGeneric('ide/terminalDidChange', item);
+  }
+
+  /**
+   * Sends a Task process end notification to all subscribed clients
+   *
+   * This method is called when VS Code Tasks complete execution.
+   * It broadcasts task completion events with exit codes to help AI agents
+   * understand build success/failure and automation workflows.
+   *
+   * @param item - The task process end item containing task name and exit code
+   *
+   * @example
+   * ```typescript
+   * notifications.sendTaskProcessEnded({
+   *   taskName: 'npm: build',
+   *   exitCode: 0,
+   *   timestamp: Date.now()
+   * });
+   * ```
+   */
+  public sendTaskProcessEnded(item: TaskProcessEndItem): void {
+    this.sendGeneric('ide/taskDidEnd', item);
   }
 }

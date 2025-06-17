@@ -410,4 +410,261 @@ describe('McpNotifications', () => {
       }).not.toThrow();
     });
   });
+
+  describe('clearSubscriptions', () => {
+    it('should clear all client subscriptions', () => {
+      // Subscribe a client first
+      mcpNotifications.setupNotifications();
+      mockServer.setNotificationHandler.mock.calls[0][1]({
+        params: { method: 'problemsChanged' },
+        clientId: 'test-client-1',
+      });
+
+      expect(mcpNotifications.getSubscribedClientCount()).toBe(1);
+
+      mcpNotifications.clearSubscriptions();
+      expect(mcpNotifications.getSubscribedClientCount()).toBe(0);
+    });
+  });
+
+  // ===== NEW IDE CONTEXT NOTIFICATION TESTS =====
+
+  describe('IDE Context Notifications', () => {
+    beforeEach(() => {
+      mcpNotifications.setupNotifications();
+      // Subscribe a client to receive notifications
+      mockServer.setNotificationHandler.mock.calls[0][1]({
+        params: { method: 'problemsChanged' },
+        clientId: 'test-client-1',
+      });
+    });
+
+    describe('sendOutputChannelChanged', () => {
+      it('should send output channel notification to subscribed clients', () => {
+        const outputChannelItem = {
+          channelName: 'TypeScript',
+          line: 'Compiling src/main.ts...',
+          timestamp: Date.now(),
+        };
+
+        mcpNotifications.sendOutputChannelChanged(outputChannelItem);
+
+        expect(mockServer.sendNotification).toHaveBeenCalledWith({
+          method: 'notifications/message',
+          params: {
+            level: 'info',
+            logger: 'vscode-diagnostics',
+            data: {
+              type: 'outputChannelDidChange',
+              channelName: 'TypeScript',
+              line: 'Compiling src/main.ts...',
+              timestamp: expect.any(String), // ISO string format
+            },
+          },
+        });
+      });
+
+      it('should not send notification when no clients are subscribed', () => {
+        mcpNotifications.clearSubscriptions();
+        const outputChannelItem = {
+          channelName: 'ESLint',
+          line: 'Linting completed',
+          timestamp: Date.now(),
+        };
+
+        mcpNotifications.sendOutputChannelChanged(outputChannelItem);
+
+        expect(mockServer.sendNotification).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('sendDebugConsoleChanged', () => {
+      it('should send debug console notification to subscribed clients', () => {
+        const debugOutputItem = {
+          sessionId: 'debug-session-1',
+          category: 'stdout' as const,
+          output: 'Application started successfully\n',
+          timestamp: Date.now(),
+        };
+
+        mcpNotifications.sendDebugConsoleChanged(debugOutputItem);
+
+        expect(mockServer.sendNotification).toHaveBeenCalledWith({
+          method: 'notifications/message',
+          params: {
+            level: 'info',
+            logger: 'vscode-diagnostics',
+            data: {
+              type: 'debugConsoleDidChange',
+              sessionId: 'debug-session-1',
+              category: 'stdout',
+              output: 'Application started successfully\n',
+              timestamp: expect.any(String),
+            },
+          },
+        });
+      });
+
+      it('should handle different debug output categories', () => {
+        const debugOutputItem = {
+          sessionId: 'debug-session-2',
+          category: 'stderr' as const,
+          output: 'Warning: Deprecated API usage\n',
+          timestamp: Date.now(),
+        };
+
+        mcpNotifications.sendDebugConsoleChanged(debugOutputItem);
+
+        expect(mockServer.sendNotification).toHaveBeenCalledWith(
+          expect.objectContaining({
+            params: expect.objectContaining({
+              data: expect.objectContaining({
+                category: 'stderr',
+                sessionId: 'debug-session-2',
+              }),
+            }),
+          })
+        );
+      });
+    });
+
+    describe('sendTerminalData', () => {
+      it('should send terminal data notification to subscribed clients', () => {
+        const terminalOutputItem = {
+          terminalName: 'MCP Watched Terminal',
+          data: 'npm run build\n',
+          timestamp: Date.now(),
+        };
+
+        mcpNotifications.sendTerminalData(terminalOutputItem);
+
+        expect(mockServer.sendNotification).toHaveBeenCalledWith({
+          method: 'notifications/message',
+          params: {
+            level: 'info',
+            logger: 'vscode-diagnostics',
+            data: {
+              type: 'terminalDidChange',
+              terminalName: 'MCP Watched Terminal',
+              data: 'npm run build\n',
+              timestamp: expect.any(String),
+            },
+          },
+        });
+      });
+
+      it('should handle empty terminal data', () => {
+        const terminalOutputItem = {
+          terminalName: 'Empty Terminal',
+          data: '',
+          timestamp: Date.now(),
+        };
+
+        mcpNotifications.sendTerminalData(terminalOutputItem);
+
+        expect(mockServer.sendNotification).toHaveBeenCalledWith(
+          expect.objectContaining({
+            params: expect.objectContaining({
+              data: expect.objectContaining({
+                data: '',
+                terminalName: 'Empty Terminal',
+              }),
+            }),
+          })
+        );
+      });
+    });
+
+    describe('sendTaskProcessEnded', () => {
+      it('should send task process end notification to subscribed clients', () => {
+        const taskProcessEndItem = {
+          taskName: 'npm: build',
+          exitCode: 0,
+          timestamp: Date.now(),
+        };
+
+        mcpNotifications.sendTaskProcessEnded(taskProcessEndItem);
+
+        expect(mockServer.sendNotification).toHaveBeenCalledWith({
+          method: 'notifications/message',
+          params: {
+            level: 'info',
+            logger: 'vscode-diagnostics',
+            data: {
+              type: 'taskDidEnd',
+              taskName: 'npm: build',
+              exitCode: 0,
+              timestamp: expect.any(String),
+            },
+          },
+        });
+      });
+
+      it('should handle task with undefined exit code', () => {
+        const taskProcessEndItem = {
+          taskName: 'npm: test',
+          timestamp: Date.now(),
+        };
+
+        mcpNotifications.sendTaskProcessEnded(taskProcessEndItem);
+
+        expect(mockServer.sendNotification).toHaveBeenCalledWith(
+          expect.objectContaining({
+            params: expect.objectContaining({
+              data: expect.objectContaining({
+                taskName: 'npm: test',
+              }),
+            }),
+          })
+        );
+      });
+
+      it('should handle task failure with non-zero exit code', () => {
+        const taskProcessEndItem = {
+          taskName: 'npm: lint',
+          exitCode: 1,
+          timestamp: Date.now(),
+        };
+
+        mcpNotifications.sendTaskProcessEnded(taskProcessEndItem);
+
+        expect(mockServer.sendNotification).toHaveBeenCalledWith(
+          expect.objectContaining({
+            params: expect.objectContaining({
+              data: expect.objectContaining({
+                exitCode: 1,
+                type: 'taskDidEnd',
+              }),
+            }),
+          })
+        );
+      });
+    });
+
+    describe('error handling in IDE context notifications', () => {
+      it('should handle sendNotification errors gracefully', () => {
+        const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+        mockServer.sendNotification.mockImplementation(() => {
+          throw new Error('Network error');
+        });
+
+        const outputChannelItem = {
+          channelName: 'Test Channel',
+          line: 'Test message',
+          timestamp: Date.now(),
+        };
+
+        expect(() => {
+          mcpNotifications.sendOutputChannelChanged(outputChannelItem);
+        }).not.toThrow();
+
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Failed to send ide/outputChannelDidChange notification'),
+          expect.any(Error)
+        );
+
+        consoleErrorSpy.mockRestore();
+      });
+    });
+  });
 });
