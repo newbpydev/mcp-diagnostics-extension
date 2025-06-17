@@ -92,6 +92,11 @@
           "default": true,
           "description": "Enable monitoring of Debug Console output events and stream them to MCP clients."
         },
+        "mcpDiagnostics.watchers.enableTerminal": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable creation and monitoring of watched Integrated Terminals to stream their input to MCP clients."
+        },
         "mcpDiagnostics.debug.logLevel": {
           "type": "string",
           "enum": [

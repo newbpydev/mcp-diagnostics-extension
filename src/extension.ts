@@ -24,6 +24,8 @@ import { OutputChannelWatcher } from './core/output/OutputChannelWatcher';
 import { OutputChannelItem } from './shared/types';
 import { DebugConsoleWatcher } from './core/debug/DebugConsoleWatcher';
 import { DebugOutputItem } from './shared/types';
+import { TerminalWatcher } from './core/terminal/TerminalWatcher';
+import { TerminalOutputItem } from './shared/types';
 import { promises as fsp } from 'fs';
 
 /**
@@ -201,6 +203,35 @@ export async function activate(
         }
       } catch (dcError) {
         console.error('🔴 [MCP Diagnostics] Failed to initialise DebugConsoleWatcher:', dcError);
+      }
+
+      /* istanbul ignore next -- runtime-only TerminalWatcher integration */
+      try {
+        const isTestEnv = process.env['NODE_ENV'] === 'test';
+        const enableTerminal = !isTestEnv && config.get('watchers.enableTerminal', true);
+
+        if (enableTerminal) {
+          console.log('🟡 [MCP Diagnostics] Initialising TerminalWatcher…');
+          const tWatcher = new TerminalWatcher(vscode);
+
+          tWatcher.on('onData', (item: TerminalOutputItem) => {
+            mcpServer?.getNotifications()?.sendTerminalData?.(item);
+          });
+
+          // Command to create watched terminal.
+          context.subscriptions.push(
+            vscode.commands.registerCommand('mcpDiagnostics.createWatchedTerminal', () => {
+              tWatcher.createTerminal('MCP Watched Terminal');
+            }),
+            { dispose: () => tWatcher.dispose() }
+          );
+
+          console.log('🟢 [MCP Diagnostics] TerminalWatcher active.');
+        } else {
+          console.log('🟡 [MCP Diagnostics] TerminalWatcher disabled via configuration.');
+        }
+      } catch (twError) {
+        console.error('🔴 [MCP Diagnostics] Failed to initialise TerminalWatcher:', twError);
       }
     } catch (error) {
       console.error('🔴 [MCP Diagnostics] MCP Server start failed:', error);

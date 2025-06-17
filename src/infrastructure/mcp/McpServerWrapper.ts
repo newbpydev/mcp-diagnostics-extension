@@ -550,6 +550,7 @@ export class McpServerWrapper {
     sendProblemsChangedNotification: (data: unknown) => void;
     sendOutputChannelChanged?: (item: OutputChannelItem) => void;
     sendDebugConsoleChanged?: (item: import('../../shared/types').DebugOutputItem) => void;
+    sendTerminalData?: (item: import('../../shared/types').TerminalOutputItem) => void;
   } {
     return {
       sendProblemsChangedNotification: (data: unknown): void => {
@@ -571,6 +572,14 @@ export class McpServerWrapper {
           console.log('[MCP Server] DebugConsoleChanged:', {
             session: item.sessionId,
             preview: item.output?.slice(0, 80),
+          });
+        }
+      },
+      sendTerminalData: (item: import('../../shared/types').TerminalOutputItem): void => {
+        if (this.config.enableDebugLogging) {
+          console.log('[MCP Server] TerminalDataChanged:', {
+            terminal: item.terminalName,
+            preview: item.data?.slice(0, 80),
           });
         }
       },
