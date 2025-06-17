@@ -22,6 +22,8 @@ import { McpServerRegistration } from './infrastructure/mcp/McpServerRegistratio
 import { deployBundledServer } from './shared/deployment/ServerDeployment';
 import { OutputChannelWatcher } from './core/output/OutputChannelWatcher';
 import { OutputChannelItem } from './shared/types';
+import { DebugConsoleWatcher } from './core/debug/DebugConsoleWatcher';
+import { DebugOutputItem } from './shared/types';
 import { promises as fsp } from 'fs';
 
 /**
@@ -177,6 +179,28 @@ export async function activate(
         }
       } catch (ocError) {
         console.error('🔴 [MCP Diagnostics] Failed to initialise OutputChannelWatcher:', ocError);
+      }
+
+      /* istanbul ignore next -- runtime-only DebugConsoleWatcher integration */
+      try {
+        const enableDebugConsole = config.get('watchers.enableDebugConsole', true);
+
+        if (enableDebugConsole) {
+          console.log('🟡 [MCP Diagnostics] Initialising DebugConsoleWatcher…');
+
+          const dcWatcher = new DebugConsoleWatcher(vscode);
+          dcWatcher.on('onData', (item: DebugOutputItem) => {
+            mcpServer?.getNotifications()?.sendDebugConsoleChanged?.(item);
+          });
+
+          context.subscriptions.push({ dispose: () => dcWatcher.dispose() });
+
+          console.log('🟢 [MCP Diagnostics] DebugConsoleWatcher active.');
+        } else {
+          console.log('🟡 [MCP Diagnostics] DebugConsoleWatcher disabled via configuration.');
+        }
+      } catch (dcError) {
+        console.error('🔴 [MCP Diagnostics] Failed to initialise DebugConsoleWatcher:', dcError);
       }
     } catch (error) {
       console.error('🔴 [MCP Diagnostics] MCP Server start failed:', error);

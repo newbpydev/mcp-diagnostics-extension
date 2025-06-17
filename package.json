@@ -87,6 +87,11 @@
           "default": true,
           "description": "Enable monitoring of Output Channels created via the MCP Diagnostics Extension. Disable if you do not need Output Channel data streamed to MCP clients."
         },
+        "mcpDiagnostics.watchers.enableDebugConsole": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable monitoring of Debug Console output events and stream them to MCP clients."
+        },
         "mcpDiagnostics.debug.logLevel": {
           "type": "string",
           "enum": [

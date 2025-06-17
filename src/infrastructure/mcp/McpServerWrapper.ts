@@ -549,6 +549,7 @@ export class McpServerWrapper {
   public getNotifications(): {
     sendProblemsChangedNotification: (data: unknown) => void;
     sendOutputChannelChanged?: (item: OutputChannelItem) => void;
+    sendDebugConsoleChanged?: (item: import('../../shared/types').DebugOutputItem) => void;
   } {
     return {
       sendProblemsChangedNotification: (data: unknown): void => {
@@ -562,6 +563,14 @@ export class McpServerWrapper {
           console.log('[MCP Server] OutputChannelChanged:', {
             channel: item.channelName,
             preview: item.line?.slice(0, 80),
+          });
+        }
+      },
+      sendDebugConsoleChanged: (item: import('../../shared/types').DebugOutputItem): void => {
+        if (this.config.enableDebugLogging) {
+          console.log('[MCP Server] DebugConsoleChanged:', {
+            session: item.sessionId,
+            preview: item.output?.slice(0, 80),
           });
         }
       },
