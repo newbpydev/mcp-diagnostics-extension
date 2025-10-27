@@ -192,7 +192,7 @@ jobs:
       run: npm install -g @vscode/vsce
 
     - name: Download VSIX artifact
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v6
       with:
         name: extension-vsix-${{ github.sha }}
 
